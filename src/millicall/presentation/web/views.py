@@ -9,6 +9,7 @@ from millicall.application.settings_service import SettingsService
 from millicall.application.device_service import DeviceService
 from millicall.application.extension_service import ExtensionService
 from millicall.application.peer_service import PeerService
+from millicall.application.trunk_service import TrunkService
 from millicall.infrastructure.database import get_session
 
 router = APIRouter(tags=["web"])
@@ -46,17 +47,23 @@ async def dashboard(request: Request, session: AsyncSession = Depends(get_sessio
 async def extensions_list(request: Request, session: AsyncSession = Depends(get_session)):
     ext_service = ExtensionService(session)
     peer_service = PeerService(session)
-    agent_service = AIAgentService(session)
     extensions = await ext_service.list_extensions()
     peers = await peer_service.list_peers()
-    agents = await agent_service.list_agents()
     peer_map = {p.id: p for p in peers}
+    # Load agent info for AI extensions
+    agent_service = AIAgentService(session)
+    agent_map = {}
+    for ext in extensions:
+        if ext.type == "ai_agent" and ext.ai_agent_id:
+            agent = await agent_service.get_agent(ext.ai_agent_id)
+            if agent:
+                agent_map[ext.ai_agent_id] = agent
     return templates.TemplateResponse("extensions/list.html", {
         "request": request,
         "extensions": extensions,
         "peers": peers,
         "peer_map": peer_map,
-        "agents": agents,
+        "agent_map": agent_map,
     })
 
 
@@ -67,7 +74,9 @@ async def extension_new_form(request: Request, session: AsyncSession = Depends(g
     return templates.TemplateResponse("extensions/form.html", {
         "request": request,
         "extension": None,
+        "agent": None,
         "peers": peers,
+        "default_prompt": DEFAULT_AGENT_PROMPT,
     })
 
 
@@ -81,29 +90,56 @@ async def extension_edit_form(
     peer_service = PeerService(session)
     extension = await ext_service.get_extension(extension_id)
     peers = await peer_service.list_peers()
+    agent = None
+    if extension.type == "ai_agent" and extension.ai_agent_id:
+        agent_service = AIAgentService(session)
+        agent = await agent_service.get_agent(extension.ai_agent_id)
     return templates.TemplateResponse("extensions/form.html", {
         "request": request,
         "extension": extension,
+        "agent": agent,
         "peers": peers,
+        "default_prompt": DEFAULT_AGENT_PROMPT,
     })
 
 
 @router.post("/extensions", response_class=HTMLResponse)
 async def extension_create(
     request: Request,
-    number: str = Form(...),
-    display_name: str = Form(...),
-    enabled: bool = Form(default=False),
-    peer_id: int | None = Form(default=None),
     session: AsyncSession = Depends(get_session),
 ):
+    form = await request.form()
+    ext_type = form.get("type", "phone")
+    number = form["number"]
+    display_name = form["display_name"]
+    enabled = form.get("enabled") == "true"
+
     ext_service = ExtensionService(session)
-    await ext_service.create_extension(
-        number=number,
-        display_name=display_name,
-        enabled=enabled,
-        peer_id=peer_id if peer_id else None,
-    )
+
+    if ext_type == "ai_agent":
+        await ext_service.create_ai_extension(
+            number=number,
+            display_name=display_name,
+            enabled=enabled,
+            system_prompt=form.get("system_prompt", ""),
+            greeting_text=form.get("greeting_text", "お電話ありがとうございます。ご用件をどうぞ。"),
+            coefont_voice_id=form.get("coefont_voice_id", ""),
+            tts_provider=form.get("tts_provider", "coefont"),
+            google_tts_voice=form.get("google_tts_voice", "ja-JP-Chirp3-HD-Aoede"),
+            llm_provider=form.get("llm_provider", "google"),
+            llm_model=form.get("llm_model", "gemini-2.0-flash-lite"),
+            max_history=int(form.get("max_history", "10")),
+        )
+    else:
+        peer_id = form.get("peer_id")
+        await ext_service.create_extension(
+            number=number,
+            display_name=display_name,
+            enabled=enabled,
+            peer_id=int(peer_id) if peer_id else None,
+            type="phone",
+        )
+
     asterisk = AsteriskService(session)
     await asterisk.apply_config()
     return RedirectResponse(url="/extensions", status_code=303)
@@ -113,20 +149,52 @@ async def extension_create(
 async def extension_update(
     request: Request,
     extension_id: int,
-    number: str = Form(...),
-    display_name: str = Form(...),
-    enabled: bool = Form(default=False),
-    peer_id: int | None = Form(default=None),
     session: AsyncSession = Depends(get_session),
 ):
+    form = await request.form()
     ext_service = ExtensionService(session)
-    await ext_service.update_extension(
-        extension_id=extension_id,
-        number=number,
-        display_name=display_name,
-        enabled=enabled,
-        peer_id=peer_id if peer_id else None,
-    )
+    extension = await ext_service.get_extension(extension_id)
+
+    number = form["number"]
+    display_name = form["display_name"]
+    enabled = form.get("enabled") == "true"
+
+    if extension.type == "ai_agent" and extension.ai_agent_id:
+        # Update AI agent config
+        agent_service = AIAgentService(session)
+        await agent_service.update_agent(
+            agent_id=extension.ai_agent_id,
+            name=display_name,
+            extension_number=number,
+            system_prompt=form.get("system_prompt", ""),
+            greeting_text=form.get("greeting_text", ""),
+            coefont_voice_id=form.get("coefont_voice_id", ""),
+            tts_provider=form.get("tts_provider", "coefont"),
+            google_tts_voice=form.get("google_tts_voice", "ja-JP-Chirp3-HD-Aoede"),
+            llm_provider=form.get("llm_provider", "google"),
+            llm_model=form.get("llm_model", "gemini-2.0-flash-lite"),
+            max_history=int(form.get("max_history", "10")),
+            enabled=enabled,
+        )
+        await ext_service.update_extension(
+            extension_id=extension_id,
+            number=number,
+            display_name=display_name,
+            enabled=enabled,
+            type="ai_agent",
+            ai_agent_id=extension.ai_agent_id,
+        )
+    else:
+        peer_id = form.get("peer_id")
+        await ext_service.update_extension(
+            extension_id=extension_id,
+            number=number,
+            display_name=display_name,
+            enabled=enabled,
+            peer_id=int(peer_id) if peer_id else None,
+            type="phone",
+        )
+
     asterisk = AsteriskService(session)
     await asterisk.apply_config()
     return RedirectResponse(url="/extensions", status_code=303)
@@ -149,26 +217,18 @@ async def extension_delete(
 @router.get("/peers", response_class=HTMLResponse)
 async def peers_list(request: Request, session: AsyncSession = Depends(get_session)):
     peer_service = PeerService(session)
-    ext_service = ExtensionService(session)
     peers = await peer_service.list_peers()
-    extensions = await ext_service.list_extensions()
-    ext_map = {e.id: e for e in extensions}
     return templates.TemplateResponse("peers/list.html", {
         "request": request,
         "peers": peers,
-        "extensions": extensions,
-        "ext_map": ext_map,
     })
 
 
 @router.get("/peers/new", response_class=HTMLResponse)
-async def peer_new_form(request: Request, session: AsyncSession = Depends(get_session)):
-    ext_service = ExtensionService(session)
-    extensions = await ext_service.list_extensions()
+async def peer_new_form(request: Request):
     return templates.TemplateResponse("peers/form.html", {
         "request": request,
         "peer": None,
-        "extensions": extensions,
     })
 
 
@@ -179,13 +239,10 @@ async def peer_edit_form(
     session: AsyncSession = Depends(get_session),
 ):
     peer_service = PeerService(session)
-    ext_service = ExtensionService(session)
     peer = await peer_service.get_peer(peer_id)
-    extensions = await ext_service.list_extensions()
     return templates.TemplateResponse("peers/form.html", {
         "request": request,
         "peer": peer,
-        "extensions": extensions,
     })
 
 
@@ -197,7 +254,6 @@ async def peer_create(
     transport: str = Form(default="udp"),
     codecs: str = Form(default="ulaw,alaw"),
     ip_address: str = Form(default=""),
-    extension_id: int | None = Form(default=None),
     session: AsyncSession = Depends(get_session),
 ):
     peer_service = PeerService(session)
@@ -207,7 +263,6 @@ async def peer_create(
         transport=transport,
         codecs=[c.strip() for c in codecs.split(",") if c.strip()],
         ip_address=ip_address or None,
-        extension_id=extension_id if extension_id else None,
     )
     asterisk = AsteriskService(session)
     await asterisk.apply_config()
@@ -223,7 +278,6 @@ async def peer_update(
     transport: str = Form(default="udp"),
     codecs: str = Form(default="ulaw,alaw"),
     ip_address: str = Form(default=""),
-    extension_id: int | None = Form(default=None),
     session: AsyncSession = Depends(get_session),
 ):
     peer_service = PeerService(session)
@@ -234,7 +288,6 @@ async def peer_update(
         transport=transport,
         codecs=[c.strip() for c in codecs.split(",") if c.strip()],
         ip_address=ip_address or None,
-        extension_id=extension_id if extension_id else None,
     )
     asterisk = AsteriskService(session)
     await asterisk.apply_config()
@@ -470,6 +523,104 @@ async def agent_delete(
     return RedirectResponse(url="/agents", status_code=303)
 
 
+# --- Trunk views ---
+
+@router.get("/trunks", response_class=HTMLResponse)
+async def trunks_list(request: Request, session: AsyncSession = Depends(get_session)):
+    trunk_service = TrunkService(session)
+    trunks = await trunk_service.list_trunks()
+    return templates.TemplateResponse("trunks/list.html", {
+        "request": request,
+        "trunks": trunks,
+    })
+
+
+@router.get("/trunks/new", response_class=HTMLResponse)
+async def trunk_new_form(request: Request):
+    return templates.TemplateResponse("trunks/form.html", {
+        "request": request,
+        "trunk": None,
+    })
+
+
+@router.get("/trunks/{trunk_id}/edit", response_class=HTMLResponse)
+async def trunk_edit_form(
+    request: Request,
+    trunk_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    trunk_service = TrunkService(session)
+    trunk = await trunk_service.get_trunk(trunk_id)
+    return templates.TemplateResponse("trunks/form.html", {
+        "request": request,
+        "trunk": trunk,
+    })
+
+
+@router.post("/trunks", response_class=HTMLResponse)
+async def trunk_create(
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+):
+    form = await request.form()
+    trunk_service = TrunkService(session)
+    did_number = form.get("did_number", "")
+    await trunk_service.create_trunk(
+        name=form["name"],
+        display_name=form["display_name"],
+        host=form["host"],
+        username=form["username"],
+        password=form["password"],
+        did_number=did_number,
+        caller_id=did_number,
+        incoming_dest=form.get("incoming_dest", ""),
+        outbound_prefixes=form.get("outbound_prefixes", ""),
+        enabled=form.get("enabled") == "true",
+    )
+    asterisk = AsteriskService(session)
+    await asterisk.apply_config()
+    return RedirectResponse(url="/trunks", status_code=303)
+
+
+@router.post("/trunks/{trunk_id}", response_class=HTMLResponse)
+async def trunk_update(
+    request: Request,
+    trunk_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    form = await request.form()
+    trunk_service = TrunkService(session)
+    did_number = form.get("did_number", "")
+    await trunk_service.update_trunk(
+        trunk_id=trunk_id,
+        name=form["name"],
+        display_name=form["display_name"],
+        host=form["host"],
+        username=form["username"],
+        password=form["password"],
+        did_number=did_number,
+        caller_id=did_number,
+        incoming_dest=form.get("incoming_dest", ""),
+        outbound_prefixes=form.get("outbound_prefixes", ""),
+        enabled=form.get("enabled") == "true",
+    )
+    asterisk = AsteriskService(session)
+    await asterisk.apply_config()
+    return RedirectResponse(url="/trunks", status_code=303)
+
+
+@router.post("/trunks/{trunk_id}/delete", response_class=HTMLResponse)
+async def trunk_delete(
+    trunk_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    trunk_service = TrunkService(session)
+    await trunk_service.delete_trunk(trunk_id)
+    asterisk = AsteriskService(session)
+    await asterisk.apply_config()
+    return RedirectResponse(url="/trunks", status_code=303)
+
+
 # --- Settings views ---
 
 @router.get("/settings", response_class=HTMLResponse)
@@ -543,6 +694,29 @@ async def call_history_delete(
     return RedirectResponse(url="/call-history", status_code=303)
 
 
+# --- CDR views ---
+
+@router.get("/cdr", response_class=HTMLResponse)
+async def cdr_list(request: Request, session: AsyncSession = Depends(get_session)):
+    from millicall.application.cdr_service import CDRService
+    service = CDRService(session)
+    records = await service.list_records(limit=200)
+    total = await service.count_records()
+    return templates.TemplateResponse("cdr/list.html", {
+        "request": request,
+        "records": records,
+        "total": total,
+    })
+
+
+@router.post("/cdr/import", response_class=HTMLResponse)
+async def cdr_manual_import(session: AsyncSession = Depends(get_session)):
+    from millicall.application.cdr_service import CDRService
+    service = CDRService(session)
+    await service.import_from_csv()
+    return RedirectResponse(url="/cdr", status_code=303)
+
+
 # --- Call History JSON API ---
 
 from fastapi.responses import JSONResponse
@@ -574,6 +748,29 @@ async def api_call_history(session: AsyncSession = Depends(get_session)):
             ],
         })
     return JSONResponse(content=result)
+
+
+@router.get("/api/cdr")
+async def api_cdr_list(session: AsyncSession = Depends(get_session)):
+    from millicall.application.cdr_service import CDRService
+    service = CDRService(session)
+    records = await service.list_records(limit=500)
+    return JSONResponse(content=[
+        {
+            "id": r.id,
+            "uniqueid": r.uniqueid,
+            "call_date": r.call_date.isoformat() if r.call_date else None,
+            "src": r.src,
+            "dst": r.dst,
+            "dcontext": r.dcontext,
+            "channel": r.channel,
+            "dst_channel": r.dst_channel,
+            "duration": r.duration,
+            "billsec": r.billsec,
+            "disposition": r.disposition,
+        }
+        for r in records
+    ])
 
 
 @router.get("/api/call-history/{log_id}")

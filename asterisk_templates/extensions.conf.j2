@@ -12,32 +12,64 @@ writeprotect=no
 [internal]
 ; --- Extension routing ---
 {% for item in extensions %}
-{% if item.ext.enabled and item.peer %}
+{% if item.ext.enabled and item.ext.type == 'phone' and item.peer %}
 exten => {{ item.ext.number }},1,NoOp(Calling {{ item.ext.display_name }})
  same => n,Set(CALLERID(name)=${CALLERID(name)})
  same => n,Dial(PJSIP/{{ item.peer.username }},30,tTr)
  same => n,VoiceMail({{ item.ext.number }}@default,u)
  same => n,Hangup()
-{% endif %}
-{% endfor %}
-
-; --- AI Agent extensions ---
-{% for agent in ai_agents %}
-{% if agent.enabled %}
-exten => {{ agent.extension_number }},1,NoOp(AI Agent: {{ agent.name }})
+{% elif item.ext.enabled and item.ext.type == 'ai_agent' %}
+exten => {{ item.ext.number }},1,NoOp(AI Agent: {{ item.ext.display_name }})
  same => n,Answer()
  same => n,Stasis(millicall-ai)
  same => n,Hangup()
 {% endif %}
 {% endfor %}
 
-{% if trunk.enabled %}
-; --- Outbound PSTN calls (dial 0 + number) ---
-exten => _0.,1,NoOp(PSTN Outbound: ${EXTEN})
- same => n,Set(CALLERID(num)={{ trunk.caller_id }})
- same => n,Dial(PJSIP/${EXTEN}@hikari-trunk,60,tT)
- same => n,Hangup()
+{% for trunk in trunks %}
+; --- Outbound via {{ trunk.display_name }} ({{ trunk.name }}) ---
+{% set rules = [] %}
+{% if trunk.outbound_prefixes %}
+{% for entry in trunk.outbound_prefixes.split(',') %}
+{% set entry = entry.strip() %}
+{% if entry %}
+{% if ':' in entry %}
+{% set parts = entry.split(':', 1) %}
+{% if rules.append({'pfx': parts[0].strip(), 'prepend': parts[1].strip()}) %}{% endif %}
+{% else %}
+{% if rules.append({'pfx': entry, 'prepend': ''}) %}{% endif %}
 {% endif %}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% for rule in rules %}
+; "{{ rule.pfx }}" → strip, prepend "{{ rule.prepend }}", dial via {{ trunk.name }}
+exten => _{{ rule.pfx }}.,1,NoOp(PSTN Out via {{ trunk.name }} pfx={{ rule.pfx }} prepend={{ rule.prepend }}: ${EXTEN})
+ same => n,Set(CALLERID(num)={{ trunk.caller_id }})
+ same => n,Dial(PJSIP/{{ rule.prepend }}${EXTEN:{{ rule.pfx | length }}}@{{ trunk.name }},60,tT)
+ same => n,Hangup()
+
+{% endfor %}
+{% if not rules %}
+; No prefix rules (default): 184/186/0-dial → {{ trunk.name }}
+exten => _1840.,1,NoOp(PSTN Out 184 via {{ trunk.name }}: ${EXTEN})
+ same => n,Set(CALLERID(num)={{ trunk.caller_id }})
+ same => n,Dial(PJSIP/${EXTEN}@{{ trunk.name }},60,tT)
+ same => n,Hangup()
+
+exten => _1860.,1,NoOp(PSTN Out 186 via {{ trunk.name }}: ${EXTEN})
+ same => n,Set(CALLERID(num)={{ trunk.caller_id }})
+ same => n,Dial(PJSIP/${EXTEN}@{{ trunk.name }},60,tT)
+ same => n,Hangup()
+
+exten => _0.,1,NoOp(PSTN Out via {{ trunk.name }}: ${EXTEN})
+ same => n,Set(CALLERID(num)={{ trunk.caller_id }})
+ same => n,Dial(PJSIP/${EXTEN}@{{ trunk.name }},60,tT)
+ same => n,Hangup()
+
+{% endif %}
+{% endfor %}
 
 ; --- Echo test ---
 exten => *43,1,NoOp(Echo Test)
@@ -50,24 +82,36 @@ exten => i,1,NoOp(Invalid extension dialed)
  same => n,Playback(pbx-invalid)
  same => n,Hangup()
 
-{% if trunk.enabled %}
+{% for trunk in trunks %}
 ; ===========================================
-; Incoming PSTN calls
+; Incoming: {{ trunk.display_name }} ({{ trunk.name }})
 ; ===========================================
-[from-pstn]
-exten => _X.,1,NoOp(PSTN Incoming: ${EXTEN} from ${CALLERID(num)})
-{% if trunk.incoming_dest %}
- same => n,Goto(internal,{{ trunk.incoming_dest }},1)
-{% else %}
-; Default: ring all extensions
+[from-pstn-{{ trunk.name }}]
+{% set ring_peers = [] %}
 {% for item in extensions %}
-{% if item.ext.enabled and item.peer %}
- same => n,Dial(PJSIP/{{ item.peer.username }},30,tT)
+{% if item.ext.enabled and item.ext.type == 'phone' and item.peer %}
+{% if ring_peers.append('PJSIP/' + item.peer.username) %}{% endif %}
 {% endif %}
 {% endfor %}
+
+exten => _X!,1,NoOp(PSTN Incoming via {{ trunk.name }}: ${EXTEN} from ${CALLERID(all)})
+ same => n,Set(CALLERID(name)=${IF($["${CALLERID(num)}" != ""]?${CALLERID(num)}:外線着信)})
+{% if trunk.incoming_dest %}
+ same => n,Goto(internal,{{ trunk.incoming_dest }},1)
+{% elif ring_peers %}
+ same => n,Dial({{ ring_peers | join('&') }},30,tT)
 {% endif %}
  same => n,VoiceMail(0@default,u)
  same => n,Hangup()
 
-exten => s,1,Goto(from-pstn,{{ trunk.did_number or 's' }},1)
+exten => s,1,NoOp(PSTN Incoming via {{ trunk.name }} on s from ${CALLERID(all)})
+ same => n,Set(CALLERID(name)=${IF($["${CALLERID(num)}" != ""]?${CALLERID(num)}:外線着信)})
+{% if trunk.incoming_dest %}
+ same => n,Goto(internal,{{ trunk.incoming_dest }},1)
+{% elif ring_peers %}
+ same => n,Dial({{ ring_peers | join('&') }},30,tT)
 {% endif %}
+ same => n,VoiceMail(0@default,u)
+ same => n,Hangup()
+
+{% endfor %}

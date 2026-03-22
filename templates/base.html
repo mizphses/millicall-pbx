@@ -468,8 +468,10 @@
             <a href="/" class="{% if request.url.path == '/' %}active{% endif %}">ホーム</a>
             <a href="/extensions" class="{% if '/extensions' in request.url.path %}active{% endif %}">内線アカウント</a>
             <a href="/peers" class="{% if '/peers' in request.url.path %}active{% endif %}">SIP電話機登録</a>
+            <a href="/trunks" class="{% if '/trunks' in request.url.path %}active{% endif %}">外線トランク</a>
             <a href="/devices" class="{% if '/devices' in request.url.path %}active{% endif %}">デバイス管理</a>
-            <a href="/call-history" class="{% if '/call-history' in request.url.path %}active{% endif %}">通話履歴</a>
+            <a href="/cdr" class="{% if '/cdr' in request.url.path %}active{% endif %}">発着信記録</a>
+            <a href="/call-history" class="{% if '/call-history' in request.url.path %}active{% endif %}">AI通話履歴</a>
             <a href="/settings" class="{% if '/settings' in request.url.path %}active{% endif %}">詳細設定</a>
         </div>
     </nav>

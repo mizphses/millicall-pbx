@@ -8,55 +8,7 @@
 
     <div class="card">
         <div class="form-section" style="margin-top:0;">外線接続（SIPトランク）</div>
-
-        <div class="form-group">
-            <label for="trunk_enabled">外線接続</label>
-            <select id="trunk_enabled" name="trunk_enabled">
-                <option value="N" {{ "selected" if s.get('trunk_enabled', 'N') == 'N' }}>無効</option>
-                <option value="Y" {{ "selected" if s.get('trunk_enabled') == 'Y' }}>有効</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="trunk_host">SIPサーバーアドレス</label>
-            <input type="text" id="trunk_host" name="trunk_host"
-                   value="{{ s.get('trunk_host', '') }}" placeholder="192.168.1.1">
-            <div class="form-hint">ホームゲートウェイ等のアドレス</div>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label for="trunk_username">SIPユーザー名</label>
-                <input type="text" id="trunk_username" name="trunk_username"
-                       value="{{ s.get('trunk_username', '') }}" placeholder="0003">
-                <div class="form-hint">HGW内線番号 等</div>
-            </div>
-            <div class="form-group">
-                <label for="trunk_password">SIPパスワード</label>
-                <input type="password" id="trunk_password" name="trunk_password"
-                       value="{{ s.get('trunk_password', '') }}" placeholder="パスワード"
-                       autocomplete="off">
-            </div>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label for="trunk_did_number">電話番号（発着信共通）</label>
-                <input type="text" id="trunk_did_number" name="trunk_did_number"
-                       value="{{ s.get('trunk_did_number', '') }}" placeholder="0312345678">
-                <div class="form-hint">発信者番号・着信番号に使用されます</div>
-            </div>
-            <div class="form-group">
-                <label for="trunk_incoming_dest">着信先内線番号</label>
-                <input type="text" id="trunk_incoming_dest" name="trunk_incoming_dest"
-                       value="{{ s.get('trunk_incoming_dest', '') }}" placeholder="空欄で全内線">
-                <div class="form-hint">空欄の場合、全内線に着信します</div>
-            </div>
-        </div>
-
-        {# trunk_caller_id を trunk_did_number と同期させる hidden field #}
-        <input type="hidden" name="trunk_caller_id" id="trunk_caller_id"
-               value="{{ s.get('trunk_caller_id', '') }}">
+        <p style="color:var(--ink-sub);font-size:13px;">外線トランクの設定は <a href="/trunks">外線トランク</a> ページで管理できます。</p>
     </div>
 
     <div class="card mt">
@@ -107,14 +59,4 @@
     </div>
 </form>
 
-<script>
-// trunk_caller_id を trunk_did_number と同期
-document.addEventListener("DOMContentLoaded", function() {
-    const did = document.getElementById("trunk_did_number");
-    const cid = document.getElementById("trunk_caller_id");
-    did.addEventListener("input", function() { cid.value = did.value; });
-    // 初期同期
-    if (did.value && !cid.value) { cid.value = did.value; }
-});
-</script>
 {% endblock %}

@@ -17,6 +17,8 @@ class ExtensionRepository:
             display_name=row.display_name,
             enabled=row.enabled,
             peer_id=row.peer_id,
+            type=row.type if hasattr(row, 'type') else "phone",
+            ai_agent_id=row.ai_agent_id if hasattr(row, 'ai_agent_id') else None,
         )
 
     async def get_all(self) -> list[Extension]:
@@ -52,6 +54,8 @@ class ExtensionRepository:
                 display_name=ext.display_name,
                 enabled=ext.enabled,
                 peer_id=ext.peer_id,
+                type=ext.type,
+                ai_agent_id=ext.ai_agent_id,
             )
         )
         await self.session.commit()
@@ -75,6 +79,8 @@ class ExtensionRepository:
                 display_name=ext.display_name,
                 enabled=ext.enabled,
                 peer_id=ext.peer_id,
+                type=ext.type,
+                ai_agent_id=ext.ai_agent_id,
             )
         )
         await self.session.commit()

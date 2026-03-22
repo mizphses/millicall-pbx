@@ -48,46 +48,53 @@ minimum_expiration=60
 
 {% endfor %}
 
-{% if trunk.enabled %}
+{% for trunk in trunks %}
 ; ===========================================
-; PSTN Trunk - Hikari Denwa (NTT HGW)
+; PSTN Trunk: {{ trunk.display_name }} ({{ trunk.name }})
 ; ===========================================
 
-[hikari-trunk]
+[{{ trunk.name }}]
 type=registration
-outbound_auth=hikari-trunk-auth
+outbound_auth={{ trunk.name }}-auth
 server_uri=sip:{{ trunk.host }}
 client_uri=sip:{{ trunk.username }}@{{ trunk.host }}
 contact_user={{ trunk.username }}
 retry_interval=60
 expiration=3600
 
-[hikari-trunk-auth]
+[{{ trunk.name }}-auth]
 type=auth
 auth_type=userpass
 username={{ trunk.username }}
 password={{ trunk.password }}
 
-[hikari-trunk]
+[{{ trunk.name }}]
 type=aor
 contact=sip:{{ trunk.host }}
 
-[hikari-trunk]
+[{{ trunk.name }}]
 type=endpoint
-context=from-pstn
+context=from-pstn-{{ trunk.name }}
 disallow=all
 allow=ulaw
 allow=alaw
-outbound_auth=hikari-trunk-auth
-aors=hikari-trunk
+outbound_auth={{ trunk.name }}-auth
+aors={{ trunk.name }}
 from_user={{ trunk.username }}
 from_domain={{ trunk.host }}
 direct_media=no
 rtp_symmetric=yes
+rewrite_contact=yes
+force_rport=yes
+trust_id_inbound=yes
+send_pai=yes
+send_rpid=yes
+callerid_tag={{ trunk.name }}
 set_var=SIPUSERAGENT=IPphone1
 
-[hikari-trunk]
+[{{ trunk.name }}-identify]
 type=identify
-endpoint=hikari-trunk
-match={{ trunk.host }}
-{% endif %}
+endpoint={{ trunk.name }}
+match={{ trunk.host }}/255.255.255.255
+
+{% endfor %}

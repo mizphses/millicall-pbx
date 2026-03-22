@@ -60,13 +60,6 @@ class SettingsRepository:
             ("google_api_key", "", "Google API Key (Gemini LLM & Chirp3 TTS)"),
             ("openai_api_key", "", "OpenAI API Key (Whisper STT & GPT)"),
             ("anthropic_api_key", "", "Anthropic API Key (Claude)"),
-            ("trunk_enabled", "N", "PSTN Trunk Enabled (Y/N)"),
-            ("trunk_host", "192.168.1.1", "Trunk SIP Server (HGW address)"),
-            ("trunk_username", "0003", "Trunk SIP Username (HGW内線番号)"),
-            ("trunk_password", "", "Trunk SIP Password"),
-            ("trunk_did_number", "", "Trunk Phone Number (着信番号, e.g. 0312345678)"),
-            ("trunk_caller_id", "", "Trunk Caller ID (発信者番号)"),
-            ("trunk_incoming_dest", "", "Trunk Incoming Destination (着信先内線番号, 空=全内線)"),
         ]
         for key, default, desc in defaults:
             result = await self.session.execute(

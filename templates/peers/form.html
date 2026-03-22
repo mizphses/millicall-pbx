@@ -45,20 +45,6 @@
                    placeholder="172.20.1.10">
         </div>
 
-        <div class="form-section">内線番号の紐付け</div>
-        <div class="form-group">
-            <label for="extension_id">内線番号</label>
-            <select id="extension_id" name="extension_id">
-                <option value="">-- 未割当 --</option>
-                {% for ext in extensions %}
-                <option value="{{ ext.id }}"
-                        {{ "selected" if peer and peer.extension_id == ext.id }}>
-                    {{ ext.number }} - {{ ext.display_name }}
-                </option>
-                {% endfor %}
-            </select>
-        </div>
-
         <div class="form-actions">
             <button type="submit" class="btn btn-primary btn-lg">{{ "更新" if peer else "登録" }}</button>
             <a href="/peers" class="btn btn-sub btn-lg">キャンセル</a>

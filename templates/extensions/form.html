@@ -1,46 +1,78 @@
 {% extends "base.html" %}
 {% block title %}{{ "内線アカウントを編集" if extension else "内線アカウントを追加" }} - Millicall PBX{% endblock %}
+
+{% block head %}
+{% if (not extension) or (extension and extension.type == 'ai_agent') %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.css">
+<style>
+    .CodeMirror {
+        height: auto;
+        min-height: 200px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 13px;
+        line-height: 1.7;
+        border: 1px solid var(--border);
+        border-radius: 5px;
+    }
+    .CodeMirror-focused {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px rgba(196,93,44,0.12);
+    }
+    .CodeMirror-scroll { min-height: 200px; }
+</style>
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <h1>{{ "内線アカウントを編集" if extension else "内線アカウントを追加" }}</h1>
 
+{% set is_ai = (extension and extension.type == 'ai_agent') %}
+{% set is_phone = (extension and extension.type == 'phone') %}
+
+{# ── Type selector (new only) ── #}
 {% if not extension %}
 <div style="display:flex;gap:8px;margin:1rem 0 1.5rem;">
     <button id="tab-phone" class="btn btn-primary" onclick="switchType('phone')">電話番号</button>
-    <button id="tab-agent" class="btn btn-sub" onclick="switchType('agent')">AIエージェント</button>
+    <button id="tab-agent" class="btn btn-sub" onclick="switchType('ai_agent')">AIエージェント</button>
 </div>
 {% endif %}
 
-{# ── 電話番号フォーム ── #}
-<div id="form-phone" class="card" {% if not extension %}{% endif %}>
+{# ═══════════════════════════════════════ #}
+{# ── Phone form ── #}
+{# ═══════════════════════════════════════ #}
+<div id="form-phone" class="card" {% if is_ai %}style="display:none"{% endif %}>
     <form method="post" action="{{ '/extensions/' ~ extension.id if extension else '/extensions' }}">
+        <input type="hidden" name="type" value="phone">
+
         <div class="form-section" style="margin-top:0;">基本情報</div>
         <div class="form-row">
             <div class="form-group">
-                <label for="number">内線番号</label>
-                <input type="text" id="number" name="number" placeholder="1001"
-                       value="{{ extension.number if extension else '' }}"
-                       required pattern="\d+" maxlength="20">
+                <label for="p_number">内線番号</label>
+                <input type="text" id="p_number" name="number" placeholder="1001"
+                       value="{{ extension.number if is_phone else '' }}"
+                       {{ 'required' if not extension or is_phone }} pattern="\d+" maxlength="20">
             </div>
             <div class="form-group">
-                <label for="display_name">表示名</label>
-                <input type="text" id="display_name" name="display_name" placeholder="受付"
-                       value="{{ extension.display_name if extension else '' }}"
-                       required maxlength="100">
+                <label for="p_display_name">表示名</label>
+                <input type="text" id="p_display_name" name="display_name" placeholder="受付"
+                       value="{{ extension.display_name if is_phone else '' }}"
+                       {{ 'required' if not extension or is_phone }} maxlength="100">
             </div>
         </div>
 
-        <div class="form-section">接続設定</div>
+        <div class="form-section">接続先SIPピア</div>
         <div class="form-group">
             <label for="peer_id">SIPピア</label>
             <select id="peer_id" name="peer_id">
                 <option value="">-- 未割当 --</option>
                 {% for peer in peers %}
                 <option value="{{ peer.id }}"
-                        {{ "selected" if extension and extension.peer_id == peer.id }}>
+                        {{ "selected" if is_phone and extension.peer_id == peer.id }}>
                     {{ peer.username }}
                 </option>
                 {% endfor %}
             </select>
+            <div class="form-hint">この内線番号にかかってきたときに鳴らすSIP電話機</div>
         </div>
 
         <div class="form-group">
@@ -58,114 +90,169 @@
     </form>
 </div>
 
-{# ── AIエージェントフォーム（新規作成時のみ） ── #}
-{% if not extension %}
-<div id="form-agent" class="card" style="display:none;">
-    <form method="post" action="/agents">
+{# ═══════════════════════════════════════ #}
+{# ── AI Agent form ── #}
+{# ═══════════════════════════════════════ #}
+<div id="form-agent" class="card" {% if not extension %}style="display:none"{% elif is_phone %}style="display:none"{% endif %}>
+    <form method="post" action="{{ '/extensions/' ~ extension.id if extension else '/extensions' }}">
+        <input type="hidden" name="type" value="ai_agent">
+
         <div class="form-section" style="margin-top:0;">基本情報</div>
         <div class="form-row">
             <div class="form-group">
-                <label for="agent_name">エージェント名</label>
-                <input type="text" id="agent_name" name="name"
+                <label for="a_display_name">エージェント名</label>
+                <input type="text" id="a_display_name" name="display_name"
+                       value="{{ extension.display_name if is_ai else '' }}"
                        placeholder="受付AI" maxlength="100">
             </div>
             <div class="form-group">
-                <label for="agent_ext">内線番号</label>
-                <input type="text" id="agent_ext" name="extension_number"
+                <label for="a_number">内線番号</label>
+                <input type="text" id="a_number" name="number"
+                       value="{{ extension.number if is_ai else '' }}"
                        placeholder="9000" pattern="\d+" maxlength="20">
                 <div class="form-hint">この番号にダイヤルするとAIが応答します</div>
             </div>
         </div>
 
         <div class="form-group">
-            <label for="agent_greeting">挨拶メッセージ</label>
-            <input type="text" id="agent_greeting" name="greeting_text"
-                   value="お電話ありがとうございます。ご用件をどうぞ。"
+            <label for="greeting_text">挨拶メッセージ</label>
+            <input type="text" id="greeting_text" name="greeting_text"
+                   value="{{ agent.greeting_text if agent else 'お電話ありがとうございます。ご用件をどうぞ。' }}"
                    placeholder="お電話ありがとうございます。" maxlength="500">
+            <div class="form-hint">AIが電話に出たとき最初に話す言葉</div>
         </div>
 
         <div class="form-group">
             <label class="check-label">
-                <input type="checkbox" name="enabled" value="true" checked>
+                <input type="checkbox" name="enabled" value="true"
+                       {{ "checked" if not extension or extension.enabled }}>
                 このエージェントを有効にする
             </label>
         </div>
 
         <div class="form-section">システムプロンプト</div>
         <div class="form-group">
-            <textarea name="system_prompt" rows="8" style="min-height:160px;font-size:13px;"
-                      placeholder="AIエージェントのシステムプロンプトを入力...">あなたは電話応対AIアシスタントです。
-丁寧な敬語で応対してください。
-回答は3文以内で簡潔にしてください。
-分からないことは正直に「担当者に確認いたします」と答えてください。</textarea>
+            <div id="prompt-editor-container"></div>
+            <textarea id="system_prompt" name="system_prompt" style="display:none"
+            >{{ agent.system_prompt if agent else default_prompt }}</textarea>
         </div>
+
+        <details>
+            <summary>プロンプトの書き方のヒント</summary>
+            <ul style="font-size:13px;color:var(--ink-sub);padding-left:1.25rem;margin-top:4px;">
+                <li><strong>役割</strong>を定義する（受付係、カスタマーサポート 等）</li>
+                <li><strong>口調</strong>を指定する（丁寧語、カジュアル、フォーマル）</li>
+                <li><strong>制約</strong>を設定する（最大文長、避けるべき話題）</li>
+                <li><strong>知識</strong>を追加する（営業時間、住所、FAQ）</li>
+            </ul>
+        </details>
 
         <div class="form-section">LLM設定</div>
         <div class="form-row">
             <div class="form-group">
-                <label for="agent_llm">プロバイダー</label>
-                <select id="agent_llm" name="llm_provider">
-                    <option value="google">Google Gemini</option>
-                    <option value="openai">OpenAI</option>
-                    <option value="anthropic">Anthropic Claude</option>
+                <label for="llm_provider">プロバイダー</label>
+                <select id="llm_provider" name="llm_provider">
+                    <option value="google" {{ "selected" if agent and agent.llm_provider == "google" }}>Google Gemini</option>
+                    <option value="openai" {{ "selected" if agent and agent.llm_provider == "openai" }}>OpenAI</option>
+                    <option value="anthropic" {{ "selected" if agent and agent.llm_provider == "anthropic" }}>Anthropic Claude</option>
                 </select>
             </div>
             <div class="form-group">
-                <label for="agent_model">モデル名</label>
-                <input type="text" id="agent_model" name="llm_model"
-                       value="gemini-2.0-flash-lite" maxlength="50">
+                <label for="llm_model">モデル名</label>
+                <input type="text" id="llm_model" name="llm_model"
+                       value="{{ agent.llm_model if agent else 'gemini-2.0-flash-lite' }}" maxlength="50">
             </div>
         </div>
-
-        <input type="hidden" name="max_history" value="10">
+        <div class="form-group">
+            <label for="max_history">会話履歴のターン数</label>
+            <input type="number" id="max_history" name="max_history"
+                   value="{{ agent.max_history if agent else 10 }}"
+                   min="2" max="50" style="max-width:100px;">
+        </div>
 
         <div class="form-section">音声合成（TTS）</div>
         <div class="form-group">
-            <label for="agent_tts">TTSプロバイダー</label>
-            <select id="agent_tts" name="tts_provider">
-                <option value="coefont">CoeFont</option>
-                <option value="google">Google Chirp3 HD</option>
+            <label for="tts_provider">TTSプロバイダー</label>
+            <select id="tts_provider" name="tts_provider">
+                <option value="coefont" {{ "selected" if not agent or agent.tts_provider == "coefont" }}>CoeFont</option>
+                <option value="google" {{ "selected" if agent and agent.tts_provider == "google" }}>Google Chirp3 HD</option>
             </select>
         </div>
-
-        <div class="form-group">
-            <label for="agent_voice">CoeFont ボイスID</label>
-            <input type="text" id="agent_voice" name="coefont_voice_id"
-                   value="cbe4e152-40a5-4c0d-91cd-2fc27d60e6bd" maxlength="100">
+        <div id="coefont-settings">
+            <div class="form-group">
+                <label for="coefont_voice_id">CoeFont ボイスID</label>
+                <input type="text" id="coefont_voice_id" name="coefont_voice_id"
+                       value="{{ agent.coefont_voice_id if agent else 'cbe4e152-40a5-4c0d-91cd-2fc27d60e6bd' }}" maxlength="100">
+            </div>
+        </div>
+        <div id="google-tts-settings" style="display:none">
+            <div class="form-group">
+                <label for="google_tts_voice">Google Chirp3 ボイス</label>
+                <select id="google_tts_voice" name="google_tts_voice">
+                    <option value="ja-JP-Chirp3-HD-Aoede" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Aoede" }}>Aoede（女性）</option>
+                    <option value="ja-JP-Chirp3-HD-Kore" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Kore" }}>Kore（女性）</option>
+                    <option value="ja-JP-Chirp3-HD-Leda" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Leda" }}>Leda（女性）</option>
+                    <option value="ja-JP-Chirp3-HD-Zephyr" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Zephyr" }}>Zephyr（女性）</option>
+                    <option value="ja-JP-Chirp3-HD-Charon" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Charon" }}>Charon（男性）</option>
+                    <option value="ja-JP-Chirp3-HD-Fenrir" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Fenrir" }}>Fenrir（男性）</option>
+                    <option value="ja-JP-Chirp3-HD-Orus" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Orus" }}>Orus（男性）</option>
+                    <option value="ja-JP-Chirp3-HD-Puck" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Puck" }}>Puck（男性）</option>
+                </select>
+            </div>
         </div>
 
-        <input type="hidden" name="google_tts_voice" value="ja-JP-Chirp3-HD-Aoede">
-
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary btn-lg">作成</button>
+            <button type="submit" class="btn btn-primary btn-lg">{{ "更新" if extension else "作成" }}</button>
             <a href="/extensions" class="btn btn-sub btn-lg">キャンセル</a>
         </div>
     </form>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.js"></script>
 <script>
+document.addEventListener("DOMContentLoaded", function() {
+    // CodeMirror for system prompt
+    var container = document.getElementById("prompt-editor-container");
+    var textarea = document.getElementById("system_prompt");
+    if (container && textarea) {
+        var editor = CodeMirror(container, {
+            value: textarea.value,
+            lineNumbers: true,
+            lineWrapping: true,
+            placeholder: "システムプロンプトを入力...",
+        });
+        editor.on("change", function() { textarea.value = editor.getValue(); });
+    }
+
+    // LLM provider → model name defaults
+    var llmSel = document.getElementById("llm_provider");
+    var modelIn = document.getElementById("llm_model");
+    if (llmSel && modelIn) {
+        var defaults = { "google": "gemini-2.0-flash-lite", "openai": "gpt-4o-mini", "anthropic": "claude-sonnet-4-20250514" };
+        llmSel.addEventListener("change", function() { modelIn.value = defaults[this.value] || ""; });
+    }
+
+    // TTS provider toggle
+    var ttsSel = document.getElementById("tts_provider");
+    var cfDiv = document.getElementById("coefont-settings");
+    var gDiv = document.getElementById("google-tts-settings");
+    if (ttsSel && cfDiv && gDiv) {
+        function updateTts() {
+            cfDiv.style.display = ttsSel.value === "google" ? "none" : "block";
+            gDiv.style.display = ttsSel.value === "google" ? "block" : "none";
+        }
+        ttsSel.addEventListener("change", updateTts);
+        updateTts();
+    }
+});
+
+{% if not extension %}
 function switchType(type) {
     document.getElementById('form-phone').style.display = type === 'phone' ? 'block' : 'none';
-    document.getElementById('form-agent').style.display = type === 'agent' ? 'block' : 'none';
+    document.getElementById('form-agent').style.display = type === 'ai_agent' ? 'block' : 'none';
     document.getElementById('tab-phone').className = type === 'phone' ? 'btn btn-primary' : 'btn btn-sub';
-    document.getElementById('tab-agent').className = type === 'agent' ? 'btn btn-primary' : 'btn btn-sub';
-
-    // Toggle required attributes
-    var phoneFields = document.querySelectorAll('#form-phone input[type="text"]');
-    var agentFields = document.querySelectorAll('#form-agent input[type="text"]');
-    phoneFields.forEach(function(f) { if (type === 'phone') f.setAttribute('required',''); else f.removeAttribute('required'); });
-    agentFields.forEach(function(f) {
-        if (type === 'agent' && (f.id === 'agent_name' || f.id === 'agent_ext'))
-            f.setAttribute('required','');
-        else if (type === 'phone')
-            f.removeAttribute('required');
-    });
+    document.getElementById('tab-agent').className = type === 'ai_agent' ? 'btn btn-primary' : 'btn btn-sub';
 }
-
-document.getElementById('agent_llm').addEventListener('change', function() {
-    var defaults = { "google": "gemini-2.0-flash-lite", "openai": "gpt-4o-mini", "anthropic": "claude-sonnet-4-20250514" };
-    document.getElementById('agent_model').value = defaults[this.value] || '';
-});
-</script>
 {% endif %}
+</script>
 {% endblock %}

@@ -8,6 +8,8 @@ class Extension:
     display_name: str
     enabled: bool = True
     peer_id: int | None = None
+    type: str = "phone"  # "phone" or "ai_agent"
+    ai_agent_id: int | None = None
     id: int | None = None
 
 
@@ -27,6 +29,21 @@ class PeerWithExtension:
     """Peer with its associated extension info for config generation."""
     peer: Peer
     extension: Extension | None = None
+
+
+@dataclass
+class Trunk:
+    name: str  # slug for Asterisk section names, e.g. "hikari-trunk"
+    display_name: str
+    host: str
+    username: str
+    password: str
+    did_number: str = ""
+    caller_id: str = ""
+    incoming_dest: str = ""
+    outbound_prefixes: str = ""  # comma-separated, e.g. "186,184,0086"
+    enabled: bool = True
+    id: int | None = None
 
 
 @dataclass
@@ -67,6 +84,24 @@ class CallLog:
     started_at: datetime | None = None
     ended_at: datetime | None = None
     turn_count: int = 0
+    id: int | None = None
+
+
+@dataclass
+class CDR:
+    uniqueid: str
+    call_date: datetime
+    src: str
+    dst: str
+    dcontext: str
+    channel: str
+    dst_channel: str
+    duration: int
+    billsec: int
+    disposition: str
+    clid: str = ""
+    account_code: str = ""
+    userfield: str = ""
     id: int | None = None
 
 

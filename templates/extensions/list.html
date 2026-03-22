@@ -9,7 +9,7 @@
     <a href="/extensions/new" class="btn btn-primary">追加</a>
 </div>
 
-{% if extensions or agents %}
+{% if extensions %}
 <div class="tbl-wrap">
     <table>
         <thead>
@@ -27,7 +27,13 @@
             <tr>
                 <td><strong>{{ ext.number }}</strong></td>
                 <td>{{ ext.display_name }}</td>
-                <td><span class="tag tag-muted">電話</span></td>
+                <td>
+                    {% if ext.type == 'ai_agent' %}
+                    <span class="tag tag-info">AI</span>
+                    {% else %}
+                    <span class="tag tag-muted">電話</span>
+                    {% endif %}
+                </td>
                 <td>
                     {% if ext.enabled %}
                     <span class="tag tag-ok">有効</span>
@@ -36,8 +42,10 @@
                     {% endif %}
                 </td>
                 <td>
-                    {% if ext.peer_id and peer_map.get(ext.peer_id) %}
+                    {% if ext.type == 'phone' and ext.peer_id and peer_map.get(ext.peer_id) %}
                     <span class="tag tag-info">{{ peer_map[ext.peer_id].username }}</span>
+                    {% elif ext.type == 'ai_agent' and ext.ai_agent_id and agent_map.get(ext.ai_agent_id) %}
+                    <span class="tag tag-muted">{{ agent_map[ext.ai_agent_id].llm_provider }}/{{ agent_map[ext.ai_agent_id].llm_model }}</span>
                     {% else %}
                     -
                     {% endif %}
@@ -45,31 +53,7 @@
                 <td class="td-actions">
                     <a href="/extensions/{{ ext.id }}/edit" class="btn btn-text btn-sm">編集</a>
                     <form method="post" action="/extensions/{{ ext.id }}/delete"
-                          onsubmit="return confirm('内線番号 {{ ext.number }} を削除しますか？')">
-                        <button type="submit" class="btn btn-del btn-sm">削除</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-            {% for agent in agents %}
-            <tr>
-                <td><strong>{{ agent.extension_number }}</strong></td>
-                <td>{{ agent.name }}</td>
-                <td><span class="tag tag-info">AI</span></td>
-                <td>
-                    {% if agent.enabled %}
-                    <span class="tag tag-ok">有効</span>
-                    {% else %}
-                    <span class="tag tag-ng">無効</span>
-                    {% endif %}
-                </td>
-                <td>
-                    <span class="tag tag-muted">{{ agent.llm_provider }}/{{ agent.llm_model }}</span>
-                </td>
-                <td class="td-actions">
-                    <a href="/agents/{{ agent.id }}/edit" class="btn btn-text btn-sm">編集</a>
-                    <form method="post" action="/agents/{{ agent.id }}/delete"
-                          onsubmit="return confirm('AIエージェント「{{ agent.name }}」を削除しますか？')">
+                          onsubmit="return confirm('内線番号 {{ ext.number }} を削除しますか？{% if ext.type == 'ai_agent' %}（AIエージェント設定も削除されます）{% endif %}')">
                         <button type="submit" class="btn btn-del btn-sm">削除</button>
                     </form>
                 </td>

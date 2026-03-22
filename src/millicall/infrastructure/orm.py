@@ -10,6 +10,8 @@ extensions_table = Table(
     Column("display_name", String(100), nullable=False),
     Column("enabled", Boolean, default=True, nullable=False),
     Column("peer_id", Integer, ForeignKey("peers.id", ondelete="SET NULL"), nullable=True),
+    Column("type", String(20), default="phone", nullable=False),
+    Column("ai_agent_id", Integer, ForeignKey("ai_agents.id", ondelete="SET NULL"), nullable=True),
 )
 
 peers_table = Table(
@@ -22,6 +24,22 @@ peers_table = Table(
     Column("codecs", Text, default="ulaw,alaw", nullable=False),  # comma-separated
     Column("ip_address", String(45), nullable=True),
     Column("extension_id", Integer, ForeignKey("extensions.id", ondelete="SET NULL"), nullable=True),
+)
+
+trunks_table = Table(
+    "trunks",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("name", String(50), unique=True, nullable=False),
+    Column("display_name", String(100), nullable=False),
+    Column("host", String(100), nullable=False),
+    Column("username", String(50), nullable=False),
+    Column("password", String(100), nullable=False),
+    Column("did_number", String(30), nullable=False, server_default=""),
+    Column("caller_id", String(30), nullable=False, server_default=""),
+    Column("incoming_dest", String(20), nullable=False, server_default=""),
+    Column("outbound_prefixes", String(200), nullable=False, server_default=""),
+    Column("enabled", Boolean, default=True, nullable=False),
 )
 
 devices_table = Table(
@@ -77,6 +95,25 @@ call_messages_table = Table(
     Column("content", Text, nullable=False),
     Column("turn", Integer, nullable=False, default=0),
     Column("created_at", DateTime, nullable=False),
+)
+
+cdr_table = Table(
+    "cdr",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("uniqueid", String(150), unique=True, nullable=False),
+    Column("call_date", DateTime, nullable=False),
+    Column("clid", String(200), nullable=False, server_default=""),
+    Column("src", String(80), nullable=False),
+    Column("dst", String(80), nullable=False),
+    Column("dcontext", String(80), nullable=False),
+    Column("channel", String(200), nullable=False),
+    Column("dst_channel", String(200), nullable=False, server_default=""),
+    Column("duration", Integer, nullable=False, server_default="0"),
+    Column("billsec", Integer, nullable=False, server_default="0"),
+    Column("disposition", String(30), nullable=False),
+    Column("account_code", String(50), nullable=False, server_default=""),
+    Column("userfield", String(255), nullable=False, server_default=""),
 )
 
 settings_table = Table(

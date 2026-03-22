@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}{{ "外線トランクを編集" if trunk else "外線トランクを追加" }} - Millicall PBX{% endblock %}
+{% block content %}
+<h1>{{ "外線トランクを編集" if trunk else "外線トランクを追加" }}</h1>
+
+<div class="card" style="margin-top:1rem;">
+    <form method="post" action="{{ '/trunks/' ~ trunk.id if trunk else '/trunks' }}">
+        <div class="form-section" style="margin-top:0;">接続情報</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="name">名前（slug）</label>
+                <input type="text" id="name" name="name" placeholder="hikari-trunk"
+                       value="{{ trunk.name if trunk else '' }}"
+                       required pattern="[a-z0-9][a-z0-9-]*" maxlength="50">
+                <div class="form-hint">半角英数とハイフンのみ（Asterisk内部名）</div>
+            </div>
+            <div class="form-group">
+                <label for="display_name">表示名</label>
+                <input type="text" id="display_name" name="display_name" placeholder="ひかり電話"
+                       value="{{ trunk.display_name if trunk else '' }}"
+                       required maxlength="100">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="host">SIPサーバーアドレス</label>
+            <input type="text" id="host" name="host" placeholder="192.168.1.1"
+                   value="{{ trunk.host if trunk else '' }}"
+                   required>
+            <div class="form-hint">ホームゲートウェイ等のアドレス</div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="username">SIPユーザー名</label>
+                <input type="text" id="username" name="username" placeholder="70"
+                       value="{{ trunk.username if trunk else '' }}"
+                       required>
+                <div class="form-hint">HGW内線番号 等</div>
+            </div>
+            <div class="form-group">
+                <label for="password">SIPパスワード</label>
+                <input type="text" id="password" name="password" placeholder="パスワード"
+                       value="{{ trunk.password if trunk else '' }}"
+                       required autocomplete="off">
+            </div>
+        </div>
+
+        <div class="form-section">発着信設定</div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="did_number">電話番号</label>
+                <input type="text" id="did_number" name="did_number"
+                       value="{{ trunk.did_number if trunk else '' }}" placeholder="0312345678">
+                <div class="form-hint">発信者番号・着信番号に使用</div>
+            </div>
+            <div class="form-group">
+                <label for="incoming_dest">着信先内線番号</label>
+                <input type="text" id="incoming_dest" name="incoming_dest"
+                       value="{{ trunk.incoming_dest if trunk else '' }}" placeholder="空欄で全内線">
+                <div class="form-hint">空欄の場合、全内線に着信します</div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="outbound_prefixes">発信プレフィックス（カンマ区切り）</label>
+            <input type="text" id="outbound_prefixes" name="outbound_prefixes"
+                   value="{{ trunk.outbound_prefixes if trunk else '' }}" placeholder="186,184,0086">
+            <div class="form-hint">
+                書式: <code>プレフィックス:付加文字</code> をカンマ区切り。付加文字なしなら <code>プレフィックス</code> のみ。<br>
+                例: <code>31:184, 32:186, 9</code> → 「31+番号」で184付き発信、「32+番号」で186付き、「9+番号」でそのまま発信。<br>
+                空欄の場合は0発信（184/186直接入力も可）
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="check-label">
+                <input type="checkbox" name="enabled" value="true"
+                       {{ "checked" if not trunk or trunk.enabled }}>
+                有効
+            </label>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-lg">{{ "更新" if trunk else "登録" }}</button>
+            <a href="/trunks" class="btn btn-sub btn-lg">キャンセル</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}発着信記録 (CDR) - Millicall PBX{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>発着信記録 (CDR)</h1>
+        <p class="page-sub">すべての通話の詳細記録 ({{ total }}件)</p>
+    </div>
+    <form method="post" action="/cdr/import">
+        <button type="submit" class="btn btn-sub">手動取り込み</button>
+    </form>
+</div>
+
+{% if records %}
+<div class="tbl-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th class="sortable">日時</th>
+                <th class="sortable">発信元</th>
+                <th class="sortable">宛先</th>
+                <th class="sortable">コンテキスト</th>
+                <th class="sortable">呼出(秒)</th>
+                <th class="sortable">通話(秒)</th>
+                <th class="sortable">結果</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in records %}
+            <tr>
+                <td>{{ r.call_date.strftime('%m/%d %H:%M:%S') if r.call_date else '-' }}</td>
+                <td><code>{{ r.src or '-' }}</code></td>
+                <td><code>{{ r.dst or '-' }}</code></td>
+                <td>
+                    {% if r.dcontext == 'from-pstn' %}
+                        <span class="tag tag-info">外線着信</span>
+                    {% elif r.dcontext == 'internal' and r.dst.startswith('0') %}
+                        <span class="tag tag-muted">外線発信</span>
+                    {% elif r.dcontext == 'internal' %}
+                        <span class="tag tag-muted">内線</span>
+                    {% else %}
+                        <span class="tag tag-muted">{{ r.dcontext }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ r.duration }}</td>
+                <td>{{ r.billsec }}</td>
+                <td>
+                    {% if r.disposition == 'ANSWERED' %}
+                        <span class="tag tag-ok">応答</span>
+                    {% elif r.disposition == 'NO ANSWER' %}
+                        <span class="tag tag-ng">不在</span>
+                    {% elif r.disposition == 'BUSY' %}
+                        <span class="tag tag-ng">話中</span>
+                    {% elif r.disposition == 'FAILED' %}
+                        <span class="tag tag-ng">失敗</span>
+                    {% else %}
+                        <span class="tag tag-muted">{{ r.disposition }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card empty">
+    <p>発着信記録がまだありません</p>
+    <p style="font-size:13px;color:var(--ink-faint);">通話が発生すると30秒ごとに自動取り込みされます</p>
+</div>
+{% endif %}
+
+<div class="mt">
+    <details>
+        <summary>JSON APIについて</summary>
+        <p style="font-size:13px;color:var(--ink-sub);margin-top:4px;">
+            全CDR記録: <code>GET /api/cdr</code>
+        </p>
+    </details>
+</div>
+{% endblock %}

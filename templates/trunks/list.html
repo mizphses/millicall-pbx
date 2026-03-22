@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block title %}外線トランク - Millicall PBX{% endblock %}
+{% block head %}
+<style>
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.45);
+        z-index: 200;
+        align-items: center;
+        justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+        background: var(--bg-card);
+        border-radius: 8px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+        width: 90%;
+        max-width: 640px;
+        max-height: 80vh;
+        overflow-y: auto;
+        padding: 1.5rem;
+    }
+    .modal h2 { margin-bottom: 1rem; }
+    .modal .close-btn {
+        float: right;
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: var(--ink-sub);
+        padding: 0 4px;
+        line-height: 1;
+    }
+    .modal .close-btn:hover { color: var(--ink); }
+    .dial-section { margin-bottom: 1.25rem; }
+    .dial-section h3 {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink-sub);
+        margin-bottom: 0.5rem;
+        padding-bottom: 4px;
+        border-bottom: 1px solid var(--border-light);
+    }
+    .dial-row {
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
+        padding: 5px 0;
+        font-size: 13px;
+    }
+    .dial-row code {
+        font-size: 12px;
+    }
+    .dial-arrow {
+        color: var(--ink-faint);
+        flex-shrink: 0;
+    }
+    .dial-desc {
+        color: var(--ink-sub);
+        font-size: 12px;
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>外線トランク</h1>
+        <p class="page-sub">PSTN接続（SIPトランク）を管理します</p>
+    </div>
+    <div style="display:flex;gap:8px;">
+        {% if trunks %}
+        <button class="btn btn-sub" onclick="document.getElementById('dial-guide').classList.add('open')">ダイヤルガイド</button>
+        {% endif %}
+        <a href="/trunks/new" class="btn btn-primary">追加</a>
+    </div>
+</div>
+
+{% if trunks %}
+<div class="tbl-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th class="sortable">表示名</th>
+                <th class="sortable">名前（slug）</th>
+                <th class="sortable">ホスト</th>
+                <th class="sortable">電話番号</th>
+                <th>プレフィックス</th>
+                <th>着信先</th>
+                <th class="sortable">状態</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for trunk in trunks %}
+            <tr>
+                <td><strong>{{ trunk.display_name }}</strong></td>
+                <td><code>{{ trunk.name }}</code></td>
+                <td><code>{{ trunk.host }}</code></td>
+                <td>{{ trunk.did_number or '-' }}</td>
+                <td>
+                    {% if trunk.outbound_prefixes %}
+                        {% for pfx in trunk.outbound_prefixes.split(',') %}
+                        <code>{{ pfx.strip() }}</code>{{ '' if loop.last else ', ' }}
+                        {% endfor %}
+                    {% else %}
+                        <span style="color:var(--ink-faint)">0発信</span>
+                    {% endif %}
+                </td>
+                <td>{{ trunk.incoming_dest or '全内線' }}</td>
+                <td>
+                    {% if trunk.enabled %}
+                        <span class="tag tag-ok">有効</span>
+                    {% else %}
+                        <span class="tag tag-ng">無効</span>
+                    {% endif %}
+                </td>
+                <td class="td-actions">
+                    <a href="/trunks/{{ trunk.id }}/edit" class="btn btn-text btn-sm">編集</a>
+                    <form method="post" action="/trunks/{{ trunk.id }}/delete"
+                          onsubmit="return confirm('外線 {{ trunk.display_name }} を削除しますか？')">
+                        <button type="submit" class="btn btn-del btn-sm">削除</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Dial Guide Modal -->
+<div class="modal-overlay" id="dial-guide" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal">
+        <button class="close-btn" onclick="document.getElementById('dial-guide').classList.remove('open')">&times;</button>
+        <h2>ダイヤルガイド</h2>
+        <p style="font-size:13px;color:var(--ink-sub);margin-bottom:1rem;">
+            SIPフォンから外線発信するときのダイヤル方法一覧です。
+        </p>
+
+        {% for trunk in trunks %}
+        {% if trunk.enabled %}
+        <div class="dial-section">
+            <h3>{{ trunk.display_name }}{% if trunk.did_number %} ({{ trunk.did_number }}){% endif %}</h3>
+
+            {% set rules = [] %}
+            {% if trunk.outbound_prefixes %}
+            {% for entry in trunk.outbound_prefixes.split(',') %}
+            {% set entry = entry.strip() %}
+            {% if entry %}
+            {% if ':' in entry %}
+            {% set parts = entry.split(':', 1) %}
+            {% if rules.append({'pfx': parts[0].strip(), 'prepend': parts[1].strip()}) %}{% endif %}
+            {% else %}
+            {% if rules.append({'pfx': entry, 'prepend': ''}) %}{% endif %}
+            {% endif %}
+            {% endif %}
+            {% endfor %}
+            {% endif %}
+
+            {% for rule in rules %}
+            <div class="dial-row">
+                <code>{{ rule.pfx }}</code> + 番号
+                <span class="dial-arrow">&rarr;</span>
+                {% if rule.prepend %}
+                <span><code>{{ rule.prepend }}</code> + 番号 で発信</span>
+                {% else %}
+                <span>番号をそのまま発信</span>
+                {% endif %}
+            </div>
+            <div class="dial-row" style="padding-left:1rem;">
+                <span class="dial-desc">例: <code>{{ rule.pfx }}0312345678</code></span>
+                <span class="dial-arrow">&rarr;</span>
+                <span class="dial-desc"><code>{{ rule.prepend }}0312345678</code></span>
+            </div>
+            {% endfor %}
+
+            {% if not rules %}
+            <div class="dial-row">
+                <code>0</code> + 番号
+                <span class="dial-arrow">&rarr;</span>
+                <span>通常発信</span>
+            </div>
+            <div class="dial-row" style="padding-left:1rem;">
+                <span class="dial-desc">例: <code>0312345678</code></span>
+            </div>
+            <div class="dial-row">
+                <code>184</code> + <code>0</code> + 番号
+                <span class="dial-arrow">&rarr;</span>
+                <span>非通知で発信</span>
+            </div>
+            <div class="dial-row">
+                <code>186</code> + <code>0</code> + 番号
+                <span class="dial-arrow">&rarr;</span>
+                <span>番号通知で発信</span>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
+
+        <hr>
+        <div class="dial-section">
+            <h3>内線・その他</h3>
+            <div class="dial-row">
+                <span>内線番号をそのままダイヤル</span>
+            </div>
+            <div class="dial-row">
+                <code>*43</code>
+                <span class="dial-arrow">&rarr;</span>
+                <span>エコーテスト</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<div class="card empty">
+    <p>外線トランクがまだ登録されていません</p>
+    <a href="/trunks/new" class="btn btn-primary">登録する</a>
+</div>
+{% endif %}
+{% endblock %}
