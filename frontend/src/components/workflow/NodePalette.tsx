@@ -11,7 +11,15 @@ export interface NodeTypeDefinition {
 export interface ConfigField {
   name: string;
   label: string;
-  type: "string" | "textarea" | "number" | "boolean" | "select" | "multi_select" | "key_value_list" | "json";
+  type:
+    | "string"
+    | "textarea"
+    | "number"
+    | "boolean"
+    | "select"
+    | "multi_select"
+    | "key_value_list"
+    | "json";
   required?: boolean;
   default?: unknown;
   options?: { value: string; label: string }[];
@@ -84,7 +92,8 @@ export function NodePalette({ nodeTypes }: NodePaletteProps) {
             {categoryLabels[category] || category}
           </div>
           {types.map((nt) => (
-            <div
+            <button
+              type="button"
               key={nt.type}
               draggable
               onDragStart={(e) => onDragStart(e, nt)}
@@ -115,7 +124,7 @@ export function NodePalette({ nodeTypes }: NodePaletteProps) {
                 style={{ background: nt.color }}
               />
               {nt.label}
-            </div>
+            </button>
           ))}
         </div>
       ))}

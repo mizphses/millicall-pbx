@@ -140,7 +140,7 @@ async def extension_create(
             tts_provider=form.get("tts_provider", "coefont"),
             google_tts_voice=form.get("google_tts_voice", "ja-JP-Chirp3-HD-Aoede"),
             llm_provider=form.get("llm_provider", "google"),
-            llm_model=form.get("llm_model", "gemini-2.0-flash-lite"),
+            llm_model=form.get("llm_model", "gemini-2.5-flash"),
             max_history=int(form.get("max_history", "10")),
         )
     else:
@@ -185,7 +185,7 @@ async def extension_update(
             tts_provider=form.get("tts_provider", "coefont"),
             google_tts_voice=form.get("google_tts_voice", "ja-JP-Chirp3-HD-Aoede"),
             llm_provider=form.get("llm_provider", "google"),
-            llm_model=form.get("llm_model", "gemini-2.0-flash-lite"),
+            llm_model=form.get("llm_model", "gemini-2.5-flash"),
             max_history=int(form.get("max_history", "10")),
             enabled=enabled,
         )
@@ -490,7 +490,7 @@ async def agent_create(
     tts_provider: str = Form(default="coefont"),
     google_tts_voice: str = Form(default="ja-JP-Chirp3-HD-Aoede"),
     llm_provider: str = Form(default="google"),
-    llm_model: str = Form(default="gemini-2.0-flash-lite"),
+    llm_model: str = Form(default="gemini-2.5-flash"),
     max_history: int = Form(default=10),
     enabled: bool = Form(default=False),
     session: AsyncSession = Depends(get_session),
@@ -525,7 +525,7 @@ async def agent_update(
     tts_provider: str = Form(default="coefont"),
     google_tts_voice: str = Form(default="ja-JP-Chirp3-HD-Aoede"),
     llm_provider: str = Form(default="google"),
-    llm_model: str = Form(default="gemini-2.0-flash-lite"),
+    llm_model: str = Form(default="gemini-2.5-flash"),
     max_history: int = Form(default=10),
     enabled: bool = Form(default=False),
     session: AsyncSession = Depends(get_session),

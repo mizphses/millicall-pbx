@@ -17,6 +17,9 @@ class WorkflowRepository:
         definition = row.definition
         if isinstance(definition, str):
             definition = json.loads(definition)
+        tts_config = row.default_tts_config
+        if isinstance(tts_config, str):
+            tts_config = json.loads(tts_config)
         return Workflow(
             id=row.id,
             name=row.name,
@@ -25,6 +28,7 @@ class WorkflowRepository:
             extension_id=row.extension_id,
             workflow_type=row.workflow_type,
             definition=definition,
+            default_tts_config=tts_config or {},
             enabled=row.enabled,
             created_at=row.created_at,
             updated_at=row.updated_at,
@@ -75,6 +79,7 @@ class WorkflowRepository:
                 extension_id=workflow.extension_id,
                 workflow_type=workflow.workflow_type,
                 definition=json.dumps(workflow.definition, ensure_ascii=False),
+                default_tts_config=json.dumps(workflow.default_tts_config, ensure_ascii=False),
                 enabled=workflow.enabled,
                 created_at=now,
                 updated_at=now,
@@ -100,6 +105,7 @@ class WorkflowRepository:
                 extension_id=workflow.extension_id,
                 workflow_type=workflow.workflow_type,
                 definition=json.dumps(workflow.definition, ensure_ascii=False),
+                default_tts_config=json.dumps(workflow.default_tts_config, ensure_ascii=False),
                 enabled=workflow.enabled,
                 updated_at=now,
             )

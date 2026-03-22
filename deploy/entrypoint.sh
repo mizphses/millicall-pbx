@@ -40,16 +40,15 @@ asyncio.run(init())
 # Create directories BEFORE copying config and starting Asterisk
 mkdir -p /usr/share/asterisk/sounds/en/millicall
 mkdir -p /var/spool/asterisk/recording
-mkdir -p /var/log/asterisk/cdr-csv
-chown -R asterisk:asterisk /var/log/asterisk/cdr-csv
+mkdir -p /var/log/asterisk/cdr-custom
+chown -R asterisk:asterisk /var/log/asterisk/cdr-custom
 
 cp /app/asterisk_templates/indications.conf /etc/asterisk/indications.conf
 cp /app/asterisk_templates/pjsip_notify.conf /etc/asterisk/pjsip_notify.conf
 cp /app/asterisk_templates/ari.conf /etc/asterisk/ari.conf
 cp /app/asterisk_templates/http.conf /etc/asterisk/http.conf
 cp /app/asterisk_templates/cdr.conf /etc/asterisk/cdr.conf
-cp /app/asterisk_templates/cdr_csv.conf /etc/asterisk/cdr_csv.conf
-cp /app/asterisk_templates/modules.conf /etc/asterisk/modules.conf
+cp /app/asterisk_templates/cdr_custom.conf /etc/asterisk/cdr_custom.conf
 
 # Start Asterisk in background
 asterisk -f &
@@ -63,8 +62,8 @@ asterisk -rx 'core set verbose 5'
 asterisk -rx 'pjsip set logger on'
 asterisk -rx 'logger add channel /var/log/asterisk/verbose.log verbose notice warning error'
 
-# Verify CDR module is loaded
-asterisk -rx 'module show like cdr_csv'
+# Verify CDR custom backend is active
+asterisk -rx 'cdr show status'
 
 # Start ARI listener for AI agent calls
 python -m millicall.phase2.ari_runner &

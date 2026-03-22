@@ -45,7 +45,10 @@ function SettingsPage() {
 
   const mutation = useMutation({
     mutationFn: (items: { key: string; value: string }[]) =>
-      api.put("/settings", items.filter((e) => e.key.trim())),
+      api.put(
+        "/settings",
+        items.filter((e) => e.key.trim()),
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
       setSaved(true);
@@ -84,9 +87,7 @@ function SettingsPage() {
           marginBottom: "20px",
         })}
       >
-        <h2 className={css({ fontSize: "15px", fontWeight: 600, marginBottom: "12px" })}>
-          設定値
-        </h2>
+        <h2 className={css({ fontSize: "15px", fontWeight: 600, marginBottom: "12px" })}>設定値</h2>
 
         <div className={css({ display: "flex", flexDirection: "column", gap: "8px" })}>
           {entries.map((entry, i) => (

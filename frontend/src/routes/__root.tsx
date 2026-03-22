@@ -2,7 +2,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext, Link, Outlet, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { css } from "../../styled-system/css";
-import type { useAuth } from "../lib/auth";
+import { useAuth } from "../lib/auth";
 
 interface RouterContext {
   auth: ReturnType<typeof useAuth>;
@@ -18,11 +18,11 @@ const navLinks = [
   { to: "/extensions", label: "内線アカウント" },
   { to: "/peers", label: "SIP電話機登録" },
   { to: "/trunks", label: "外線トランク" },
-  { to: "/workflows", label: "ワークフロー" },
   { to: "/devices", label: "デバイス管理" },
   { to: "/cdr", label: "発着信記録" },
   { to: "/call-history", label: "AI通話履歴" },
   { to: "/settings", label: "詳細設定" },
+  { to: "/users", label: "管理者" },
 ] as const;
 
 const navLinkBase = css({
@@ -44,7 +44,11 @@ const navLinkBase = css({
     borderBottom: "2px solid transparent",
     borderLeft: "0",
   },
-  _hover: { color: "#ddd", background: "rgba(255,255,255,0.06)", md: { background: "transparent" } },
+  _hover: {
+    color: "#ddd",
+    background: "rgba(255,255,255,0.06)",
+    md: { background: "transparent" },
+  },
 });
 
 const navLinkActive = css({
@@ -61,7 +65,7 @@ const navLinkActive = css({
 function RootLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
-  const { auth } = router.options.context;
+  const auth = useAuth();
   const isLoginPage = router.state.location.pathname === "/login";
 
   return (
@@ -114,7 +118,7 @@ function RootLayout() {
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="メニュー"
         >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
             <rect y="3" width="20" height="2" rx="1" />
             <rect y="9" width="20" height="2" rx="1" />
             <rect y="15" width="20" height="2" rx="1" />

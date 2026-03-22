@@ -2,7 +2,15 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { css } from "../../styled-system/css";
-import { FormCard, FormGroup, FormRow, FormSection, inputClass, selectClass, textareaClass } from "../components/FormCard";
+import {
+  FormCard,
+  FormGroup,
+  FormRow,
+  FormSection,
+  inputClass,
+  selectClass,
+  textareaClass,
+} from "../components/FormCard";
 import { PageHead } from "../components/PageHead";
 import { api } from "../lib/api";
 
@@ -36,10 +44,12 @@ function WorkflowNewPage() {
   const [description, setDescription] = useState("");
   const [workflowType, setWorkflowType] = useState("ivr");
   const [enabled, setEnabled] = useState(true);
+  const [ttsProvider, setTtsProvider] = useState("google");
+  const [googleVoice, setGoogleVoice] = useState("ja-JP-Chirp3-HD-Aoede");
+  const [coefontId, setCoefontId] = useState("");
 
   const mutation = useMutation({
-    mutationFn: (body: Record<string, unknown>) =>
-      api.post<{ id: number }>("/workflows", body),
+    mutationFn: (body: Record<string, unknown>) => api.post<{ id: number }>("/workflows", body),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["workflows"] });
       navigate({
@@ -56,6 +66,11 @@ function WorkflowNewPage() {
       number,
       description,
       workflow_type: workflowType,
+      default_tts_config: {
+        tts_provider: ttsProvider,
+        google_tts_voice: googleVoice,
+        coefont_voice_id: coefontId,
+      },
       enabled,
     });
   }
@@ -115,6 +130,48 @@ function WorkflowNewPage() {
             <option value="ai_workflow">AI Call Workflow</option>
           </select>
         </FormGroup>
+
+        <FormSection title="デフォルトTTS設定" />
+        <FormRow>
+          <FormGroup label="TTSプロバイダ">
+            <select
+              className={selectClass}
+              value={ttsProvider}
+              onChange={(e) => setTtsProvider(e.target.value)}
+            >
+              <option value="google">Google Chirp3 HD</option>
+              <option value="coefont">CoeFont</option>
+            </select>
+          </FormGroup>
+          {ttsProvider === "google" ? (
+            <FormGroup label="Google TTSボイス">
+              <select
+                className={selectClass}
+                value={googleVoice}
+                onChange={(e) => setGoogleVoice(e.target.value)}
+              >
+                <option value="ja-JP-Chirp3-HD-Aoede">Aoede（女性）</option>
+                <option value="ja-JP-Chirp3-HD-Kore">Kore（女性）</option>
+                <option value="ja-JP-Chirp3-HD-Leda">Leda（女性）</option>
+                <option value="ja-JP-Chirp3-HD-Zephyr">Zephyr（女性）</option>
+                <option value="ja-JP-Chirp3-HD-Charon">Charon（男性）</option>
+                <option value="ja-JP-Chirp3-HD-Fenrir">Fenrir（男性）</option>
+                <option value="ja-JP-Chirp3-HD-Orus">Orus（男性）</option>
+                <option value="ja-JP-Chirp3-HD-Puck">Puck（男性）</option>
+              </select>
+            </FormGroup>
+          ) : (
+            <FormGroup label="CoeFont ボイスID">
+              <input
+                type="text"
+                className={inputClass}
+                value={coefontId}
+                onChange={(e) => setCoefontId(e.target.value)}
+                placeholder="ボイスID"
+              />
+            </FormGroup>
+          )}
+        </FormRow>
 
         <label className={checkboxLabel}>
           <input

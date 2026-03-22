@@ -170,11 +170,28 @@ function CallHistoryDetailPage() {
                 borderRadius: "5px",
                 border: "1px solid",
                 ...(msg.role === "assistant"
-                  ? { background: "#fdf3ee", borderColor: "rgba(196, 93, 44, 0.2)", marginLeft: "0", marginRight: "32px" }
-                  : { background: "#ffffff", borderColor: "#d4d2cd", marginLeft: "32px", marginRight: "0" }),
+                  ? {
+                      background: "#fdf3ee",
+                      borderColor: "rgba(196, 93, 44, 0.2)",
+                      marginLeft: "0",
+                      marginRight: "32px",
+                    }
+                  : {
+                      background: "#ffffff",
+                      borderColor: "#d4d2cd",
+                      marginLeft: "32px",
+                      marginRight: "0",
+                    }),
               })}
             >
-              <div className={css({ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" })}>
+              <div
+                className={css({
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginBottom: "4px",
+                })}
+              >
                 <span
                   className={css({
                     fontSize: "11px",

@@ -82,7 +82,9 @@ function Dashboard() {
       </div>
 
       <div className={css({ marginTop: "24px" })}>
-        <h2 className={css({ fontSize: "15px", fontWeight: 600, marginBottom: "8px" })}>クイック操作</h2>
+        <h2 className={css({ fontSize: "15px", fontWeight: 600, marginBottom: "8px" })}>
+          クイック操作
+        </h2>
         <div className={css({ display: "flex", flexWrap: "wrap", gap: "8px" })}>
           <Link to="/extensions/new" className={btnPrimary}>
             内線アカウントを追加

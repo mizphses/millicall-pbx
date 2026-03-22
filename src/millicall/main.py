@@ -30,6 +30,7 @@ from millicall.presentation.api.extensions import router as extensions_api_route
 from millicall.presentation.api.peers import router as peers_api_router
 from millicall.presentation.api.settings import router as settings_api_router
 from millicall.presentation.api.trunks import router as trunks_api_router
+from millicall.presentation.api.users import router as users_api_router
 from millicall.presentation.api.workflows import router as workflows_api_router
 from millicall.presentation.web.provisioning import router as provisioning_router
 from millicall.presentation.web.views import router as web_router
@@ -42,13 +43,20 @@ async def _cdr_import_loop() -> None:
     from millicall.application.cdr_service import CDRService
     from millicall.infrastructure.database import async_session
 
+    _csv_warned = False
     while True:
         try:
             async with async_session() as session:
                 service = CDRService(session)
+                if not service.CDR_CSV_PATH.exists() and not _csv_warned:
+                    logger.warning(
+                        "CDR CSV not found at %s — is cdr_csv module loaded?", service.CDR_CSV_PATH
+                    )
+                    _csv_warned = True
                 count = await service.import_from_csv()
                 if count > 0:
                     logger.info("Imported %d new CDR records", count)
+                    _csv_warned = False
         except Exception:
             logger.exception("CDR import error")
         await asyncio.sleep(30)
@@ -123,6 +131,7 @@ app.include_router(call_history_api_router)
 app.include_router(cdr_api_router)
 app.include_router(dashboard_api_router)
 app.include_router(workflows_api_router)
+app.include_router(users_api_router)
 # Provisioning (no auth — devices need unauthenticated access)
 app.include_router(provisioning_router)
 # Web UI (backward compat)

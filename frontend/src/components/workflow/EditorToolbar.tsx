@@ -5,9 +5,31 @@ interface EditorToolbarProps {
   workflowName: string;
   onSave: () => void;
   isSaving: boolean;
+  onAiGenerate?: () => void;
+  isGenerating?: boolean;
 }
 
-export function EditorToolbar({ workflowName, onSave, isSaving }: EditorToolbarProps) {
+const btnStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  paddingInline: "14px",
+  paddingBlock: "6px",
+  fontSize: "13px",
+  fontWeight: 500,
+  borderRadius: "5px",
+  cursor: "pointer",
+  border: "none",
+  _disabled: { opacity: 0.5, cursor: "default" },
+});
+
+export function EditorToolbar({
+  workflowName,
+  onSave,
+  isSaving,
+  onAiGenerate,
+  isGenerating,
+}: EditorToolbarProps) {
   return (
     <div
       className={css({
@@ -22,7 +44,7 @@ export function EditorToolbar({ workflowName, onSave, isSaving }: EditorToolbarP
       })}
     >
       <Link
-        to="/workflows"
+        to="/extensions"
         className={css({
           display: "inline-flex",
           alignItems: "center",
@@ -34,7 +56,7 @@ export function EditorToolbar({ workflowName, onSave, isSaving }: EditorToolbarP
           _hover: { color: "#1b1b1f" },
         })}
       >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
           <path d="M10.354 3.354a.5.5 0 00-.708-.708l-5 5a.5.5 0 000 .708l5 5a.5.5 0 00.708-.708L5.707 8l4.647-4.646z" />
         </svg>
         戻る
@@ -51,29 +73,34 @@ export function EditorToolbar({ workflowName, onSave, isSaving }: EditorToolbarP
         {workflowName}
       </span>
 
-      <button
-        type="button"
-        onClick={onSave}
-        disabled={isSaving}
-        className={css({
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          paddingInline: "16px",
-          paddingBlock: "6px",
-          fontSize: "13px",
-          fontWeight: 500,
-          borderRadius: "5px",
-          background: "#c45d2c",
-          color: "#ffffff",
-          cursor: "pointer",
-          border: "none",
-          _hover: { background: "#a84e24" },
-          _disabled: { opacity: "0.5", cursor: "default" },
-        })}
-      >
-        {isSaving ? "保存中..." : "保存"}
-      </button>
+      <div className={css({ display: "flex", gap: "8px" })}>
+        {onAiGenerate && (
+          <button
+            type="button"
+            onClick={onAiGenerate}
+            disabled={isGenerating}
+            className={`${btnStyle} ${css({
+              background: "#673AB7",
+              color: "#ffffff",
+              _hover: { background: "#5e35b1" },
+            })}`}
+          >
+            {isGenerating ? "生成中..." : "✦ AI生成"}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={isSaving}
+          className={`${btnStyle} ${css({
+            background: "#c45d2c",
+            color: "#ffffff",
+            _hover: { background: "#a84e24" },
+          })}`}
+        >
+          {isSaving ? "保存中..." : "保存"}
+        </button>
+      </div>
     </div>
   );
 }

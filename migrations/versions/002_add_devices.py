@@ -5,6 +5,7 @@ Revises: 001_initial
 Create Date: 2026-03-22
 
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa
@@ -24,8 +25,15 @@ def upgrade() -> None:
         sa.Column("ip_address", sa.String(45), nullable=True),
         sa.Column("hostname", sa.String(100), nullable=True),
         sa.Column("model", sa.String(50), nullable=True),
-        sa.Column("peer_id", sa.Integer(), sa.ForeignKey("peers.id", ondelete="SET NULL"), nullable=True),
-        sa.Column("extension_id", sa.Integer(), sa.ForeignKey("extensions.id", ondelete="SET NULL"), nullable=True),
+        sa.Column(
+            "peer_id", sa.Integer(), sa.ForeignKey("peers.id", ondelete="SET NULL"), nullable=True
+        ),
+        sa.Column(
+            "extension_id",
+            sa.Integer(),
+            sa.ForeignKey("extensions.id", ondelete="SET NULL"),
+            nullable=True,
+        ),
         sa.Column("provisioned", sa.Boolean(), default=False, nullable=False),
         sa.Column("last_seen", sa.DateTime(), nullable=True),
     )

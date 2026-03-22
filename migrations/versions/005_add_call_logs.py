@@ -5,6 +5,7 @@ Revises: 004_add_settings
 Create Date: 2026-03-22
 
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa
@@ -32,7 +33,12 @@ def upgrade() -> None:
     op.create_table(
         "call_messages",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("call_log_id", sa.Integer(), sa.ForeignKey("call_logs.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "call_log_id",
+            sa.Integer(),
+            sa.ForeignKey("call_logs.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("role", sa.String(20), nullable=False),
         sa.Column("content", sa.Text(), nullable=False),
         sa.Column("turn", sa.Integer(), nullable=False, server_default="0"),

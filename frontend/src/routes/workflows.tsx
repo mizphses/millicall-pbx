@@ -108,7 +108,19 @@ function WorkflowsPage() {
           },
           {
             header: "内線番号",
-            accessor: (w) => <code className={css({ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px", background: "#e6e4e0", padding: "2px 6px", borderRadius: "3px" })}>{w.number}</code>,
+            accessor: (w) => (
+              <code
+                className={css({
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: "12px",
+                  background: "#e6e4e0",
+                  padding: "2px 6px",
+                  borderRadius: "3px",
+                })}
+              >
+                {w.number}
+              </code>
+            ),
           },
           {
             header: "タイプ",
@@ -139,6 +151,7 @@ function WorkflowsPage() {
                   編集
                 </Link>
                 <button
+                  type="button"
                   onClick={() => {
                     if (confirm(`ワークフロー「${w.name}」を削除しますか？`))
                       deleteMutation.mutate(w.id);

@@ -142,7 +142,9 @@ class WorkflowExecutor:
 
     async def _hangup(self) -> None:
         try:
-            await _ari_request("DELETE", f"/channels/{self.channel_id}", params={"reason_code": "16"})
+            await _ari_request(
+                "DELETE", f"/channels/{self.channel_id}", params={"reason_code": "16"}
+            )
         except Exception:
             pass
 
@@ -150,6 +152,7 @@ class WorkflowExecutor:
         dtmf_queues.pop(self.channel_id, None)
         channel_gone.pop(self.channel_id, None)
         import glob as _glob
+
         for f in _glob.glob(f"/usr/share/asterisk/sounds/en/millicall/*{self.safe_id}*"):
             try:
                 os.remove(f)
@@ -167,29 +170,38 @@ class WorkflowExecutor:
         self._check_channel()
         if tts_provider == "coefont" and coefont_voice_id:
             from millicall.phase2 import tts_coefont
+
             audio_wav = await tts_coefont.synthesize_for_asterisk(text, coefont_voice_id)
         else:
             api_key = await _get_api_key("google")
             from millicall.phase2 import tts_google
+
             audio_wav = await tts_google.synthesize(text, api_key, voice_name=google_tts_voice)
 
         filename = f"wf_{self.safe_id}_{id(text) & 0xFFFFFF:06x}.wav"
         sound_name = await _save_wav_to_asterisk(audio_wav, filename)
-        await _ari_request("POST", f"/channels/{self.channel_id}/play", params={"media": f"sound:{sound_name}"})
+        await _ari_request(
+            "POST", f"/channels/{self.channel_id}/play", params={"media": f"sound:{sound_name}"}
+        )
         duration = len(audio_wav) / (8000 * 2)
         await asyncio.sleep(duration + 0.5)
 
     def _get_tts_params(self, config: dict) -> dict:
-        """Extract TTS params from node config."""
+        """Extract TTS params from node config, falling back to workflow defaults."""
+        defaults = self.workflow.default_tts_config or {}
         return {
-            "tts_provider": config.get("tts_provider", "google"),
-            "google_tts_voice": config.get("google_tts_voice", "ja-JP-Chirp3-HD-Aoede"),
-            "coefont_voice_id": config.get("coefont_voice_id", ""),
+            "tts_provider": config.get("tts_provider") or defaults.get("tts_provider", "google"),
+            "google_tts_voice": config.get("google_tts_voice")
+            or defaults.get("google_tts_voice", "ja-JP-Chirp3-HD-Aoede"),
+            "coefont_voice_id": config.get("coefont_voice_id")
+            or defaults.get("coefont_voice_id", ""),
         }
 
     async def _play_sound_file(self, file_path: str) -> None:
         self._check_channel()
-        await _ari_request("POST", f"/channels/{self.channel_id}/play", params={"media": f"sound:{file_path}"})
+        await _ari_request(
+            "POST", f"/channels/{self.channel_id}/play", params={"media": f"sound:{file_path}"}
+        )
         await asyncio.sleep(3)
 
     async def _wait_dtmf(self, max_digits: int = 1, timeout: float = 5.0) -> str:
@@ -225,6 +237,7 @@ class WorkflowExecutor:
         def replacer(match: re.Match) -> str:
             var_name = match.group(1).strip()
             return str(self.variables.get(var_name, match.group(0)))
+
         return re.sub(r"\{\{(.+?)\}\}", replacer, text)
 
     # ------------------------------------------------------------------
@@ -261,8 +274,11 @@ class WorkflowExecutor:
             return None
         logger.info("Transfer %s → %s", self.channel_id, destination)
         try:
-            await _ari_request("POST", f"/channels/{self.channel_id}/continue",
-                               params={"context": "internal", "extension": destination, "priority": "1"})
+            await _ari_request(
+                "POST",
+                f"/channels/{self.channel_id}/continue",
+                params={"context": "internal", "extension": destination, "priority": "1"},
+            )
         except Exception as exc:
             logger.error("Transfer failed: %s", exc)
         return None
@@ -271,7 +287,9 @@ class WorkflowExecutor:
         """Play prompt based on prompt_mode: tts, beep, or none."""
         mode = config.get("prompt_mode", "tts")
         if mode == "beep":
-            await _ari_request("POST", f"/channels/{self.channel_id}/play", params={"media": "tone:beep"})
+            await _ari_request(
+                "POST", f"/channels/{self.channel_id}/play", params={"media": "tone:beep"}
+            )
             await asyncio.sleep(0.5)
         elif mode == "tts":
             text = config.get("prompt_text", "").strip()
@@ -402,10 +420,15 @@ class WorkflowExecutor:
             logger.error("voicemail %s: no mailbox", node["id"])
             return None
         if greeting_text:
-            await self._play_tts(self._render_template(greeting_text), **self._get_tts_params(config))
+            await self._play_tts(
+                self._render_template(greeting_text), **self._get_tts_params(config)
+            )
         try:
-            await _ari_request("POST", f"/channels/{self.channel_id}/continue",
-                               params={"context": "voicemail", "extension": mailbox, "priority": "1"})
+            await _ari_request(
+                "POST",
+                f"/channels/{self.channel_id}/continue",
+                params={"context": "voicemail", "extension": mailbox, "priority": "1"},
+            )
         except Exception as exc:
             logger.error("Voicemail redirect failed: %s", exc)
         return None
@@ -413,7 +436,7 @@ class WorkflowExecutor:
     async def _exec_ai_conversation(self, node: dict, config: dict) -> str | None:
         system_prompt = config.get("system_prompt", "あなたは電話応対AIアシスタントです。")
         provider = config.get("llm_provider", "google")
-        llm_model = config.get("llm_model", "gemini-2.0-flash-lite")
+        llm_model = config.get("llm_model", "gemini-2.5-flash")
         max_turns = int(config.get("max_turns", 10))
         greeting_text = config.get("greeting_text", "").strip()
         tts_params = self._get_tts_params(config)
@@ -427,6 +450,28 @@ class WorkflowExecutor:
             "このタグはユーザーには見えません。通常の会話中は絶対に付けないでください。"
         )
 
+        # Create call log
+        call_log_id = None
+        turn_counter = 0
+        try:
+            from millicall.domain.models import CallLog
+            from millicall.infrastructure.database import async_session
+            from millicall.infrastructure.repositories.call_log_repo import CallLogRepository
+
+            async with async_session() as session:
+                repo = CallLogRepository(session)
+                call_log_id = await repo.create_log(
+                    CallLog(
+                        agent_id=0,
+                        agent_name=self.workflow.name,
+                        extension_number=self.workflow.number,
+                        caller_channel=self.channel_id,
+                        started_at=datetime.now(),
+                    )
+                )
+        except Exception as e:
+            logger.error("Failed to create call log: %s", e)
+
         if greeting_text:
             await self._play_tts(self._render_template(greeting_text), **tts_params)
 
@@ -434,11 +479,18 @@ class WorkflowExecutor:
             self._check_channel()
             recording_name = f"wf_{self.safe_id}_{turn}"
             try:
-                await _ari_request("POST", f"/channels/{self.channel_id}/record", params={
-                    "name": recording_name, "format": "wav",
-                    "maxDurationSeconds": "15", "maxSilenceSeconds": "2",
-                    "beep": "false", "terminateOn": "none",
-                })
+                await _ari_request(
+                    "POST",
+                    f"/channels/{self.channel_id}/record",
+                    params={
+                        "name": recording_name,
+                        "format": "wav",
+                        "maxDurationSeconds": "15",
+                        "maxSilenceSeconds": "2",
+                        "beep": "false",
+                        "terminateOn": "none",
+                    },
+                )
             except Exception:
                 break
 
@@ -470,8 +522,12 @@ class WorkflowExecutor:
             try:
                 llm_key = await _get_api_key(provider)
                 response_text = await llm_chat.generate_response(
-                    user_text=user_text, context=context, system_prompt=full_prompt,
-                    provider=provider, api_key=llm_key, model=llm_model,
+                    user_text=user_text,
+                    context=context,
+                    system_prompt=full_prompt,
+                    provider=provider,
+                    api_key=llm_key,
+                    model=llm_model,
                 )
             except Exception as exc:
                 logger.error("LLM failed: %s", exc)
@@ -481,8 +537,41 @@ class WorkflowExecutor:
             response_text = response_text.replace("[END_CALL]", "").strip()
             context.add_message("user", user_text)
             context.add_message("assistant", response_text)
+            turn_counter += 1
             self.variables["last_user_text"] = user_text
             self.variables["last_ai_response"] = response_text
+
+            # Save messages to call log
+            if call_log_id:
+                try:
+                    from millicall.domain.models import CallMessage
+                    from millicall.infrastructure.database import async_session
+                    from millicall.infrastructure.repositories.call_log_repo import (
+                        CallLogRepository,
+                    )
+
+                    async with async_session() as session:
+                        repo = CallLogRepository(session)
+                        await repo.add_message(
+                            CallMessage(
+                                call_log_id=call_log_id,
+                                role="user",
+                                content=user_text,
+                                turn=turn_counter,
+                                created_at=datetime.now(),
+                            )
+                        )
+                        await repo.add_message(
+                            CallMessage(
+                                call_log_id=call_log_id,
+                                role="assistant",
+                                content=response_text,
+                                turn=turn_counter,
+                                created_at=datetime.now(),
+                            )
+                        )
+                except Exception as e:
+                    logger.error("Failed to save call message: %s", e)
 
             try:
                 await self._play_tts(response_text, **tts_params)
@@ -497,13 +586,25 @@ class WorkflowExecutor:
             except Exception:
                 pass
 
+        # Finalize call log
+        if call_log_id:
+            try:
+                from millicall.infrastructure.database import async_session
+                from millicall.infrastructure.repositories.call_log_repo import CallLogRepository
+
+                async with async_session() as session:
+                    repo = CallLogRepository(session)
+                    await repo.finish_log(call_log_id, turn_counter)
+            except Exception as e:
+                logger.error("Failed to finalize call log: %s", e)
+
         return None
 
     async def _exec_intent_detection(self, node: dict, config: dict) -> str | None:
         """Use LLM to classify the caller's last utterance into an intent."""
         intents = config.get("intents", [])
         provider = config.get("llm_provider", "google")
-        llm_model = config.get("llm_model", "gemini-2.0-flash-lite")
+        llm_model = config.get("llm_model", "gemini-2.5-flash")
         fallback = config.get("fallback_intent", "other")
 
         user_text = self.variables.get("last_user_text", "")
@@ -511,7 +612,9 @@ class WorkflowExecutor:
             return fallback
 
         if isinstance(intents, list):
-            intent_desc = "\n".join(f"- {i['key']}: {i['value']}" for i in intents if isinstance(i, dict))
+            intent_desc = "\n".join(
+                f"- {i['key']}: {i['value']}" for i in intents if isinstance(i, dict)
+            )
             intent_keys = [i["key"] for i in intents if isinstance(i, dict)]
         else:
             return fallback
@@ -527,8 +630,12 @@ class WorkflowExecutor:
             llm_key = await _get_api_key(provider)
             ctx = llm_chat.ConversationContext(max_history=2)
             result = await llm_chat.generate_response(
-                user_text=prompt, context=ctx, system_prompt="あなたは意図分類AIです。キー名のみ回答してください。",
-                provider=provider, api_key=llm_key, model=llm_model,
+                user_text=prompt,
+                context=ctx,
+                system_prompt="あなたは意図分類AIです。キー名のみ回答してください。",
+                provider=provider,
+                api_key=llm_key,
+                model=llm_model,
             )
             detected = result.strip().lower()
             if detected in [k.lower() for k in intent_keys]:
@@ -544,7 +651,7 @@ class WorkflowExecutor:
         """Conversationally collect information fields from the caller."""
         fields = config.get("fields", [])
         provider = config.get("llm_provider", "google")
-        llm_model = config.get("llm_model", "gemini-2.0-flash-lite")
+        llm_model = config.get("llm_model", "gemini-2.5-flash")
         tts_params = self._get_tts_params(config)
 
         if not isinstance(fields, list):
@@ -566,11 +673,18 @@ class WorkflowExecutor:
             # Record answer
             rec_name = f"wf_{self.safe_id}_collect_{var_name}"
             try:
-                await _ari_request("POST", f"/channels/{self.channel_id}/record", params={
-                    "name": rec_name, "format": "wav",
-                    "maxDurationSeconds": "15", "maxSilenceSeconds": "2",
-                    "beep": "false", "terminateOn": "none",
-                })
+                await _ari_request(
+                    "POST",
+                    f"/channels/{self.channel_id}/record",
+                    params={
+                        "name": rec_name,
+                        "format": "wav",
+                        "maxDurationSeconds": "15",
+                        "maxSilenceSeconds": "2",
+                        "beep": "false",
+                        "terminateOn": "none",
+                    },
+                )
             except Exception:
                 continue
 
@@ -630,8 +744,13 @@ class WorkflowExecutor:
 
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
-                resp = await client.request(method, url, headers=headers, json=body if isinstance(body, dict) else None,
-                                            content=body if isinstance(body, str) else None)
+                resp = await client.request(
+                    method,
+                    url,
+                    headers=headers,
+                    json=body if isinstance(body, dict) else None,
+                    content=body if isinstance(body, str) else None,
+                )
                 self.variables[result_var] = resp.text
                 self.variables[f"{result_var}_status"] = str(resp.status_code)
                 logger.info("API call %s %s => %d", method, url, resp.status_code)
@@ -659,11 +778,16 @@ class WorkflowExecutor:
             logger.error("human_escalation %s: no destination", node["id"])
             return None
         if announcement_text:
-            await self._play_tts(self._render_template(announcement_text), **self._get_tts_params(config))
+            await self._play_tts(
+                self._render_template(announcement_text), **self._get_tts_params(config)
+            )
         logger.info("Escalating %s → %s", self.channel_id, destination)
         try:
-            await _ari_request("POST", f"/channels/{self.channel_id}/continue",
-                               params={"context": "internal", "extension": destination, "priority": "1"})
+            await _ari_request(
+                "POST",
+                f"/channels/{self.channel_id}/continue",
+                params={"context": "internal", "extension": destination, "priority": "1"},
+            )
         except Exception as exc:
             logger.error("Escalation failed: %s", exc)
         return None
@@ -676,6 +800,7 @@ class WorkflowExecutor:
         try:
             from millicall.infrastructure.database import async_session
             from millicall.infrastructure.repositories.workflow_repo import WorkflowRepository
+
             async with async_session() as session:
                 repo = WorkflowRepository(session)
                 sub_wf = await repo.get_by_id(int(workflow_id))

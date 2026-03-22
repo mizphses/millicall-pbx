@@ -20,8 +20,16 @@ export const Default: Story = {
       <div className={css({ fontSize: "13px", color: "#4a4a52" })}>
         <p>この操作を実行してもよろしいですか？</p>
         <p className={css({ marginTop: "8px" })}>一度削除すると元に戻すことはできません。</p>
-        <div className={css({ display: "flex", gap: "8px", marginTop: "16px", justifyContent: "flex-end" })}>
+        <div
+          className={css({
+            display: "flex",
+            gap: "8px",
+            marginTop: "16px",
+            justifyContent: "flex-end",
+          })}
+        >
           <button
+            type="button"
             className={css({
               paddingInline: "14px",
               paddingBlock: "6px",
@@ -38,6 +46,7 @@ export const Default: Story = {
             キャンセル
           </button>
           <button
+            type="button"
             className={css({
               paddingInline: "14px",
               paddingBlock: "6px",
@@ -62,6 +71,7 @@ function InteractiveModalDemo() {
   return (
     <div>
       <button
+        type="button"
         onClick={() => setOpen(true)}
         className={css({
           paddingInline: "14px",

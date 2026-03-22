@@ -31,7 +31,7 @@ async def chat_google(
     context: ConversationContext,
     system_prompt: str,
     api_key: str,
-    model: str = "gemini-2.0-flash-lite",
+    model: str = "gemini-2.5-flash",
 ) -> str:
     """Generate response using Google Gemini API."""
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"

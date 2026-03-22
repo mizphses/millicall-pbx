@@ -17,23 +17,33 @@ router = APIRouter(
 )
 
 
-@router.get("", response_model=list[CallLogResponse])
-async def list_call_logs(session: AsyncSession = Depends(get_session)):
+@router.get("")
+async def list_call_logs(
+    limit: int = 50,
+    offset: int = 0,
+    session: AsyncSession = Depends(get_session),
+):
     repo = CallLogRepository(session)
-    logs = await repo.get_all_logs()
-    return [
-        CallLogResponse(
-            id=log.id,
-            agent_id=log.agent_id,
-            agent_name=log.agent_name,
-            extension_number=log.extension_number,
-            caller_channel=log.caller_channel,
-            started_at=log.started_at,
-            ended_at=log.ended_at,
-            turn_count=log.turn_count,
-        )
-        for log in logs
-    ]
+    total = await repo.count_logs()
+    logs = await repo.get_all_logs(limit=limit, offset=offset)
+    return {
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "items": [
+            CallLogResponse(
+                id=log.id,
+                agent_id=log.agent_id,
+                agent_name=log.agent_name,
+                extension_number=log.extension_number,
+                caller_channel=log.caller_channel,
+                started_at=log.started_at,
+                ended_at=log.ended_at,
+                turn_count=log.turn_count,
+            )
+            for log in logs
+        ],
+    }
 
 
 @router.get("/{log_id}", response_model=CallLogDetailResponse)

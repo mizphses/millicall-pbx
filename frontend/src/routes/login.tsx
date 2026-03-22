@@ -33,7 +33,12 @@ function LoginPage() {
   return (
     <div className={css({ maxWidth: "sm", marginInline: "auto", marginTop: "80px" })}>
       <h1
-        className={css({ fontSize: "21px", fontWeight: 700, letterSpacing: "-0.02em", marginBottom: "4px" })}
+        className={css({
+          fontSize: "21px",
+          fontWeight: 700,
+          letterSpacing: "-0.02em",
+          marginBottom: "4px",
+        })}
       >
         ログイン
       </h1>
@@ -69,7 +74,12 @@ function LoginPage() {
 
           <div className={css({ marginBottom: "16px" })}>
             <label
-              className={css({ display: "block", fontSize: "13px", fontWeight: 500, marginBottom: "4px" })}
+              className={css({
+                display: "block",
+                fontSize: "13px",
+                fontWeight: 500,
+                marginBottom: "4px",
+              })}
             >
               ユーザー名
             </label>
@@ -84,7 +94,12 @@ function LoginPage() {
 
           <div className={css({ marginBottom: "16px" })}>
             <label
-              className={css({ display: "block", fontSize: "13px", fontWeight: 500, marginBottom: "4px" })}
+              className={css({
+                display: "block",
+                fontSize: "13px",
+                fontWeight: 500,
+                marginBottom: "4px",
+              })}
             >
               パスワード
             </label>

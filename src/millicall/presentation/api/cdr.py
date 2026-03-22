@@ -13,34 +13,42 @@ router = APIRouter(
 )
 
 
-@router.get("", response_model=list[CDRResponse])
+@router.get("")
 async def list_cdr(
-    limit: int = 200,
+    limit: int = 50,
     offset: int = 0,
     session: AsyncSession = Depends(get_session),
 ):
     service = CDRService(session)
+    total = await service.count_records()
     records = await service.list_records(limit=limit, offset=offset)
-    return [
-        CDRResponse(
-            id=r.id,
-            uniqueid=r.uniqueid,
-            call_date=r.call_date,
-            src=r.src,
-            dst=r.dst,
-            dcontext=r.dcontext,
-            channel=r.channel,
-            dst_channel=r.dst_channel,
-            duration=r.duration,
-            billsec=r.billsec,
-            disposition=r.disposition,
-        )
-        for r in records
-    ]
+    return {
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "items": [
+            CDRResponse(
+                id=r.id,
+                uniqueid=r.uniqueid,
+                call_date=r.call_date,
+                src=r.src,
+                dst=r.dst,
+                dcontext=r.dcontext,
+                channel=r.channel,
+                dst_channel=r.dst_channel,
+                duration=r.duration,
+                billsec=r.billsec,
+                disposition=r.disposition,
+            )
+            for r in records
+        ],
+    }
 
 
 @router.post("/import")
 async def import_cdr(session: AsyncSession = Depends(get_session)):
     service = CDRService(session)
+    service.flush_cdr()
+    csv_exists = service.CDR_CSV_PATH.exists()
     count = await service.import_from_csv()
-    return {"imported": count}
+    return {"imported": count, "csv_exists": csv_exists}

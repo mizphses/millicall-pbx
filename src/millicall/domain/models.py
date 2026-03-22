@@ -70,7 +70,7 @@ class AIAgent:
     tts_provider: str = "coefont"  # coefont or google
     google_tts_voice: str = "ja-JP-Chirp3-HD-Aoede"
     llm_provider: str = "google"
-    llm_model: str = "gemini-2.0-flash-lite"
+    llm_model: str = "gemini-2.5-flash"
     max_history: int = 10
     enabled: bool = True
     id: int | None = None
@@ -131,6 +131,7 @@ class Workflow:
     number: str  # extension number to dial this workflow
     workflow_type: str  # "ivr" | "ai_workflow"
     definition: dict = field(default_factory=dict)
+    default_tts_config: dict = field(default_factory=dict)  # workflow-level TTS defaults
     extension_id: int | None = None  # auto-managed
     description: str = ""
     enabled: bool = True

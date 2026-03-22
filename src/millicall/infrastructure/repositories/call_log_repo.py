@@ -48,9 +48,16 @@ class CallLogRepository:
         )
         await self.session.commit()
 
-    async def get_all_logs(self) -> list[CallLog]:
+    async def count_logs(self) -> int:
+        from sqlalchemy import func
         result = await self.session.execute(
-            select(call_logs_table).order_by(call_logs_table.c.started_at.desc())
+            select(func.count()).select_from(call_logs_table)
+        )
+        return result.scalar() or 0
+
+    async def get_all_logs(self, limit: int = 50, offset: int = 0) -> list[CallLog]:
+        result = await self.session.execute(
+            select(call_logs_table).order_by(call_logs_table.c.started_at.desc()).limit(limit).offset(offset)
         )
         return [
             CallLog(

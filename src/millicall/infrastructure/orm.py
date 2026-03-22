@@ -79,7 +79,7 @@ ai_agents_table = Table(
     Column(
         "llm_provider", String(20), nullable=False, default="google"
     ),  # google, openai, anthropic
-    Column("llm_model", String(50), nullable=False, default="gemini-2.0-flash-lite"),
+    Column("llm_model", String(50), nullable=False, default="gemini-2.5-flash"),
     Column("max_history", Integer, nullable=False, default=10),
     Column("enabled", Boolean, default=True, nullable=False),
 )
@@ -149,6 +149,7 @@ workflows_table = Table(
     ),
     Column("workflow_type", String(20), nullable=False),
     Column("definition", Text, nullable=False, server_default="{}"),
+    Column("default_tts_config", Text, nullable=False, server_default="{}"),
     Column("enabled", Boolean, default=True, nullable=False),
     Column("created_at", DateTime, nullable=False),
     Column("updated_at", DateTime, nullable=False),

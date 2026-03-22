@@ -22,6 +22,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
 
   return (
     <div
+      role="dialog"
       className={css({
         position: "fixed",
         inset: "0",
@@ -33,6 +34,9 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       })}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
       }}
     >
       <div
@@ -57,6 +61,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
         >
           <h2 className={css({ fontSize: "15px", fontWeight: 600 })}>{title}</h2>
           <button
+            type="button"
             onClick={onClose}
             className={css({
               fontSize: "20px",

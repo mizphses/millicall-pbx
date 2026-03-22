@@ -44,6 +44,7 @@ const columns = [
     className: css({ textAlign: "right" }),
     accessor: (_row: SampleRow) => (
       <button
+        type="button"
         className={css({
           paddingInline: "10px",
           paddingBlock: "4px",
@@ -76,6 +77,7 @@ export const Empty: Story = {
     emptyMessage: "内線アカウントがまだありません",
     emptyAction: (
       <button
+        type="button"
         className={css({
           display: "inline-flex",
           alignItems: "center",

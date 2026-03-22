@@ -1,4 +1,4 @@
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { css } from "../../../styled-system/css";
 
 export interface CustomNodeData {
@@ -11,7 +11,10 @@ export interface CustomNodeData {
 }
 
 /** Node types that have multiple labeled outputs */
-const BRANCHING_OUTPUTS: Record<string, (config: Record<string, unknown>) => { id: string; label: string }[]> = {
+const BRANCHING_OUTPUTS: Record<
+  string,
+  (config: Record<string, unknown>) => { id: string; label: string }[]
+> = {
   condition: () => [
     { id: "true", label: "True" },
     { id: "false", label: "False" },
@@ -51,7 +54,10 @@ const BRANCHING_OUTPUTS: Record<string, (config: Record<string, unknown>) => { i
     const intents = config.intents;
     if (Array.isArray(intents)) {
       return intents
-        .filter((i): i is { key: string; value: string } => typeof i === "object" && i !== null && "key" in i)
+        .filter(
+          (i): i is { key: string; value: string } =>
+            typeof i === "object" && i !== null && "key" in i,
+        )
         .map((i) => ({ id: i.key, label: i.value || i.key }));
     }
     return [{ id: "other", label: "その他" }];
@@ -65,11 +71,17 @@ export function CustomNode({ data, selected }: NodeProps) {
   const branchFn = BRANCHING_OUTPUTS[nodeType];
   const outputHandles = branchFn ? branchFn(config || {}) : [];
   const hasBranching = outputHandles.length > 0;
-  const isTerminal = nodeType === "end" || nodeType === "hangup" || nodeType === "voicemail" || nodeType === "human_escalation";
+  const isTerminal =
+    nodeType === "end" ||
+    nodeType === "hangup" ||
+    nodeType === "voicemail" ||
+    nodeType === "human_escalation";
   const isStart = nodeType === "start";
 
   const configPreview = Object.entries(config || {})
-    .filter(([k, v]) => v !== "" && v !== undefined && v !== null && k !== "intents" && k !== "fields")
+    .filter(
+      ([k, v]) => v !== "" && v !== undefined && v !== null && k !== "intents" && k !== "fields",
+    )
     .slice(0, 2)
     .map(([k, v]) => {
       const val = typeof v === "string" ? (v.length > 20 ? `${v.slice(0, 20)}...` : v) : String(v);

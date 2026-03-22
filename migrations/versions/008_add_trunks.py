@@ -5,6 +5,7 @@ Revises: 007_add_cdr
 Create Date: 2026-03-22
 
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa
@@ -34,27 +35,30 @@ def upgrade() -> None:
 
     # Migrate existing trunk settings to first trunk row
     conn = op.get_bind()
-    rows = conn.execute(sa.text(
-        "SELECT key, value FROM app_settings WHERE key LIKE 'trunk_%'"
-    )).fetchall()
+    rows = conn.execute(
+        sa.text("SELECT key, value FROM app_settings WHERE key LIKE 'trunk_%'")
+    ).fetchall()
     s = {r[0]: r[1] for r in rows}
     if s.get("trunk_enabled", "N").upper() in ("Y", "YES", "TRUE", "1"):
-        conn.execute(sa.text(
-            "INSERT INTO trunks (name, display_name, host, username, password, "
-            "did_number, caller_id, incoming_dest, outbound_prefixes, enabled) "
-            "VALUES (:name, :display_name, :host, :username, :password, "
-            ":did_number, :caller_id, :incoming_dest, :outbound_prefixes, 1)"
-        ), {
-            "name": "hikari-trunk",
-            "display_name": "ひかり電話",
-            "host": s.get("trunk_host", "192.168.1.1"),
-            "username": s.get("trunk_username", ""),
-            "password": s.get("trunk_password", ""),
-            "did_number": s.get("trunk_did_number", ""),
-            "caller_id": s.get("trunk_caller_id", ""),
-            "incoming_dest": s.get("trunk_incoming_dest", ""),
-            "outbound_prefixes": s.get("trunk_outbound_prefix", ""),
-        })
+        conn.execute(
+            sa.text(
+                "INSERT INTO trunks (name, display_name, host, username, password, "
+                "did_number, caller_id, incoming_dest, outbound_prefixes, enabled) "
+                "VALUES (:name, :display_name, :host, :username, :password, "
+                ":did_number, :caller_id, :incoming_dest, :outbound_prefixes, 1)"
+            ),
+            {
+                "name": "hikari-trunk",
+                "display_name": "ひかり電話",
+                "host": s.get("trunk_host", "192.168.1.1"),
+                "username": s.get("trunk_username", ""),
+                "password": s.get("trunk_password", ""),
+                "did_number": s.get("trunk_did_number", ""),
+                "caller_id": s.get("trunk_caller_id", ""),
+                "incoming_dest": s.get("trunk_incoming_dest", ""),
+                "outbound_prefixes": s.get("trunk_outbound_prefix", ""),
+            },
+        )
 
     # Remove trunk_* from app_settings
     conn.execute(sa.text("DELETE FROM app_settings WHERE key LIKE 'trunk_%'"))

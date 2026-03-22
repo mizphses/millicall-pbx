@@ -179,7 +179,9 @@ export function DialGuideModal({ open, onClose, trunks }: DialGuideModalProps) {
         >
           内線・その他
         </h3>
-        <div className={css({ paddingBlock: "4px", fontSize: "13px" })}>内線番号をそのままダイヤル</div>
+        <div className={css({ paddingBlock: "4px", fontSize: "13px" })}>
+          内線番号をそのままダイヤル
+        </div>
         <div className={flexRow}>
           <code className={codeStyle}>*43</code>
           <span className={css({ color: "#8e8e96" })}>&rarr;</span>

@@ -96,9 +96,7 @@ export function NodeInspector({
           flexShrink: 0,
         })}
       >
-        <p className={css({ color: "#8e8e96", fontSize: "13px" })}>
-          ノード情報が見つかりません
-        </p>
+        <p className={css({ color: "#8e8e96", fontSize: "13px" })}>ノード情報が見つかりません</p>
       </div>
     );
   }
@@ -165,9 +163,7 @@ export function NodeInspector({
 
       <div className={css({ padding: "16px", flex: 1 })}>
         {nodeType.config_schema.length === 0 ? (
-          <p className={css({ color: "#8e8e96", fontSize: "13px" })}>
-            設定項目はありません
-          </p>
+          <p className={css({ color: "#8e8e96", fontSize: "13px" })}>設定項目はありません</p>
         ) : (
           nodeType.config_schema.map((field) => (
             <div key={field.name} className={css({ marginBottom: "14px" })}>
@@ -273,7 +269,9 @@ function InspectorField({
           <label className={labelStyle}>{field.label}</label>
           <div className={css({ display: "flex", flexDirection: "column", gap: "4px" })}>
             {(field.options || []).map((opt) => {
-              const selected = Array.isArray(value) ? (value as string[]).includes(opt.value) : false;
+              const selected = Array.isArray(value)
+                ? (value as string[]).includes(opt.value)
+                : false;
               return (
                 <label key={opt.value} className={checkboxLabel}>
                   <input

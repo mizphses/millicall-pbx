@@ -23,6 +23,23 @@ class UserResponse(BaseModel):
     is_admin: bool
 
 
+class UserCreate(BaseModel):
+    username: str = Field(..., min_length=1, max_length=50)
+    password: str = Field(..., min_length=4, max_length=100)
+    display_name: str = Field(..., min_length=1, max_length=100)
+    is_admin: bool = False
+
+
+class UserUpdate(BaseModel):
+    display_name: str = Field(..., min_length=1, max_length=100)
+    is_admin: bool = False
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=4, max_length=100)
+
+
 # --- Extensions ---
 
 
@@ -140,7 +157,7 @@ class AgentCreate(BaseModel):
     tts_provider: str = "coefont"
     google_tts_voice: str = "ja-JP-Chirp3-HD-Aoede"
     llm_provider: str = "google"
-    llm_model: str = "gemini-2.0-flash-lite"
+    llm_model: str = "gemini-2.5-flash"
     max_history: int = 10
     enabled: bool = True
 
@@ -154,7 +171,7 @@ class AgentUpdate(BaseModel):
     tts_provider: str = "coefont"
     google_tts_voice: str = "ja-JP-Chirp3-HD-Aoede"
     llm_provider: str = "google"
-    llm_model: str = "gemini-2.0-flash-lite"
+    llm_model: str = "gemini-2.5-flash"
     max_history: int = 10
     enabled: bool = True
 
@@ -266,12 +283,19 @@ class WorkflowDefinition(BaseModel):
     edges: list[WorkflowEdge] = []
 
 
+class TTSConfig(BaseModel):
+    tts_provider: str = "google"
+    google_tts_voice: str = "ja-JP-Chirp3-HD-Aoede"
+    coefont_voice_id: str = ""
+
+
 class WorkflowCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     number: str = Field(..., min_length=1, max_length=20, pattern=r"^\d+$")
     description: str = ""
     workflow_type: str = Field(..., pattern=r"^(ivr|ai_workflow)$")
     definition: WorkflowDefinition = WorkflowDefinition()
+    default_tts_config: TTSConfig = TTSConfig()
     enabled: bool = True
 
 
@@ -281,6 +305,7 @@ class WorkflowUpdate(BaseModel):
     description: str | None = None
     workflow_type: str | None = None
     definition: WorkflowDefinition | None = None
+    default_tts_config: TTSConfig | None = None
     enabled: bool | None = None
 
 
@@ -292,6 +317,7 @@ class WorkflowResponse(BaseModel):
     extension_id: int | None
     workflow_type: str
     definition: WorkflowDefinition
+    default_tts_config: TTSConfig
     enabled: bool
     created_at: datetime | None
     updated_at: datetime | None
@@ -302,6 +328,7 @@ class WorkflowListResponse(BaseModel):
     name: str
     number: str
     description: str
+    extension_id: int | None
     workflow_type: str
     enabled: bool
     node_count: int

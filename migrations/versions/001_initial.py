@@ -5,6 +5,7 @@ Revises:
 Create Date: 2026-03-22
 
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa
@@ -40,13 +41,19 @@ def upgrade() -> None:
     # Add foreign keys after both tables exist
     with op.batch_alter_table("extensions") as batch_op:
         batch_op.create_foreign_key(
-            "fk_extensions_peer_id", "peers", ["peer_id"], ["id"],
+            "fk_extensions_peer_id",
+            "peers",
+            ["peer_id"],
+            ["id"],
             ondelete="SET NULL",
         )
 
     with op.batch_alter_table("peers") as batch_op:
         batch_op.create_foreign_key(
-            "fk_peers_extension_id", "extensions", ["extension_id"], ["id"],
+            "fk_peers_extension_id",
+            "extensions",
+            ["extension_id"],
+            ["id"],
             ondelete="SET NULL",
         )
 

@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useState } from "react";
 import { css } from "../../styled-system/css";
 import { DataTable } from "../components/DataTable";
 import { PageHead } from "../components/PageHead";
+import { Pagination } from "../components/Pagination";
 import { Tag } from "../components/Tag";
 import { api } from "../lib/api";
 
@@ -22,6 +24,13 @@ interface CDR {
   duration: number;
   billsec: number;
   disposition: string;
+}
+
+interface PagedResponse {
+  total: number;
+  limit: number;
+  offset: number;
+  items: CDR[];
 }
 
 function formatDateTime(s: string) {
@@ -60,28 +69,43 @@ const codeStyle = css({
   borderRadius: "3px",
 });
 
+const PAGE_SIZE = 50;
+
 function CdrPage() {
   const queryClient = useQueryClient();
+  const [offset, setOffset] = useState(0);
 
-  const { data: cdrs = [], isLoading } = useQuery({
-    queryKey: ["cdr"],
-    queryFn: () => api.get<CDR[]>("/cdr"),
+  const { data, isLoading } = useQuery({
+    queryKey: ["cdr", offset],
+    queryFn: () => api.get<PagedResponse>(`/cdr?limit=${PAGE_SIZE}&offset=${offset}`),
   });
 
   const importMutation = useMutation({
-    mutationFn: () => api.post("/cdr/import"),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["cdr"] }),
+    mutationFn: () => api.post<{ imported: number; csv_exists: boolean }>("/cdr/import"),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["cdr"] });
+      setOffset(0);
+      if (!result.csv_exists) {
+        alert("CDR CSVファイルが見つかりません。");
+      } else if (result.imported === 0) {
+        alert("新しいCDRレコードはありませんでした。");
+      }
+    },
   });
 
   if (isLoading) return <p className={css({ color: "#4a4a52" })}>読み込み中...</p>;
+
+  const cdrs = data?.items ?? [];
+  const total = data?.total ?? 0;
 
   return (
     <>
       <PageHead
         title="発着信記録"
-        subtitle="Asterisk CDR（通話詳細記録）を表示します"
+        subtitle={`Asterisk CDR（${total}件）`}
         actions={
           <button
+            type="button"
             onClick={() => importMutation.mutate()}
             disabled={importMutation.isPending}
             className={css({
@@ -96,8 +120,9 @@ function CdrPage() {
               background: "#c45d2c",
               color: "#ffffff",
               cursor: "pointer",
+              border: "none",
               _hover: { background: "#a84e24" },
-              _disabled: { opacity: "0.5" },
+              _disabled: { opacity: 0.5 },
             })}
           >
             {importMutation.isPending ? "インポート中..." : "CDRインポート"}
@@ -109,40 +134,53 @@ function CdrPage() {
         columns={[
           {
             header: "日時",
+            sortValue: (cdr) => cdr.call_date,
             accessor: (cdr) => formatDateTime(cdr.call_date),
           },
           {
             header: "発信元",
-            accessor: (cdr) => cdr.src || "-",
+            sortValue: (cdr) => cdr.src,
+            accessor: (cdr) => cdr.src ? <code className={codeStyle}>{cdr.src}</code> : "-",
           },
           {
             header: "宛先",
-            accessor: (cdr) => cdr.dst || "-",
+            sortValue: (cdr) => cdr.dst,
+            accessor: (cdr) => cdr.dst ? <code className={codeStyle}>{cdr.dst}</code> : "-",
           },
           {
             header: "コンテキスト",
+            sortValue: (cdr) => cdr.dcontext,
             accessor: (cdr) => <code className={codeStyle}>{cdr.dcontext}</code>,
           },
           {
             header: "呼出秒",
+            sortValue: (cdr) => cdr.duration,
             accessor: (cdr) => (
-              <span className={css({ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" })}>{cdr.duration}</span>
+              <span className={css({ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" })}>
+                {cdr.duration}
+              </span>
             ),
           },
           {
             header: "通話秒",
+            sortValue: (cdr) => cdr.billsec,
             accessor: (cdr) => (
-              <span className={css({ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" })}>{cdr.billsec}</span>
+              <span className={css({ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" })}>
+                {cdr.billsec}
+              </span>
             ),
           },
           {
             header: "結果",
+            sortValue: (cdr) => cdr.disposition,
             accessor: (cdr) => dispositionTag(cdr.disposition),
           },
         ]}
         data={cdrs}
         emptyMessage="CDRデータがありません。インポートを実行してください。"
       />
+
+      <Pagination total={total} limit={PAGE_SIZE} offset={offset} onPageChange={setOffset} />
     </>
   );
 }

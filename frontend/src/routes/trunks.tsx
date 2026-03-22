@@ -121,7 +121,7 @@ function TrunksPage() {
         actions={
           <div className={css({ display: "flex", gap: "8px" })}>
             {trunks.length > 0 && (
-              <button onClick={() => setGuideOpen(true)} className={btnSecondary}>
+              <button type="button" onClick={() => setGuideOpen(true)} className={btnSecondary}>
                 ダイヤルガイド
               </button>
             )}
@@ -187,6 +187,7 @@ function TrunksPage() {
                   編集
                 </Link>
                 <button
+                  type="button"
                   onClick={() => {
                     if (confirm(`外線 ${t.display_name} を削除しますか？`))
                       deleteMutation.mutate(t.id);

@@ -334,7 +334,7 @@ AI_WORKFLOW_NODES: dict[str, dict] = {
                 "type": "string",
                 "label": "LLMモデル",
                 "required": True,
-                "default": "gemini-2.0-flash-lite",
+                "default": "gemini-2.5-flash",
             },
             "max_turns": {
                 "type": "number",
@@ -373,7 +373,7 @@ AI_WORKFLOW_NODES: dict[str, dict] = {
                 "type": "string",
                 "label": "LLMモデル",
                 "required": True,
-                "default": "gemini-2.0-flash-lite",
+                "default": "gemini-2.5-flash",
             },
             "fallback_intent": {
                 "type": "string",
@@ -410,7 +410,7 @@ AI_WORKFLOW_NODES: dict[str, dict] = {
                 "type": "string",
                 "label": "LLMモデル",
                 "required": True,
-                "default": "gemini-2.0-flash-lite",
+                "default": "gemini-2.5-flash",
             },
             **_TTS_CONFIG,
             "confirmation": {

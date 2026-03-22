@@ -104,11 +104,20 @@ export function FormGroup({
 }) {
   return (
     <div className={css({ marginBottom: "16px" })}>
-      <label className={css({ display: "block", fontSize: "13px", fontWeight: 500, marginBottom: "4px" })}>
+      <label
+        className={css({
+          display: "block",
+          fontSize: "13px",
+          fontWeight: 500,
+          marginBottom: "4px",
+        })}
+      >
         {label}
       </label>
       {children}
-      {hint && <div className={css({ fontSize: "12px", color: "#8e8e96", marginTop: "4px" })}>{hint}</div>}
+      {hint && (
+        <div className={css({ fontSize: "12px", color: "#8e8e96", marginTop: "4px" })}>{hint}</div>
+      )}
     </div>
   );
 }

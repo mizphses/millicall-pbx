@@ -92,7 +92,7 @@ function ExtensionEditPage() {
   const [greetingText, setGreetingText] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [llmProvider, setLlmProvider] = useState("google");
-  const [llmModel, setLlmModel] = useState("gemini-2.0-flash-lite");
+  const [llmModel, setLlmModel] = useState("gemini-2.5-flash");
   const [maxHistory, setMaxHistory] = useState(10);
   const [ttsProvider, setTtsProvider] = useState("coefont");
   const [coefontVoiceId, setCoefontVoiceId] = useState("");
@@ -130,7 +130,7 @@ function ExtensionEditPage() {
   });
 
   const llmDefaults: Record<string, string> = {
-    google: "gemini-2.0-flash-lite",
+    google: "gemini-2.5-flash",
     openai: "gpt-4o-mini",
     anthropic: "claude-sonnet-4-20250514",
   };

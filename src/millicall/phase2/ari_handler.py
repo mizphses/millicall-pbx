@@ -374,7 +374,9 @@ async def run_ari_listener() -> None:
         try:
             logger.info("Connecting to ARI WebSocket...")
             async with websockets.connect(ws_url) as ws:
-                logger.info("ARI WebSocket connected (apps: %s, %s)", STASIS_APP_AI, STASIS_APP_WORKFLOW)
+                logger.info(
+                    "ARI WebSocket connected (apps: %s, %s)", STASIS_APP_AI, STASIS_APP_WORKFLOW
+                )
                 async for message in ws:
                     event = json.loads(message)
                     event_type = event.get("type")

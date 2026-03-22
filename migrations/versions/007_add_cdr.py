@@ -5,6 +5,7 @@ Revises: 006_unify_extensions
 Create Date: 2026-03-22
 
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa

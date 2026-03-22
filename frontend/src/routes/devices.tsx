@@ -115,9 +115,7 @@ function DevicesPage() {
     queryFn: () => api.get<Extension[]>("/extensions"),
   });
 
-  const phoneExtensions = extensions.filter(
-    (e) => e.type === "phone" && e.peer_id != null,
-  );
+  const phoneExtensions = extensions.filter((e) => e.type === "phone" && e.peer_id != null);
 
   const scanMutation = useMutation({
     mutationFn: () => api.post("/devices/scan"),
@@ -211,11 +209,7 @@ function DevicesPage() {
           {
             header: "状態",
             accessor: (d) =>
-              d.provisioned ? (
-                <Tag variant="ok">設定済み</Tag>
-              ) : (
-                <Tag variant="ng">未設定</Tag>
-              ),
+              d.provisioned ? <Tag variant="ok">設定済み</Tag> : <Tag variant="ng">未設定</Tag>,
           },
           {
             header: "",
@@ -239,11 +233,7 @@ function DevicesPage() {
         emptyMessage="デバイスが検出されていません。スキャンを実行してください。"
       />
 
-      <Modal
-        open={!!provisionTarget}
-        title="プロビジョニング"
-        onClose={closeModal}
-      >
+      <Modal open={!!provisionTarget} title="プロビジョニング" onClose={closeModal}>
         <p className={css({ fontSize: "13px", color: "#4a4a52", marginBottom: "12px" })}>
           デバイス <code className={codeStyle}>{provisionTarget?.mac_address}</code>
         </p>
@@ -259,7 +249,14 @@ function DevicesPage() {
                 marginBottom: "16px",
               })}
             >
-              <p className={css({ fontSize: "13px", fontWeight: 600, color: "#2a7e4f", marginBottom: "8px" })}>
+              <p
+                className={css({
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  color: "#2a7e4f",
+                  marginBottom: "8px",
+                })}
+              >
                 プロビジョニング完了
               </p>
               <p className={css({ fontSize: "13px", marginBottom: "4px" })}>
@@ -281,10 +278,18 @@ function DevicesPage() {
         ) : (
           <>
             <div className={css({ display: "flex", gap: "8px", marginBottom: "16px" })}>
-              <button type="button" onClick={() => setMode("create")} className={tabBtn(mode === "create")}>
+              <button
+                type="button"
+                onClick={() => setMode("create")}
+                className={tabBtn(mode === "create")}
+              >
                 新規作成
               </button>
-              <button type="button" onClick={() => setMode("assign")} className={tabBtn(mode === "assign")}>
+              <button
+                type="button"
+                onClick={() => setMode("assign")}
+                className={tabBtn(mode === "assign")}
+              >
                 既存の内線を割当
               </button>
             </div>
@@ -292,7 +297,14 @@ function DevicesPage() {
             {mode === "create" ? (
               <div className={css({ display: "flex", flexDirection: "column", gap: "12px" })}>
                 <div>
-                  <label className={css({ display: "block", fontSize: "13px", fontWeight: 500, marginBottom: "4px" })}>
+                  <label
+                    className={css({
+                      display: "block",
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      marginBottom: "4px",
+                    })}
+                  >
                     内線番号
                   </label>
                   <input
@@ -309,7 +321,14 @@ function DevicesPage() {
                   </div>
                 </div>
                 <div>
-                  <label className={css({ display: "block", fontSize: "13px", fontWeight: 500, marginBottom: "4px" })}>
+                  <label
+                    className={css({
+                      display: "block",
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      marginBottom: "4px",
+                    })}
+                  >
                     表示名
                   </label>
                   <input
@@ -329,7 +348,14 @@ function DevicesPage() {
                   </p>
                 ) : (
                   <>
-                    <label className={css({ display: "block", fontSize: "13px", fontWeight: 500, marginBottom: "4px" })}>
+                    <label
+                      className={css({
+                        display: "block",
+                        fontSize: "13px",
+                        fontWeight: 500,
+                        marginBottom: "4px",
+                      })}
+                    >
                       内線を選択
                     </label>
                     <select
@@ -349,14 +375,25 @@ function DevicesPage() {
               </div>
             )}
 
-            <div className={css({ display: "flex", gap: "8px", justifyContent: "flex-end", marginTop: "20px" })}>
+            <div
+              className={css({
+                display: "flex",
+                gap: "8px",
+                justifyContent: "flex-end",
+                marginTop: "20px",
+              })}
+            >
               <button type="button" onClick={closeModal} className={btnSecondary}>
                 キャンセル
               </button>
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={isPending || (mode === "assign" && !selectedExtId) || (mode === "create" && !newNumber)}
+                disabled={
+                  isPending ||
+                  (mode === "assign" && !selectedExtId) ||
+                  (mode === "create" && !newNumber)
+                }
                 className={btnPrimary}
               >
                 {isPending ? "処理中..." : mode === "create" ? "作成して適用" : "適用"}

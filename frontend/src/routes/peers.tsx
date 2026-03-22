@@ -123,6 +123,7 @@ function PeersPage() {
                   編集
                 </Link>
                 <button
+                  type="button"
                   onClick={() => {
                     if (confirm(`SIPピア ${peer.username} を削除しますか？`))
                       deleteMutation.mutate(peer.id);

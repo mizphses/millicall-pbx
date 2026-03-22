@@ -22,6 +22,7 @@ class WorkflowService:
         number: str,
         workflow_type: str,
         definition: dict | None = None,
+        default_tts_config: dict | None = None,
         description: str = "",
         enabled: bool = True,
     ) -> Workflow:
@@ -39,6 +40,7 @@ class WorkflowService:
             number=number,
             workflow_type=workflow_type,
             definition=definition or {},
+            default_tts_config=default_tts_config or {},
             extension_id=ext.id,
             description=description,
             enabled=enabled,
@@ -52,6 +54,7 @@ class WorkflowService:
         number: str,
         workflow_type: str,
         definition: dict,
+        default_tts_config: dict | None = None,
         description: str = "",
         enabled: bool = True,
     ) -> Workflow:
@@ -72,6 +75,7 @@ class WorkflowService:
             number=number,
             workflow_type=workflow_type,
             definition=definition,
+            default_tts_config=default_tts_config or existing.default_tts_config or {},
             extension_id=existing.extension_id,
             description=description,
             enabled=enabled,

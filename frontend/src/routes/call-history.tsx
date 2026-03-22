@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { useState } from "react";
 import { css } from "../../styled-system/css";
 import { DataTable } from "../components/DataTable";
 import { PageHead } from "../components/PageHead";
+import { Pagination } from "../components/Pagination";
 import { api } from "../lib/api";
 
 export const Route = createFileRoute("/call-history")({
@@ -20,6 +22,13 @@ interface CallLog {
   started_at: string | null;
   ended_at: string | null;
   turn_count: number;
+}
+
+interface PagedResponse {
+  total: number;
+  limit: number;
+  offset: number;
+  items: CallLog[];
 }
 
 function formatDateTime(s: string | null) {
@@ -44,40 +53,49 @@ const codeStyle = css({
   borderRadius: "3px",
 });
 
+const PAGE_SIZE = 30;
+
 function CallHistoryPage() {
-  const { data: logs = [], isLoading } = useQuery({
-    queryKey: ["call-history"],
-    queryFn: () => api.get<CallLog[]>("/call-history"),
+  const [offset, setOffset] = useState(0);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["call-history", offset],
+    queryFn: () => api.get<PagedResponse>(`/call-history?limit=${PAGE_SIZE}&offset=${offset}`),
   });
 
   if (isLoading) return <p className={css({ color: "#4a4a52" })}>読み込み中...</p>;
 
+  const logs = data?.items ?? [];
+  const total = data?.total ?? 0;
+
   return (
     <>
-      <PageHead title="AI通話履歴" subtitle="AIエージェントの通話記録を確認できます" />
+      <PageHead title="AI通話履歴" subtitle={`AIエージェントの通話記録（${total}件）`} />
 
       <DataTable
         columns={[
           {
             header: "日時",
+            sortValue: (log) => log.started_at ?? "",
             accessor: (log) => formatDateTime(log.started_at),
           },
           {
             header: "エージェント",
+            sortValue: (log) => log.agent_name,
             accessor: (log) => log.agent_name,
           },
           {
             header: "内線番号",
+            sortValue: (log) => log.extension_number,
             accessor: (log) => <code className={codeStyle}>{log.extension_number}</code>,
           },
           {
-            header: "発信元",
-            accessor: (log) => log.caller_channel,
-          },
-          {
             header: "ターン数",
+            sortValue: (log) => log.turn_count,
             accessor: (log) => (
-              <span className={css({ fontFamily: "'JetBrains Mono', monospace" })}>{log.turn_count}</span>
+              <span className={css({ fontFamily: "'JetBrains Mono', monospace" })}>
+                {log.turn_count}
+              </span>
             ),
           },
           {
@@ -109,6 +127,8 @@ function CallHistoryPage() {
         data={logs}
         emptyMessage="通話履歴がまだありません"
       />
+
+      <Pagination total={total} limit={PAGE_SIZE} offset={offset} onPageChange={setOffset} />
     </>
   );
 }

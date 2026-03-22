@@ -23,6 +23,7 @@ export const WithActions: Story = {
     subtitle: "SIPエンドポイントの認証アカウントを管理します",
     actions: (
       <button
+        type="button"
         className={css({
           display: "inline-flex",
           alignItems: "center",

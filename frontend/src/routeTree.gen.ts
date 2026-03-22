@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WorkflowsRouteImport } from './routes/workflows'
+import { Route as UsersRouteImport } from './routes/users'
 import { Route as TrunksRouteImport } from './routes/trunks'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PeersRouteImport } from './routes/peers'
@@ -32,6 +33,11 @@ import { Route as ExtensionsExtensionIdEditRouteImport } from './routes/extensio
 const WorkflowsRoute = WorkflowsRouteImport.update({
   id: '/workflows',
   path: '/workflows',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UsersRoute = UsersRouteImport.update({
+  id: '/users',
+  path: '/users',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TrunksRoute = TrunksRouteImport.update({
@@ -136,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/peers': typeof PeersRoute
   '/settings': typeof SettingsRoute
   '/trunks': typeof TrunksRoute
+  '/users': typeof UsersRoute
   '/workflows': typeof WorkflowsRoute
   '/call-history/$logId': typeof CallHistoryLogIdRoute
   '/extensions/new': typeof ExtensionsNewRoute
@@ -157,6 +164,7 @@ export interface FileRoutesByTo {
   '/peers': typeof PeersRoute
   '/settings': typeof SettingsRoute
   '/trunks': typeof TrunksRoute
+  '/users': typeof UsersRoute
   '/workflows': typeof WorkflowsRoute
   '/call-history/$logId': typeof CallHistoryLogIdRoute
   '/extensions/new': typeof ExtensionsNewRoute
@@ -179,6 +187,7 @@ export interface FileRoutesById {
   '/peers': typeof PeersRoute
   '/settings': typeof SettingsRoute
   '/trunks': typeof TrunksRoute
+  '/users': typeof UsersRoute
   '/workflows': typeof WorkflowsRoute
   '/call-history_/$logId': typeof CallHistoryLogIdRoute
   '/extensions_/new': typeof ExtensionsNewRoute
@@ -202,6 +211,7 @@ export interface FileRouteTypes {
     | '/peers'
     | '/settings'
     | '/trunks'
+    | '/users'
     | '/workflows'
     | '/call-history/$logId'
     | '/extensions/new'
@@ -223,6 +233,7 @@ export interface FileRouteTypes {
     | '/peers'
     | '/settings'
     | '/trunks'
+    | '/users'
     | '/workflows'
     | '/call-history/$logId'
     | '/extensions/new'
@@ -244,6 +255,7 @@ export interface FileRouteTypes {
     | '/peers'
     | '/settings'
     | '/trunks'
+    | '/users'
     | '/workflows'
     | '/call-history_/$logId'
     | '/extensions_/new'
@@ -266,6 +278,7 @@ export interface RootRouteChildren {
   PeersRoute: typeof PeersRoute
   SettingsRoute: typeof SettingsRoute
   TrunksRoute: typeof TrunksRoute
+  UsersRoute: typeof UsersRoute
   WorkflowsRoute: typeof WorkflowsRoute
   CallHistoryLogIdRoute: typeof CallHistoryLogIdRoute
   ExtensionsNewRoute: typeof ExtensionsNewRoute
@@ -285,6 +298,13 @@ declare module '@tanstack/react-router' {
       path: '/workflows'
       fullPath: '/workflows'
       preLoaderRoute: typeof WorkflowsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/users': {
+      id: '/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof UsersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/trunks': {
@@ -426,6 +446,7 @@ const rootRouteChildren: RootRouteChildren = {
   PeersRoute: PeersRoute,
   SettingsRoute: SettingsRoute,
   TrunksRoute: TrunksRoute,
+  UsersRoute: UsersRoute,
   WorkflowsRoute: WorkflowsRoute,
   CallHistoryLogIdRoute: CallHistoryLogIdRoute,
   ExtensionsNewRoute: ExtensionsNewRoute,

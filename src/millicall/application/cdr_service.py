@@ -1,5 +1,6 @@
 import csv
 import logging
+import subprocess
 from datetime import datetime
 from pathlib import Path
 
@@ -30,12 +31,27 @@ COL_USERFIELD = 18
 
 
 class CDRService:
-    CDR_CSV_PATH = Path("/var/log/asterisk/cdr-csv/Master.csv")
+    CDR_CSV_PATH = Path("/var/log/asterisk/cdr-custom/Master.csv")
 
     def __init__(self, session: AsyncSession):
         self.repo = CDRRepository(session)
 
-    async def import_from_csv(self) -> int:
+    @staticmethod
+    def flush_cdr() -> None:
+        """Force Asterisk to flush pending CDR records to CSV."""
+        try:
+            subprocess.run(
+                ["asterisk", "-rx", "cdr submit"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+        except Exception:
+            logger.debug("cdr submit not available, skipping flush")
+
+    async def import_from_csv(self, flush: bool = False) -> int:
+        if flush:
+            self.flush_cdr()
         if not self.CDR_CSV_PATH.exists():
             logger.debug("CDR CSV file not found: %s", self.CDR_CSV_PATH)
             return 0
