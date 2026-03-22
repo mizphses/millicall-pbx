@@ -3,7 +3,7 @@
 # Run from the project root on your local machine
 set -e
 
-SERVER="10.0.98.169"
+SERVER="192.168.1.2"
 SSH_KEY="$HOME/.ssh/id_ed25519_kintosup"
 REMOTE_DIR="/opt/millicall"
 SSH_CMD="ssh -i $SSH_KEY $SERVER"

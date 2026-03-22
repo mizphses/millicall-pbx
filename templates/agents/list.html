@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 {% block title %}AIエージェント - Millicall PBX{% endblock %}
 {% block content %}
-<div class="page-header-row">
-    <div class="page-header">
+<div class="page-head">
+    <div>
         <h1>AIエージェント</h1>
-        <p>AI自動応答エージェントを管理します</p>
+        <p class="page-sub">AI自動応答エージェントを管理します</p>
     </div>
-    <a href="/agents/new" class="btn btn-primary">エージェントを追加</a>
+    <a href="/agents/new" class="btn btn-primary">追加</a>
 </div>
 
 {% if agents %}
-<div class="table-wrap">
+<div class="tbl-wrap">
     <table>
         <thead>
             <tr>
@@ -27,26 +27,26 @@
             <tr>
                 <td><strong>{{ agent.name }}</strong></td>
                 <td><code>{{ agent.extension_number }}</code></td>
-                <td><span class="badge badge-info">{{ agent.llm_provider }}/{{ agent.llm_model }}</span></td>
+                <td><span class="tag tag-info">{{ agent.llm_provider }}/{{ agent.llm_model }}</span></td>
                 <td>
                     {% if agent.tts_provider == "google" %}
-                    <span class="badge badge-muted">Google</span>
+                    <span class="tag tag-muted">Google</span>
                     {% else %}
-                    <span class="badge badge-muted">CoeFont</span>
+                    <span class="tag tag-muted">CoeFont</span>
                     {% endif %}
                 </td>
                 <td>
                     {% if agent.enabled %}
-                    <span class="badge badge-success">有効</span>
+                    <span class="tag tag-ok">有効</span>
                     {% else %}
-                    <span class="badge badge-danger">無効</span>
+                    <span class="tag tag-ng">無効</span>
                     {% endif %}
                 </td>
-                <td class="cell-actions">
-                    <a href="/agents/{{ agent.id }}/edit" class="btn btn-ghost btn-sm">編集</a>
+                <td class="td-actions">
+                    <a href="/agents/{{ agent.id }}/edit" class="btn btn-text btn-sm">編集</a>
                     <form method="post" action="/agents/{{ agent.id }}/delete"
                           onsubmit="return confirm('エージェント「{{ agent.name }}」を削除しますか？')">
-                        <button type="submit" class="btn btn-danger btn-sm">削除</button>
+                        <button type="submit" class="btn btn-del btn-sm">削除</button>
                     </form>
                 </td>
             </tr>
@@ -55,9 +55,9 @@
     </table>
 </div>
 {% else %}
-<div class="card empty-state">
-    <p>AIエージェントがまだ登録されていません</p>
-    <a href="/agents/new" class="btn btn-primary">最初のエージェントを作成</a>
+<div class="card empty">
+    <p>AIエージェントがまだありません</p>
+    <a href="/agents/new" class="btn btn-primary">作成する</a>
 </div>
 {% endif %}
 {% endblock %}

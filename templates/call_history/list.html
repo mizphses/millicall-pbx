@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}通話履歴 - Millicall PBX{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>通話履歴</h1>
+        <p class="page-sub">AIエージェントとの通話記録</p>
+    </div>
+</div>
+
+{% if logs %}
+<div class="tbl-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th class="sortable">ID</th>
+                <th class="sortable">エージェント</th>
+                <th class="sortable">内線</th>
+                <th class="sortable">開始</th>
+                <th class="sortable">終了</th>
+                <th class="sortable">ターン数</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td><code>{{ log.id }}</code></td>
+                <td><strong>{{ log.agent_name }}</strong></td>
+                <td><code>{{ log.extension_number }}</code></td>
+                <td>{{ log.started_at.strftime('%m/%d %H:%M') if log.started_at else '-' }}</td>
+                <td>{{ log.ended_at.strftime('%H:%M:%S') if log.ended_at else '通話中' }}</td>
+                <td>{{ log.turn_count }}</td>
+                <td class="td-actions">
+                    <a href="/call-history/{{ log.id }}" class="btn btn-text btn-sm">詳細</a>
+                    <form method="post" action="/call-history/{{ log.id }}/delete"
+                          onsubmit="return confirm('この通話記録を削除しますか？')">
+                        <button type="submit" class="btn btn-del btn-sm">削除</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card empty">
+    <p>通話履歴がまだありません</p>
+</div>
+{% endif %}
+
+<div class="mt">
+    <details>
+        <summary>JSON APIについて</summary>
+        <p style="font-size:13px;color:var(--ink-sub);margin-top:4px;">
+            全通話履歴: <code>GET /api/call-history</code><br>
+            個別通話: <code>GET /api/call-history/{id}</code>
+        </p>
+    </details>
+</div>
+{% endblock %}

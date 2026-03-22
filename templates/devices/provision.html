@@ -1,107 +1,114 @@
 {% extends "base.html" %}
 {% block title %}デバイス設定 - Millicall PBX{% endblock %}
 {% block content %}
-<div class="page-header">
-    <h1>デバイス設定</h1>
-</div>
+<h1>デバイス設定</h1>
 
-<div class="card" style="margin-bottom: 1.5rem;">
-    <div class="form-section-title">デバイス情報</div>
-    <div class="form-row" style="margin-top: 0.75rem;">
+<div class="card" style="margin-top:1rem;">
+    <div class="form-section" style="margin-top:0;">デバイス情報</div>
+    <div class="form-row" style="margin-top:8px;">
         <div>
-            <div style="font-size: 12px; color: var(--ink-muted); margin-bottom: 0.15rem;">MACアドレス</div>
-            <code>{{ device.mac_address }}</code>
+            <label style="margin-bottom:2px;">MACアドレス</label>
+            <div><code>{{ device.mac_address }}</code></div>
         </div>
         <div>
-            <div style="font-size: 12px; color: var(--ink-muted); margin-bottom: 0.15rem;">IPアドレス</div>
-            {{ device.ip_address or "不明" }}
+            <label style="margin-bottom:2px;">IPアドレス</label>
+            <div>{{ device.ip_address or "不明" }}</div>
         </div>
     </div>
-    <div style="margin-top: 0.75rem;">
-        <div style="font-size: 12px; color: var(--ink-muted); margin-bottom: 0.15rem;">ホスト名</div>
-        {{ device.hostname or "不明" }}
+    <div class="form-row" style="margin-top:8px;">
+        <div>
+            <label style="margin-bottom:2px;">ホスト名</label>
+            <div>{{ device.hostname or "不明" }}</div>
+        </div>
+        <div>
+            <label style="margin-bottom:2px;">機種</label>
+            <div>{{ device.model or "未設定" }}</div>
+        </div>
     </div>
 </div>
 
 {% if device.provisioned %}
-<div class="card" style="margin-bottom: 1.5rem;">
-    <div class="form-section-title">現在の割当</div>
-    <p style="font-size: 13px; color: var(--ink-muted); margin-top: 0.5rem;">このデバイスは設定済みです。</p>
+<div class="card mt">
+    <div class="form-section" style="margin-top:0;">現在の割当</div>
     {% if device.extension_id and extensions %}
     {% for ext in extensions if ext.id == device.extension_id %}
-    <p style="margin-top: 0.5rem;"><strong>内線番号:</strong> {{ ext.number }} - {{ ext.display_name }}</p>
+    <p style="margin-top:6px;"><strong>内線番号:</strong> {{ ext.number }} - {{ ext.display_name }}</p>
     {% endfor %}
     {% endif %}
     {% if device.peer_id and peers %}
     {% for peer in peers if peer.id == device.peer_id %}
-    <p style="margin-top: 0.25rem;"><strong>SIPピア:</strong> {{ peer.username }}</p>
+    <p style="margin-top:4px;"><strong>SIPピア:</strong> {{ peer.username }}</p>
     {% endfor %}
     {% endif %}
 </div>
 
-<div class="card">
-    <div class="form-section-title">割当を変更</div>
+<div class="card mt">
+    <div class="form-section" style="margin-top:0;">割当を変更</div>
     <form method="post" action="/devices/{{ device.id }}/assign">
-        <div class="form-row" style="margin-top: 0.75rem;">
-            <div class="field">
+        <div class="form-row" style="margin-top:8px;">
+            <div class="form-group">
                 <label for="peer_id">SIPピア</label>
                 <select id="peer_id" name="peer_id">
                     <option value="">-- 未割当 --</option>
                     {% for peer in peers %}
-                    <option value="{{ peer.id }}" {{ "selected" if device.peer_id == peer.id }}>
-                        {{ peer.username }}
-                    </option>
+                    <option value="{{ peer.id }}" {{ "selected" if device.peer_id == peer.id }}>{{ peer.username }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="field">
+            <div class="form-group">
                 <label for="extension_id">内線番号</label>
                 <select id="extension_id" name="extension_id">
                     <option value="">-- 未割当 --</option>
                     {% for ext in extensions %}
-                    <option value="{{ ext.id }}" {{ "selected" if device.extension_id == ext.id }}>
-                        {{ ext.number }} - {{ ext.display_name }}
-                    </option>
+                    <option value="{{ ext.id }}" {{ "selected" if device.extension_id == ext.id }}>{{ ext.number }} - {{ ext.display_name }}</option>
                     {% endfor %}
                 </select>
             </div>
         </div>
         <div class="form-actions">
             <button type="submit" class="btn btn-primary btn-lg">割当を更新</button>
-            <a href="/" class="btn btn-secondary btn-lg">キャンセル</a>
+            <a href="/devices" class="btn btn-sub btn-lg">キャンセル</a>
         </div>
     </form>
 </div>
 
 {% else %}
 
-<div class="card" style="margin-bottom: 1.5rem;">
-    <div class="form-section-title">自動プロビジョニング</div>
-    <p style="font-size: 13px; color: var(--ink-muted); margin: 0.5rem 0 1rem;">このデバイス用に新しい内線番号とSIPピアを自動作成します。</p>
+<div class="card mt">
+    <div class="form-section" style="margin-top:0;">自動プロビジョニング</div>
+    <p style="font-size:13px;color:var(--ink-sub);margin:6px 0 12px;">新しい内線番号とSIPピアを自動作成します。</p>
     <form method="post" action="/devices/{{ device.id }}/auto-provision">
         <div class="form-row">
-            <div class="field">
+            <div class="form-group">
                 <label for="extension_number">内線番号</label>
                 <input type="text" id="extension_number" name="extension_number"
                        placeholder="4001" required pattern="\d+" maxlength="20">
             </div>
-            <div class="field">
+            <div class="form-group">
                 <label for="display_name">表示名</label>
                 <input type="text" id="display_name" name="display_name"
                        placeholder="受付" required maxlength="100">
             </div>
         </div>
+        <div class="form-group">
+            <label for="device_type">電話機の種類</label>
+            <select id="device_type" name="device_type">
+                <option value="panasonic">Panasonic KX-HDVシリーズ</option>
+                <option value="generic">汎用SIP電話機</option>
+            </select>
+            <div class="form-hint">Panasonicの場合、自動プロビジョニング設定ファイルが生成されます</div>
+        </div>
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary btn-lg">自動設定を実行</button>
+            <button type="submit" class="btn btn-primary btn-lg">自動設定</button>
         </div>
     </form>
 </div>
 
-<div class="card">
-    <div class="form-section-title">既存のピア/内線番号に割当</div>
+<div class="card mt">
+    <div class="form-section" style="margin-top:0;">既存の設定に割当</div>
     <form method="post" action="/devices/{{ device.id }}/assign">
-        <div class="form-row" style="margin-top: 0.75rem;">
-            <div class="field">
+        <div class="form-row" style="margin-top:8px;">
+            <div class="form-group">
                 <label for="peer_id">SIPピア</label>
                 <select id="peer_id" name="peer_id">
                     <option value="">-- 未割当 --</option>
@@ -110,7 +117,7 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="field">
+            <div class="form-group">
                 <label for="extension_id">内線番号</label>
                 <select id="extension_id" name="extension_id">
                     <option value="">-- 未割当 --</option>
@@ -121,8 +128,8 @@
             </div>
         </div>
         <div class="form-actions">
-            <button type="submit" class="btn btn-secondary btn-lg">既存の設定に割当</button>
-            <a href="/" class="btn btn-ghost btn-lg">キャンセル</a>
+            <button type="submit" class="btn btn-sub btn-lg">割当する</button>
+            <a href="/devices" class="btn btn-text btn-lg">キャンセル</a>
         </div>
     </form>
 </div>

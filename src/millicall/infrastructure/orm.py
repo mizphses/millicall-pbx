@@ -55,6 +55,30 @@ ai_agents_table = Table(
     Column("enabled", Boolean, default=True, nullable=False),
 )
 
+call_logs_table = Table(
+    "call_logs",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("agent_id", Integer, nullable=False),
+    Column("agent_name", String(100), nullable=False),
+    Column("extension_number", String(20), nullable=False),
+    Column("caller_channel", String(200), nullable=False),
+    Column("started_at", DateTime, nullable=False),
+    Column("ended_at", DateTime, nullable=True),
+    Column("turn_count", Integer, nullable=False, default=0),
+)
+
+call_messages_table = Table(
+    "call_messages",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("call_log_id", Integer, ForeignKey("call_logs.id", ondelete="CASCADE"), nullable=False),
+    Column("role", String(20), nullable=False),  # "user" or "assistant"
+    Column("content", Text, nullable=False),
+    Column("turn", Integer, nullable=False, default=0),
+    Column("created_at", DateTime, nullable=False),
+)
+
 settings_table = Table(
     "app_settings",
     metadata,

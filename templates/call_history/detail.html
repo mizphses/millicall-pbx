@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}通話詳細 #{{ log.id }} - Millicall PBX{% endblock %}
+{% block head %}
+<style>
+    .chat { margin-top: 1rem; }
+    .chat-msg {
+        padding: 10px 14px;
+        margin-bottom: 6px;
+        border-radius: 6px;
+        font-size: 14px;
+        line-height: 1.7;
+        max-width: 85%;
+    }
+    .chat-msg-user {
+        background: var(--bg-muted);
+        color: var(--ink);
+        margin-left: auto;
+        border-bottom-right-radius: 2px;
+    }
+    .chat-msg-assistant {
+        background: var(--accent-pale);
+        color: var(--ink);
+        border-bottom-left-radius: 2px;
+    }
+    .chat-role {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--ink-faint);
+        margin-bottom: 2px;
+    }
+    .chat-msg-user .chat-role { text-align: right; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>通話詳細 #{{ log.id }}</h1>
+        <p class="page-sub">{{ log.agent_name }}（内線 {{ log.extension_number }}）</p>
+    </div>
+    <a href="/call-history" class="btn btn-sub">一覧に戻る</a>
+</div>
+
+<div class="card">
+    <div class="form-row">
+        <div>
+            <label style="margin-bottom:2px;">開始時刻</label>
+            <div>{{ log.started_at.strftime('%Y-%m-%d %H:%M:%S') if log.started_at else '-' }}</div>
+        </div>
+        <div>
+            <label style="margin-bottom:2px;">終了時刻</label>
+            <div>{{ log.ended_at.strftime('%Y-%m-%d %H:%M:%S') if log.ended_at else '通話中' }}</div>
+        </div>
+    </div>
+    <div class="form-row" style="margin-top:8px;">
+        <div>
+            <label style="margin-bottom:2px;">ターン数</label>
+            <div>{{ log.turn_count }}</div>
+        </div>
+        <div>
+            <label style="margin-bottom:2px;">チャネル</label>
+            <div><code>{{ log.caller_channel }}</code></div>
+        </div>
+    </div>
+</div>
+
+<h2 class="mt">会話内容</h2>
+
+{% if messages %}
+<div class="chat">
+    {% for msg in messages %}
+    <div class="chat-msg chat-msg-{{ msg.role }}">
+        <div class="chat-role">{{ '発信者' if msg.role == 'user' else 'AI' }}  (ターン {{ msg.turn }})</div>
+        {{ msg.content }}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card empty" style="margin-top:0.75rem;">
+    <p>会話記録がありません</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -6,158 +6,144 @@
 <style>
     .CodeMirror {
         height: auto;
-        min-height: 240px;
-        font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+        min-height: 220px;
+        font-family: 'SF Mono', 'Consolas', monospace;
         font-size: 13px;
         line-height: 1.7;
         border: 1px solid var(--border);
-        border-radius: var(--radius);
+        border-radius: 4px;
     }
     .CodeMirror-focused {
         border-color: var(--accent);
-        box-shadow: 0 0 0 3px rgba(61,90,128,0.12);
+        box-shadow: 0 0 0 2px rgba(42,100,150,0.15);
     }
-    .CodeMirror-scroll {
-        min-height: 240px;
-    }
+    .CodeMirror-scroll { min-height: 220px; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1>{{ "AIエージェントを編集" if agent else "AIエージェントを追加" }}</h1>
-</div>
+<h1>{{ "AIエージェントを編集" if agent else "AIエージェントを追加" }}</h1>
 
-<div class="card">
+<div class="card" style="margin-top:1rem;">
     <form method="post" action="{{ '/agents/' ~ agent.id if agent else '/agents' }}">
 
-        <div class="form-section">
-            <div class="form-section-title">基本情報</div>
-            <div class="form-row">
-                <div class="field">
-                    <label for="name">エージェント名</label>
-                    <input type="text" id="name" name="name"
-                           value="{{ agent.name if agent else '' }}"
-                           placeholder="受付AI" required maxlength="100">
-                </div>
-                <div class="field">
-                    <label for="extension_number">内線番号</label>
-                    <input type="text" id="extension_number" name="extension_number"
-                           value="{{ agent.extension_number if agent else '' }}"
-                           placeholder="9000" required pattern="\d+" maxlength="20">
-                    <div class="field-help">発信者がこの番号にダイヤルするとAIが応答します</div>
-                </div>
+        <div class="form-section" style="margin-top:0;">基本情報</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="name">エージェント名</label>
+                <input type="text" id="name" name="name"
+                       value="{{ agent.name if agent else '' }}"
+                       placeholder="受付AI" required maxlength="100">
             </div>
-
-            <div class="field">
-                <label for="greeting_text">挨拶メッセージ</label>
-                <input type="text" id="greeting_text" name="greeting_text"
-                       value="{{ agent.greeting_text if agent else 'お電話ありがとうございます。ご用件をどうぞ。' }}"
-                       placeholder="お電話ありがとうございます。" required maxlength="500">
-                <div class="field-help">AIが電話に出たとき最初に話す言葉</div>
+            <div class="form-group">
+                <label for="extension_number">内線番号</label>
+                <input type="text" id="extension_number" name="extension_number"
+                       value="{{ agent.extension_number if agent else '' }}"
+                       placeholder="9000" required pattern="\d+" maxlength="20">
+                <div class="form-hint">この番号にダイヤルするとAIが応答します</div>
             </div>
-
-            <fieldset>
-                <label class="checkbox-label">
-                    <input type="checkbox" name="enabled" value="true"
-                           {{ "checked" if not agent or agent.enabled }}>
-                    このエージェントを有効にする
-                </label>
-            </fieldset>
         </div>
 
-        <div class="form-section">
-            <div class="form-section-title">システムプロンプト</div>
-            <div class="field">
-                <div id="prompt-editor-container"></div>
-                <textarea id="system_prompt" name="system_prompt" style="display:none"
-                >{{ agent.system_prompt if agent else default_prompt }}</textarea>
-            </div>
+        <div class="form-group">
+            <label for="greeting_text">挨拶メッセージ</label>
+            <input type="text" id="greeting_text" name="greeting_text"
+                   value="{{ agent.greeting_text if agent else 'お電話ありがとうございます。ご用件をどうぞ。' }}"
+                   placeholder="お電話ありがとうございます。" required maxlength="500">
+            <div class="form-hint">AIが電話に出たとき最初に話す言葉</div>
+        </div>
 
-            <details>
-                <summary>プロンプトの書き方のヒント</summary>
-                <ul style="font-size: 13px; color: var(--ink-muted); padding-left: 1.25rem; margin-top: 0.5rem;">
-                    <li><strong>役割</strong>を定義する（例: 受付係、カスタマーサポート）</li>
-                    <li><strong>口調</strong>を指定する（丁寧語、カジュアル、フォーマル）</li>
-                    <li><strong>制約</strong>を設定する（最大文長、避けるべき話題）</li>
-                    <li><strong>知識</strong>を追加する（営業時間、住所、FAQ）</li>
-                    <li><strong>言語</strong>を指定する（日本語のみで応答、等）</li>
-                </ul>
-                <pre>あなたは「ミリカル株式会社」の電話受付AIです。
+        <div class="form-group">
+            <label class="check-label">
+                <input type="checkbox" name="enabled" value="true"
+                       {{ "checked" if not agent or agent.enabled }}>
+                このエージェントを有効にする
+            </label>
+        </div>
+
+        <div class="form-section">システムプロンプト</div>
+        <div class="form-group">
+            <div id="prompt-editor-container"></div>
+            <textarea id="system_prompt" name="system_prompt" style="display:none"
+            >{{ agent.system_prompt if agent else default_prompt }}</textarea>
+        </div>
+
+        <details>
+            <summary>プロンプトの書き方のヒント</summary>
+            <ul style="font-size:13px;color:var(--ink-sub);padding-left:1.25rem;margin-top:4px;">
+                <li><strong>役割</strong>を定義する（受付係、カスタマーサポート 等）</li>
+                <li><strong>口調</strong>を指定する（丁寧語、カジュアル、フォーマル）</li>
+                <li><strong>制約</strong>を設定する（最大文長、避けるべき話題）</li>
+                <li><strong>知識</strong>を追加する（営業時間、住所、FAQ）</li>
+            </ul>
+            <pre>あなたは「ミリカル株式会社」の電話受付AIです。
 丁寧な敬語で応対してください。
 営業時間: 平日 9:00-18:00
 住所: 東京都渋谷区...
 回答は3文以内で簡潔に。</pre>
-            </details>
-        </div>
+        </details>
 
-        <div class="form-section">
-            <div class="form-section-title">LLM設定</div>
-            <div class="form-row">
-                <div class="field">
-                    <label for="llm_provider">LLMプロバイダー</label>
-                    <select id="llm_provider" name="llm_provider">
-                        <option value="google" {{ "selected" if agent and agent.llm_provider == "google" }}>Google Gemini</option>
-                        <option value="openai" {{ "selected" if agent and agent.llm_provider == "openai" }}>OpenAI</option>
-                        <option value="anthropic" {{ "selected" if agent and agent.llm_provider == "anthropic" }}>Anthropic Claude</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label for="llm_model">モデル名</label>
-                    <input type="text" id="llm_model" name="llm_model"
-                           value="{{ agent.llm_model if agent else 'gemini-2.0-flash-lite' }}"
-                           placeholder="gemini-2.0-flash-lite" required maxlength="50">
-                </div>
-            </div>
-            <div class="field">
-                <label for="max_history">会話履歴のターン数</label>
-                <input type="number" id="max_history" name="max_history"
-                       value="{{ agent.max_history if agent else 10 }}"
-                       min="2" max="50" required style="max-width: 120px;">
-                <div class="field-help">AIが記憶する会話のやりとりの回数</div>
-            </div>
-        </div>
-
-        <div class="form-section">
-            <div class="form-section-title">音声合成 (TTS)</div>
-            <div class="field">
-                <label for="tts_provider">TTSプロバイダー</label>
-                <select id="tts_provider" name="tts_provider">
-                    <option value="coefont" {{ "selected" if not agent or agent.tts_provider == "coefont" }}>CoeFont</option>
-                    <option value="google" {{ "selected" if agent and agent.tts_provider == "google" }}>Google Chirp3 HD</option>
+        <div class="form-section">LLM設定</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="llm_provider">プロバイダー</label>
+                <select id="llm_provider" name="llm_provider">
+                    <option value="google" {{ "selected" if agent and agent.llm_provider == "google" }}>Google Gemini</option>
+                    <option value="openai" {{ "selected" if agent and agent.llm_provider == "openai" }}>OpenAI</option>
+                    <option value="anthropic" {{ "selected" if agent and agent.llm_provider == "anthropic" }}>Anthropic Claude</option>
                 </select>
             </div>
-
-            <div id="coefont-settings">
-                <div class="field">
-                    <label for="coefont_voice_id">CoeFont ボイスID</label>
-                    <input type="text" id="coefont_voice_id" name="coefont_voice_id"
-                           value="{{ agent.coefont_voice_id if agent else 'cbe4e152-40a5-4c0d-91cd-2fc27d60e6bd' }}"
-                           placeholder="cbe4e152-40a5-4c0d-91cd-2fc27d60e6bd" maxlength="100">
-                    <div class="field-help">使用するCoeFontボイスのUUID</div>
-                </div>
+            <div class="form-group">
+                <label for="llm_model">モデル名</label>
+                <input type="text" id="llm_model" name="llm_model"
+                       value="{{ agent.llm_model if agent else 'gemini-2.0-flash-lite' }}"
+                       placeholder="gemini-2.0-flash-lite" required maxlength="50">
             </div>
+        </div>
+        <div class="form-group">
+            <label for="max_history">会話履歴のターン数</label>
+            <input type="number" id="max_history" name="max_history"
+                   value="{{ agent.max_history if agent else 10 }}"
+                   min="2" max="50" required style="max-width:100px;">
+            <div class="form-hint">AIが記憶する会話のやりとりの回数</div>
+        </div>
 
-            <div id="google-tts-settings" style="display:none">
-                <div class="field">
-                    <label for="google_tts_voice">Google Chirp3 ボイス</label>
-                    <select id="google_tts_voice" name="google_tts_voice">
-                        <option value="ja-JP-Chirp3-HD-Aoede" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Aoede" }}>Aoede（女性）</option>
-                        <option value="ja-JP-Chirp3-HD-Kore" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Kore" }}>Kore（女性）</option>
-                        <option value="ja-JP-Chirp3-HD-Leda" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Leda" }}>Leda（女性）</option>
-                        <option value="ja-JP-Chirp3-HD-Zephyr" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Zephyr" }}>Zephyr（女性）</option>
-                        <option value="ja-JP-Chirp3-HD-Charon" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Charon" }}>Charon（男性）</option>
-                        <option value="ja-JP-Chirp3-HD-Fenrir" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Fenrir" }}>Fenrir（男性）</option>
-                        <option value="ja-JP-Chirp3-HD-Orus" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Orus" }}>Orus（男性）</option>
-                        <option value="ja-JP-Chirp3-HD-Puck" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Puck" }}>Puck（男性）</option>
-                    </select>
-                </div>
+        <div class="form-section">音声合成（TTS）</div>
+        <div class="form-group">
+            <label for="tts_provider">TTSプロバイダー</label>
+            <select id="tts_provider" name="tts_provider">
+                <option value="coefont" {{ "selected" if not agent or agent.tts_provider == "coefont" }}>CoeFont</option>
+                <option value="google" {{ "selected" if agent and agent.tts_provider == "google" }}>Google Chirp3 HD</option>
+            </select>
+        </div>
+
+        <div id="coefont-settings">
+            <div class="form-group">
+                <label for="coefont_voice_id">CoeFont ボイスID</label>
+                <input type="text" id="coefont_voice_id" name="coefont_voice_id"
+                       value="{{ agent.coefont_voice_id if agent else 'cbe4e152-40a5-4c0d-91cd-2fc27d60e6bd' }}"
+                       placeholder="UUID" maxlength="100">
+            </div>
+        </div>
+
+        <div id="google-tts-settings" style="display:none">
+            <div class="form-group">
+                <label for="google_tts_voice">Google Chirp3 ボイス</label>
+                <select id="google_tts_voice" name="google_tts_voice">
+                    <option value="ja-JP-Chirp3-HD-Aoede" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Aoede" }}>Aoede（女性）</option>
+                    <option value="ja-JP-Chirp3-HD-Kore" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Kore" }}>Kore（女性）</option>
+                    <option value="ja-JP-Chirp3-HD-Leda" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Leda" }}>Leda（女性）</option>
+                    <option value="ja-JP-Chirp3-HD-Zephyr" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Zephyr" }}>Zephyr（女性）</option>
+                    <option value="ja-JP-Chirp3-HD-Charon" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Charon" }}>Charon（男性）</option>
+                    <option value="ja-JP-Chirp3-HD-Fenrir" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Fenrir" }}>Fenrir（男性）</option>
+                    <option value="ja-JP-Chirp3-HD-Orus" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Orus" }}>Orus（男性）</option>
+                    <option value="ja-JP-Chirp3-HD-Puck" {{ "selected" if agent and agent.google_tts_voice == "ja-JP-Chirp3-HD-Puck" }}>Puck（男性）</option>
+                </select>
             </div>
         </div>
 
         <div class="form-actions">
             <button type="submit" class="btn btn-primary btn-lg">{{ "更新" if agent else "作成" }}</button>
-            <a href="/agents" class="btn btn-secondary btn-lg">キャンセル</a>
+            <a href="/agents" class="btn btn-sub btn-lg">キャンセル</a>
         </div>
     </form>
 </div>
@@ -167,43 +153,28 @@
 document.addEventListener("DOMContentLoaded", function() {
     const textarea = document.getElementById("system_prompt");
     const container = document.getElementById("prompt-editor-container");
-
     const editor = CodeMirror(container, {
         value: textarea.value,
         lineNumbers: true,
         lineWrapping: true,
-        placeholder: "AIエージェントのシステムプロンプトをここに入力...",
+        placeholder: "システムプロンプトを入力...",
     });
-
-    editor.on("change", function() {
-        textarea.value = editor.getValue();
-    });
+    editor.on("change", function() { textarea.value = editor.getValue(); });
 
     const providerSelect = document.getElementById("llm_provider");
     const modelInput = document.getElementById("llm_model");
-    const defaults = {
-        "google": "gemini-2.0-flash-lite",
-        "openai": "gpt-4o-mini",
-        "anthropic": "claude-sonnet-4-20250514"
-    };
-    providerSelect.addEventListener("change", function() {
-        modelInput.value = defaults[this.value] || "";
-    });
+    const defaults = { "google": "gemini-2.0-flash-lite", "openai": "gpt-4o-mini", "anthropic": "claude-sonnet-4-20250514" };
+    providerSelect.addEventListener("change", function() { modelInput.value = defaults[this.value] || ""; });
 
     const ttsSelect = document.getElementById("tts_provider");
     const coefontDiv = document.getElementById("coefont-settings");
     const googleDiv = document.getElementById("google-tts-settings");
-    function updateTtsView() {
-        if (ttsSelect.value === "google") {
-            coefontDiv.style.display = "none";
-            googleDiv.style.display = "block";
-        } else {
-            coefontDiv.style.display = "block";
-            googleDiv.style.display = "none";
-        }
+    function updateTts() {
+        coefontDiv.style.display = ttsSelect.value === "google" ? "none" : "block";
+        googleDiv.style.display = ttsSelect.value === "google" ? "block" : "none";
     }
-    ttsSelect.addEventListener("change", updateTtsView);
-    updateTtsView();
+    ttsSelect.addEventListener("change", updateTts);
+    updateTts();
 });
 </script>
 {% endblock %}

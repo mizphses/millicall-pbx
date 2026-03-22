@@ -46,14 +46,17 @@ async def dashboard(request: Request, session: AsyncSession = Depends(get_sessio
 async def extensions_list(request: Request, session: AsyncSession = Depends(get_session)):
     ext_service = ExtensionService(session)
     peer_service = PeerService(session)
+    agent_service = AIAgentService(session)
     extensions = await ext_service.list_extensions()
     peers = await peer_service.list_peers()
+    agents = await agent_service.list_agents()
     peer_map = {p.id: p for p in peers}
     return templates.TemplateResponse("extensions/list.html", {
         "request": request,
         "extensions": extensions,
         "peers": peers,
         "peer_map": peer_map,
+        "agents": agents,
     })
 
 
@@ -252,6 +255,32 @@ async def peer_delete(
 
 # --- Device views ---
 
+@router.get("/devices", response_class=HTMLResponse)
+async def devices_list(request: Request, session: AsyncSession = Depends(get_session)):
+    device_service = DeviceService(session)
+    ext_service = ExtensionService(session)
+    peer_service = PeerService(session)
+    await device_service.scan_dhcp_leases()
+    devices = await device_service.list_devices()
+    extensions = await ext_service.list_extensions()
+    peers = await peer_service.list_peers()
+    ext_map = {e.id: e for e in extensions}
+    peer_map = {p.id: p for p in peers}
+    return templates.TemplateResponse("devices/list.html", {
+        "request": request,
+        "devices": devices,
+        "ext_map": ext_map,
+        "peer_map": peer_map,
+    })
+
+
+@router.post("/devices/scan", response_class=HTMLResponse)
+async def devices_scan(session: AsyncSession = Depends(get_session)):
+    device_service = DeviceService(session)
+    await device_service.scan_dhcp_leases()
+    return RedirectResponse(url="/devices", status_code=303)
+
+
 @router.get("/devices/{device_id}/provision", response_class=HTMLResponse)
 async def device_provision_form(
     request: Request,
@@ -283,7 +312,7 @@ async def device_auto_provision(
     await device_service.auto_provision(device_id, extension_number, display_name)
     asterisk = AsteriskService(session)
     await asterisk.apply_config()
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/devices", status_code=303)
 
 
 @router.post("/devices/{device_id}/assign", response_class=HTMLResponse)
@@ -301,7 +330,7 @@ async def device_assign(
     )
     asterisk = AsteriskService(session)
     await asterisk.apply_config()
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/devices", status_code=303)
 
 
 @router.post("/devices/{device_id}/delete", response_class=HTMLResponse)
@@ -313,7 +342,7 @@ async def device_delete(
     device = await device_service.get_device(device_id)
     if device:
         await device_service.device_repo.delete(device_id)
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/devices", status_code=303)
 
 
 # --- AI Agent views ---
@@ -450,9 +479,11 @@ async def settings_page(request: Request, session: AsyncSession = Depends(get_se
     await repo.ensure_defaults()
     settings_svc = SettingsService(session)
     settings_list = await settings_svc.get_all()
+    settings_dict = {s["key"]: s["value"] for s in settings_list}
     return templates.TemplateResponse("settings.html", {
         "request": request,
         "settings_list": settings_list,
+        "s": settings_dict,
     })
 
 
@@ -469,3 +500,105 @@ async def settings_save(
     asterisk = AsteriskService(session)
     await asterisk.apply_config()
     return RedirectResponse(url="/settings", status_code=303)
+
+
+# --- Call History views ---
+
+@router.get("/call-history", response_class=HTMLResponse)
+async def call_history_list(request: Request, session: AsyncSession = Depends(get_session)):
+    from millicall.infrastructure.repositories.call_log_repo import CallLogRepository
+    repo = CallLogRepository(session)
+    logs = await repo.get_all_logs()
+    return templates.TemplateResponse("call_history/list.html", {
+        "request": request,
+        "logs": logs,
+    })
+
+
+@router.get("/call-history/{log_id}", response_class=HTMLResponse)
+async def call_history_detail(
+    request: Request,
+    log_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    from millicall.infrastructure.repositories.call_log_repo import CallLogRepository
+    repo = CallLogRepository(session)
+    log = await repo.get_log(log_id)
+    messages = await repo.get_messages(log_id) if log else []
+    return templates.TemplateResponse("call_history/detail.html", {
+        "request": request,
+        "log": log,
+        "messages": messages,
+    })
+
+
+@router.post("/call-history/{log_id}/delete", response_class=HTMLResponse)
+async def call_history_delete(
+    log_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    from millicall.infrastructure.repositories.call_log_repo import CallLogRepository
+    repo = CallLogRepository(session)
+    await repo.delete_log(log_id)
+    return RedirectResponse(url="/call-history", status_code=303)
+
+
+# --- Call History JSON API ---
+
+from fastapi.responses import JSONResponse
+
+@router.get("/api/call-history")
+async def api_call_history(session: AsyncSession = Depends(get_session)):
+    from millicall.infrastructure.repositories.call_log_repo import CallLogRepository
+    repo = CallLogRepository(session)
+    logs = await repo.get_all_logs()
+    result = []
+    for log in logs:
+        messages = await repo.get_messages(log.id)
+        result.append({
+            "id": log.id,
+            "agent_name": log.agent_name,
+            "extension_number": log.extension_number,
+            "caller_channel": log.caller_channel,
+            "started_at": log.started_at.isoformat() if log.started_at else None,
+            "ended_at": log.ended_at.isoformat() if log.ended_at else None,
+            "turn_count": log.turn_count,
+            "messages": [
+                {
+                    "role": m.role,
+                    "content": m.content,
+                    "turn": m.turn,
+                    "created_at": m.created_at.isoformat() if m.created_at else None,
+                }
+                for m in messages
+            ],
+        })
+    return JSONResponse(content=result)
+
+
+@router.get("/api/call-history/{log_id}")
+async def api_call_history_detail(log_id: int, session: AsyncSession = Depends(get_session)):
+    from millicall.infrastructure.repositories.call_log_repo import CallLogRepository
+    repo = CallLogRepository(session)
+    log = await repo.get_log(log_id)
+    if not log:
+        return JSONResponse(content={"error": "not found"}, status_code=404)
+    messages = await repo.get_messages(log_id)
+    return JSONResponse(content={
+        "id": log.id,
+        "agent_name": log.agent_name,
+        "extension_number": log.extension_number,
+        "caller_channel": log.caller_channel,
+        "started_at": log.started_at.isoformat() if log.started_at else None,
+        "ended_at": log.ended_at.isoformat() if log.ended_at else None,
+        "turn_count": log.turn_count,
+        "messages": [
+            {
+                "role": m.role,
+                "content": m.content,
+                "turn": m.turn,
+                "created_at": m.created_at.isoformat() if m.created_at else None,
+            }
+            for m in messages
+        ],
+    })

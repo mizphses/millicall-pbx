@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}デバイス管理 - Millicall PBX{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>デバイス管理</h1>
+        <p class="page-sub">172.20.0.0/16 ネットワーク上のデバイスとプロビジョニング</p>
+    </div>
+    <form method="post" action="/devices/scan" style="display:inline;">
+        <button type="submit" class="btn btn-sub">DHCPリースを再スキャン</button>
+    </form>
+</div>
+
+{% if devices %}
+<div class="tbl-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th class="sortable">MACアドレス</th>
+                <th class="sortable">IPアドレス</th>
+                <th class="sortable">ホスト名</th>
+                <th class="sortable">機種</th>
+                <th class="sortable">状態</th>
+                <th class="sortable">割当先</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for device in devices %}
+            <tr>
+                <td><code>{{ device.mac_address }}</code></td>
+                <td>{{ device.ip_address or "-" }}</td>
+                <td>{{ device.hostname or "-" }}</td>
+                <td>{{ device.model or "-" }}</td>
+                <td>
+                    {% if device.provisioned %}
+                    <span class="tag tag-ok">設定済み</span>
+                    {% else %}
+                    <span class="tag tag-ng">未設定</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if device.extension_id and ext_map.get(device.extension_id) %}
+                    {{ ext_map[device.extension_id].number }} - {{ ext_map[device.extension_id].display_name }}
+                    {% elif device.peer_id and peer_map.get(device.peer_id) %}
+                    ピア: {{ peer_map[device.peer_id].username }}
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td class="td-actions">
+                    {% if not device.provisioned %}
+                    <a href="/devices/{{ device.id }}/provision" class="btn btn-primary btn-sm">設定</a>
+                    {% else %}
+                    <a href="/devices/{{ device.id }}/provision" class="btn btn-text btn-sm">編集</a>
+                    {% endif %}
+                    <form method="post" action="/devices/{{ device.id }}/delete"
+                          onsubmit="return confirm('デバイス {{ device.mac_address }} を削除しますか？\nDHCPリース情報も含めて完全に削除されます。')">
+                        <button type="submit" class="btn btn-del btn-sm">削除</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card empty">
+    <p>デバイスが見つかりません。172.20 ネットワークに電話機を接続してください。</p>
+</div>
+{% endif %}
+{% endblock %}

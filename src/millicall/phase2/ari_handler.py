@@ -93,10 +93,31 @@ async def _save_wav_to_asterisk(audio_wav: bytes, filename: str) -> str:
     return f"millicall/{filename.rsplit('.', 1)[0]}"
 
 
+async def _save_call_message(log_id: int, role: str, content: str, turn: int) -> None:
+    """Persist a single call message to the database."""
+    from datetime import datetime
+    from millicall.domain.models import CallMessage
+    from millicall.infrastructure.database import async_session
+    from millicall.infrastructure.repositories.call_log_repo import CallLogRepository
+
+    async with async_session() as session:
+        repo = CallLogRepository(session)
+        await repo.add_message(CallMessage(
+            call_log_id=log_id,
+            role=role,
+            content=content,
+            turn=turn,
+            created_at=datetime.now(),
+        ))
+
+
 async def _handle_call(channel_id: str, extension: str) -> None:
     """Handle an incoming AI agent call."""
+    from datetime import datetime
+    from millicall.domain.models import CallLog
     from millicall.infrastructure.database import async_session
     from millicall.infrastructure.repositories.ai_agent_repo import AIAgentRepository
+    from millicall.infrastructure.repositories.call_log_repo import CallLogRepository
 
     # Look up the AI agent for this extension
     async with async_session() as session:
@@ -118,6 +139,22 @@ async def _handle_call(channel_id: str, extension: str) -> None:
     # Initialize conversation context
     context = llm_chat.ConversationContext(max_history=agent.max_history)
     _conversations[channel_id] = context
+
+    # Create call log
+    call_log_id = None
+    turn_counter = 0
+    try:
+        async with async_session() as session:
+            log_repo = CallLogRepository(session)
+            call_log_id = await log_repo.create_log(CallLog(
+                agent_id=agent.id,
+                agent_name=agent.name,
+                extension_number=extension,
+                caller_channel=channel_id,
+                started_at=datetime.now(),
+            ))
+    except Exception as e:
+        logger.error("Failed to create call log: %s", e)
 
     try:
         # Answer the call
@@ -215,6 +252,15 @@ async def _handle_call(channel_id: str, extension: str) -> None:
             # Update conversation context
             context.add_message("user", user_text)
             context.add_message("assistant", response_text)
+            turn_counter += 1
+
+            # Persist to database
+            if call_log_id:
+                try:
+                    await _save_call_message(call_log_id, "user", user_text, turn_counter)
+                    await _save_call_message(call_log_id, "assistant", response_text, turn_counter)
+                except Exception as e:
+                    logger.error("Failed to save call message: %s", e)
 
             # TTS
             try:
@@ -255,6 +301,14 @@ async def _handle_call(channel_id: str, extension: str) -> None:
         logger.error("AI call error: %s", e)
     finally:
         _conversations.pop(channel_id, None)
+        # Finalize call log
+        if call_log_id:
+            try:
+                async with async_session() as session:
+                    log_repo = CallLogRepository(session)
+                    await log_repo.finish_log(call_log_id, turn_counter)
+            except Exception as e:
+                logger.error("Failed to finalize call log: %s", e)
         # Clean up temp audio files
         import glob
         for f in glob.glob(f"/usr/share/asterisk/sounds/en/millicall/*{safe_id}*"):

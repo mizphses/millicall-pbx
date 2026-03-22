@@ -56,3 +56,25 @@ class AIAgent:
     max_history: int = 10
     enabled: bool = True
     id: int | None = None
+
+
+@dataclass
+class CallLog:
+    agent_id: int
+    agent_name: str
+    extension_number: str
+    caller_channel: str
+    started_at: datetime | None = None
+    ended_at: datetime | None = None
+    turn_count: int = 0
+    id: int | None = None
+
+
+@dataclass
+class CallMessage:
+    call_log_id: int
+    role: str  # "user" or "assistant"
+    content: str
+    turn: int = 0
+    created_at: datetime | None = None
+    id: int | None = None

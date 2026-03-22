@@ -1,23 +1,24 @@
 {% extends "base.html" %}
-{% block title %}内線番号 - Millicall PBX{% endblock %}
+{% block title %}内線アカウント - Millicall PBX{% endblock %}
 {% block content %}
-<div class="page-header-row">
-    <div class="page-header">
-        <h1>内線番号</h1>
-        <p>電話の内線番号を管理します</p>
+<div class="page-head">
+    <div>
+        <h1>内線アカウント</h1>
+        <p class="page-sub">電話番号とAIエージェントを管理します</p>
     </div>
-    <a href="/extensions/new" class="btn btn-primary">内線番号を追加</a>
+    <a href="/extensions/new" class="btn btn-primary">追加</a>
 </div>
 
-{% if extensions %}
-<div class="table-wrap">
+{% if extensions or agents %}
+<div class="tbl-wrap">
     <table>
         <thead>
             <tr>
-                <th>番号</th>
-                <th>表示名</th>
-                <th>状態</th>
-                <th>SIPピア</th>
+                <th class="sortable">番号</th>
+                <th class="sortable">名前</th>
+                <th class="sortable">種別</th>
+                <th class="sortable">状態</th>
+                <th class="sortable">接続先</th>
                 <th></th>
             </tr>
         </thead>
@@ -26,25 +27,50 @@
             <tr>
                 <td><strong>{{ ext.number }}</strong></td>
                 <td>{{ ext.display_name }}</td>
+                <td><span class="tag tag-muted">電話</span></td>
                 <td>
                     {% if ext.enabled %}
-                    <span class="badge badge-success">有効</span>
+                    <span class="tag tag-ok">有効</span>
                     {% else %}
-                    <span class="badge badge-danger">無効</span>
+                    <span class="tag tag-ng">無効</span>
                     {% endif %}
                 </td>
                 <td>
                     {% if ext.peer_id and peer_map.get(ext.peer_id) %}
-                    <span class="badge badge-info">{{ peer_map[ext.peer_id].username }}</span>
+                    <span class="tag tag-info">{{ peer_map[ext.peer_id].username }}</span>
                     {% else %}
-                    <span style="color: var(--ink-faint)">-</span>
+                    -
                     {% endif %}
                 </td>
-                <td class="cell-actions">
-                    <a href="/extensions/{{ ext.id }}/edit" class="btn btn-ghost btn-sm">編集</a>
+                <td class="td-actions">
+                    <a href="/extensions/{{ ext.id }}/edit" class="btn btn-text btn-sm">編集</a>
                     <form method="post" action="/extensions/{{ ext.id }}/delete"
                           onsubmit="return confirm('内線番号 {{ ext.number }} を削除しますか？')">
-                        <button type="submit" class="btn btn-danger btn-sm">削除</button>
+                        <button type="submit" class="btn btn-del btn-sm">削除</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            {% for agent in agents %}
+            <tr>
+                <td><strong>{{ agent.extension_number }}</strong></td>
+                <td>{{ agent.name }}</td>
+                <td><span class="tag tag-info">AI</span></td>
+                <td>
+                    {% if agent.enabled %}
+                    <span class="tag tag-ok">有効</span>
+                    {% else %}
+                    <span class="tag tag-ng">無効</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="tag tag-muted">{{ agent.llm_provider }}/{{ agent.llm_model }}</span>
+                </td>
+                <td class="td-actions">
+                    <a href="/agents/{{ agent.id }}/edit" class="btn btn-text btn-sm">編集</a>
+                    <form method="post" action="/agents/{{ agent.id }}/delete"
+                          onsubmit="return confirm('AIエージェント「{{ agent.name }}」を削除しますか？')">
+                        <button type="submit" class="btn btn-del btn-sm">削除</button>
                     </form>
                 </td>
             </tr>
@@ -53,9 +79,9 @@
     </table>
 </div>
 {% else %}
-<div class="card empty-state">
-    <p>内線番号がまだ登録されていません</p>
-    <a href="/extensions/new" class="btn btn-primary">最初の内線番号を追加</a>
+<div class="card empty">
+    <p>内線アカウントがまだありません</p>
+    <a href="/extensions/new" class="btn btn-primary">追加する</a>
 </div>
 {% endif %}
 {% endblock %}

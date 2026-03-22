@@ -1,96 +1,69 @@
 {% extends "base.html" %}
 {% block title %}ホーム - Millicall PBX{% endblock %}
 {% block content %}
-<div class="page-header">
-    <h1>ダッシュボード</h1>
+<h1>ダッシュボード</h1>
+<p class="page-sub">システムの概要</p>
+
+<div class="stats">
+    <div class="stats-item">
+        <div class="stats-num">{{ extensions|length }}</div>
+        <div class="stats-label">内線アカウント</div>
+    </div>
+    <div class="stats-item">
+        <div class="stats-num">{{ peers|length }}</div>
+        <div class="stats-label">SIP電話機</div>
+    </div>
+    <div class="stats-item">
+        <div class="stats-num">{{ devices|length }}</div>
+        <div class="stats-label">接続デバイス</div>
+    </div>
 </div>
 
-<div class="stats-row">
-    <div class="stat">
-        <div class="stat-value">{{ extensions|length }}</div>
-        <div class="stat-label">内線番号</div>
-    </div>
-    <div class="stat">
-        <div class="stat-value">{{ peers|length }}</div>
-        <div class="stat-label">SIPピア</div>
-    </div>
-    <div class="stat">
-        <div class="stat-value">{{ devices|length }}</div>
-        <div class="stat-label">接続デバイス</div>
-    </div>
+{% if devices %}
+<h2>最近接続されたデバイス</h2>
+<p class="page-sub">詳細は<a href="/devices">デバイス管理</a>で確認できます</p>
+<div class="tbl-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>MACアドレス</th>
+                <th>IPアドレス</th>
+                <th>状態</th>
+                <th>割当先</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for device in devices[:5] %}
+            <tr>
+                <td><code>{{ device.mac_address }}</code></td>
+                <td>{{ device.ip_address or "-" }}</td>
+                <td>
+                    {% if device.provisioned %}
+                    <span class="tag tag-ok">設定済み</span>
+                    {% else %}
+                    <span class="tag tag-ng">未設定</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if device.extension_id and ext_map.get(device.extension_id) %}
+                    {{ ext_map[device.extension_id].number }} - {{ ext_map[device.extension_id].display_name }}
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
+{% endif %}
 
-<div class="section-gap">
-    <div class="page-header-row">
-        <div class="page-header">
-            <h2>接続デバイス一覧</h2>
-            <p>172.20.0.0/16 ネットワーク上のDHCPリース情報</p>
-        </div>
-    </div>
-
-    {% if devices %}
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>MACアドレス</th>
-                    <th>IPアドレス</th>
-                    <th>ホスト名</th>
-                    <th>状態</th>
-                    <th>割当</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for device in devices %}
-                <tr>
-                    <td><code>{{ device.mac_address }}</code></td>
-                    <td>{{ device.ip_address or "-" }}</td>
-                    <td>{{ device.hostname or "-" }}</td>
-                    <td>
-                        {% if device.provisioned %}
-                        <span class="badge badge-success">設定済み</span>
-                        {% else %}
-                        <span class="badge badge-danger">未設定</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if device.extension_id and ext_map.get(device.extension_id) %}
-                        {{ ext_map[device.extension_id].number }} - {{ ext_map[device.extension_id].display_name }}
-                        {% elif device.peer_id and peer_map.get(device.peer_id) %}
-                        ピア: {{ peer_map[device.peer_id].username }}
-                        {% else %}
-                        <span style="color: var(--ink-faint)">-</span>
-                        {% endif %}
-                    </td>
-                    <td class="cell-actions">
-                        {% if not device.provisioned %}
-                        <a href="/devices/{{ device.id }}/provision" class="btn btn-primary btn-sm">設定する</a>
-                        {% else %}
-                        <a href="/devices/{{ device.id }}/provision" class="btn btn-secondary btn-sm">編集</a>
-                        {% endif %}
-                        <form method="post" action="/devices/{{ device.id }}/delete"
-                              onsubmit="return confirm('デバイス {{ device.mac_address }} を削除しますか？')">
-                            <button type="submit" class="btn btn-danger btn-sm">削除</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% else %}
-    <div class="card empty-state">
-        <p>デバイスが見つかりません。172.20 ネットワークに電話機を接続してページを更新してください。</p>
-    </div>
-    {% endif %}
-</div>
-
-<div class="section-gap">
+<div class="mt">
     <h2>クイック操作</h2>
-    <div style="display: flex; gap: 0.75rem; margin-top: 0.75rem;">
-        <a href="/extensions/new" class="btn btn-primary">内線番号を追加</a>
-        <a href="/peers/new" class="btn btn-secondary">SIPピアを追加</a>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+        <a href="/extensions/new" class="btn btn-primary">内線アカウントを追加</a>
+        <a href="/peers/new" class="btn btn-sub">SIP電話機を登録</a>
+        <a href="/devices" class="btn btn-sub">デバイス管理</a>
     </div>
 </div>
 {% endblock %}

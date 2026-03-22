@@ -1,75 +1,67 @@
 {% extends "base.html" %}
-{% block title %}{{ "SIPピアを編集" if peer else "SIPピアを追加" }} - Millicall PBX{% endblock %}
+{% block title %}{{ "SIP電話機を編集" if peer else "SIP電話機を登録" }} - Millicall PBX{% endblock %}
 {% block content %}
-<div class="page-header">
-    <h1>{{ "SIPピアを編集" if peer else "SIPピアを追加" }}</h1>
-</div>
+<h1>{{ "SIP電話機を編集" if peer else "SIP電話機を登録" }}</h1>
 
-<div class="card">
+<div class="card" style="margin-top:1rem;">
     <form method="post" action="{{ '/peers/' ~ peer.id if peer else '/peers' }}">
-        <div class="form-section">
-            <div class="form-section-title">認証情報</div>
-            <div class="form-row">
-                <div class="field">
-                    <label for="username">ユーザー名</label>
-                    <input type="text" id="username" name="username" placeholder="phone1001"
-                           value="{{ peer.username if peer else '' }}"
-                           required pattern="[a-zA-Z0-9_-]+" maxlength="50">
-                </div>
-                <div class="field">
-                    <label for="password">パスワード</label>
-                    <input type="text" id="password" name="password" placeholder="パスワードを入力"
-                           value="{{ peer.password if peer else '' }}"
-                           required minlength="4" maxlength="100">
-                </div>
+        <div class="form-section" style="margin-top:0;">認証情報</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="username">ユーザー名</label>
+                <input type="text" id="username" name="username" placeholder="phone1001"
+                       value="{{ peer.username if peer else '' }}"
+                       required pattern="[a-zA-Z0-9_-]+" maxlength="50">
+            </div>
+            <div class="form-group">
+                <label for="password">パスワード</label>
+                <input type="text" id="password" name="password" placeholder="パスワード"
+                       value="{{ peer.password if peer else '' }}"
+                       required minlength="4" maxlength="100">
             </div>
         </div>
 
-        <div class="form-section">
-            <div class="form-section-title">通信設定</div>
-            <div class="form-row">
-                <div class="field">
-                    <label for="transport">トランスポート</label>
-                    <select id="transport" name="transport">
-                        <option value="udp" {{ "selected" if not peer or peer.transport == "udp" }}>UDP</option>
-                        <option value="tcp" {{ "selected" if peer and peer.transport == "tcp" }}>TCP</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label for="codecs">コーデック <span class="hint">カンマ区切り</span></label>
-                    <input type="text" id="codecs" name="codecs"
-                           value="{{ peer.codecs|join(',') if peer else 'ulaw,alaw' }}"
-                           placeholder="ulaw,alaw,opus">
-                </div>
-            </div>
-
-            <div class="field">
-                <label for="ip_address">IPアドレス <span class="hint">空欄で動的登録</span></label>
-                <input type="text" id="ip_address" name="ip_address"
-                       value="{{ peer.ip_address if peer and peer.ip_address else '' }}"
-                       placeholder="172.20.1.10">
-            </div>
-        </div>
-
-        <div class="form-section">
-            <div class="form-section-title">内線番号の紐付け</div>
-            <div class="field">
-                <label for="extension_id">内線番号</label>
-                <select id="extension_id" name="extension_id">
-                    <option value="">-- 未割当 --</option>
-                    {% for ext in extensions %}
-                    <option value="{{ ext.id }}"
-                            {{ "selected" if peer and peer.extension_id == ext.id }}>
-                        {{ ext.number }} - {{ ext.display_name }}
-                    </option>
-                    {% endfor %}
+        <div class="form-section">通信設定</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="transport">トランスポート</label>
+                <select id="transport" name="transport">
+                    <option value="udp" {{ "selected" if not peer or peer.transport == "udp" }}>UDP</option>
+                    <option value="tcp" {{ "selected" if peer and peer.transport == "tcp" }}>TCP</option>
                 </select>
             </div>
+            <div class="form-group">
+                <label for="codecs">コーデック（カンマ区切り）</label>
+                <input type="text" id="codecs" name="codecs"
+                       value="{{ peer.codecs|join(',') if peer else 'ulaw,alaw' }}"
+                       placeholder="ulaw,alaw,opus">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="ip_address">IPアドレス（空欄で動的登録）</label>
+            <input type="text" id="ip_address" name="ip_address"
+                   value="{{ peer.ip_address if peer and peer.ip_address else '' }}"
+                   placeholder="172.20.1.10">
+        </div>
+
+        <div class="form-section">内線番号の紐付け</div>
+        <div class="form-group">
+            <label for="extension_id">内線番号</label>
+            <select id="extension_id" name="extension_id">
+                <option value="">-- 未割当 --</option>
+                {% for ext in extensions %}
+                <option value="{{ ext.id }}"
+                        {{ "selected" if peer and peer.extension_id == ext.id }}>
+                    {{ ext.number }} - {{ ext.display_name }}
+                </option>
+                {% endfor %}
+            </select>
         </div>
 
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary btn-lg">{{ "更新" if peer else "作成" }}</button>
-            <a href="/peers" class="btn btn-secondary btn-lg">キャンセル</a>
+            <button type="submit" class="btn btn-primary btn-lg">{{ "更新" if peer else "登録" }}</button>
+            <a href="/peers" class="btn btn-sub btn-lg">キャンセル</a>
         </div>
     </form>
 </div>

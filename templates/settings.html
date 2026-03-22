@@ -1,64 +1,120 @@
 {% extends "base.html" %}
-{% block title %}設定 - Millicall PBX{% endblock %}
+{% block title %}詳細設定 - Millicall PBX{% endblock %}
 {% block content %}
-<div class="page-header">
-    <h1>設定</h1>
-    <p>APIキーとサービス認証情報</p>
-</div>
+<h1>詳細設定</h1>
+<p class="page-sub">外線接続やAPIキーの設定</p>
 
-<div class="card">
-    <form method="post" action="/settings">
-        {% for item in settings_list %}
-        <div class="field">
-            <label for="{{ item.key }}">{{ item.description or item.key }}</label>
-            <input type="{{ 'password' if 'secret' in item.key or 'api_key' in item.key else 'text' }}"
-                   id="{{ item.key }}" name="{{ item.key }}"
-                   value="{{ item.value }}"
-                   placeholder="未設定"
-                   autocomplete="off">
+<form method="post" action="/settings">
+
+    <div class="card">
+        <div class="form-section" style="margin-top:0;">外線接続（SIPトランク）</div>
+
+        <div class="form-group">
+            <label for="trunk_enabled">外線接続</label>
+            <select id="trunk_enabled" name="trunk_enabled">
+                <option value="N" {{ "selected" if s.get('trunk_enabled', 'N') == 'N' }}>無効</option>
+                <option value="Y" {{ "selected" if s.get('trunk_enabled') == 'Y' }}>有効</option>
+            </select>
         </div>
-        {% endfor %}
 
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary btn-lg">設定を保存</button>
+        <div class="form-group">
+            <label for="trunk_host">SIPサーバーアドレス</label>
+            <input type="text" id="trunk_host" name="trunk_host"
+                   value="{{ s.get('trunk_host', '') }}" placeholder="192.168.1.1">
+            <div class="form-hint">ホームゲートウェイ等のアドレス</div>
         </div>
-    </form>
-</div>
 
-<details class="section-gap">
-    <summary>APIキーの取得方法</summary>
-    <div class="table-wrap" style="margin-top: 0.75rem;">
-        <table>
-            <thead>
-                <tr>
-                    <th>サービス</th>
-                    <th>取得先</th>
-                    <th>用途</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><strong>CoeFont</strong></td>
-                    <td>CoeFont ダッシュボード</td>
-                    <td>日本語音声合成</td>
-                </tr>
-                <tr>
-                    <td><strong>Google API Key</strong></td>
-                    <td>Google AI Studio / Cloud Console</td>
-                    <td>Gemini LLM / Chirp3 TTS</td>
-                </tr>
-                <tr>
-                    <td><strong>OpenAI API Key</strong></td>
-                    <td>platform.openai.com</td>
-                    <td>Whisper STT / GPTモデル</td>
-                </tr>
-                <tr>
-                    <td><strong>Anthropic API Key</strong></td>
-                    <td>console.anthropic.com</td>
-                    <td>Claudeモデル</td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="trunk_username">SIPユーザー名</label>
+                <input type="text" id="trunk_username" name="trunk_username"
+                       value="{{ s.get('trunk_username', '') }}" placeholder="0003">
+                <div class="form-hint">HGW内線番号 等</div>
+            </div>
+            <div class="form-group">
+                <label for="trunk_password">SIPパスワード</label>
+                <input type="password" id="trunk_password" name="trunk_password"
+                       value="{{ s.get('trunk_password', '') }}" placeholder="パスワード"
+                       autocomplete="off">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="trunk_did_number">電話番号（発着信共通）</label>
+                <input type="text" id="trunk_did_number" name="trunk_did_number"
+                       value="{{ s.get('trunk_did_number', '') }}" placeholder="0312345678">
+                <div class="form-hint">発信者番号・着信番号に使用されます</div>
+            </div>
+            <div class="form-group">
+                <label for="trunk_incoming_dest">着信先内線番号</label>
+                <input type="text" id="trunk_incoming_dest" name="trunk_incoming_dest"
+                       value="{{ s.get('trunk_incoming_dest', '') }}" placeholder="空欄で全内線">
+                <div class="form-hint">空欄の場合、全内線に着信します</div>
+            </div>
+        </div>
+
+        {# trunk_caller_id を trunk_did_number と同期させる hidden field #}
+        <input type="hidden" name="trunk_caller_id" id="trunk_caller_id"
+               value="{{ s.get('trunk_caller_id', '') }}">
     </div>
-</details>
+
+    <div class="card mt">
+        <div class="form-section" style="margin-top:0;">APIキー</div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="coefont_access_key">CoeFont アクセスキー</label>
+                <input type="password" id="coefont_access_key" name="coefont_access_key"
+                       value="{{ s.get('coefont_access_key', '') }}" placeholder="未設定"
+                       autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label for="coefont_access_secret">CoeFont シークレット</label>
+                <input type="password" id="coefont_access_secret" name="coefont_access_secret"
+                       value="{{ s.get('coefont_access_secret', '') }}" placeholder="未設定"
+                       autocomplete="off">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="google_api_key">Google APIキー</label>
+            <input type="password" id="google_api_key" name="google_api_key"
+                   value="{{ s.get('google_api_key', '') }}" placeholder="未設定"
+                   autocomplete="off">
+            <div class="form-hint">Gemini LLM / Chirp3 TTS に使用</div>
+        </div>
+
+        <div class="form-group">
+            <label for="openai_api_key">OpenAI APIキー</label>
+            <input type="password" id="openai_api_key" name="openai_api_key"
+                   value="{{ s.get('openai_api_key', '') }}" placeholder="未設定"
+                   autocomplete="off">
+            <div class="form-hint">Whisper STT / GPTモデル に使用</div>
+        </div>
+
+        <div class="form-group">
+            <label for="anthropic_api_key">Anthropic APIキー</label>
+            <input type="password" id="anthropic_api_key" name="anthropic_api_key"
+                   value="{{ s.get('anthropic_api_key', '') }}" placeholder="未設定"
+                   autocomplete="off">
+            <div class="form-hint">Claude モデル に使用</div>
+        </div>
+    </div>
+
+    <div style="margin-top:1rem;">
+        <button type="submit" class="btn btn-primary btn-lg">設定を保存</button>
+    </div>
+</form>
+
+<script>
+// trunk_caller_id を trunk_did_number と同期
+document.addEventListener("DOMContentLoaded", function() {
+    const did = document.getElementById("trunk_did_number");
+    const cid = document.getElementById("trunk_caller_id");
+    did.addEventListener("input", function() { cid.value = did.value; });
+    // 初期同期
+    if (did.value && !cid.value) { cid.value = did.value; }
+});
+</script>
 {% endblock %}
