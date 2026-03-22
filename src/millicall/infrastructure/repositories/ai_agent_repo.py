@@ -40,9 +40,7 @@ class AIAgentRepository:
 
     async def get_by_extension(self, extension_number: str) -> AIAgent | None:
         result = await self.session.execute(
-            select(ai_agents_table).where(
-                ai_agents_table.c.extension_number == extension_number
-            )
+            select(ai_agents_table).where(ai_agents_table.c.extension_number == extension_number)
         )
         row = result.first()
         return self._row_to_model(row) if row else None
@@ -89,7 +87,5 @@ class AIAgentRepository:
         return agent
 
     async def delete(self, agent_id: int) -> None:
-        await self.session.execute(
-            delete(ai_agents_table).where(ai_agents_table.c.id == agent_id)
-        )
+        await self.session.execute(delete(ai_agents_table).where(ai_agents_table.c.id == agent_id))
         await self.session.commit()

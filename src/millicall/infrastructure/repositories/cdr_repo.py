@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -46,10 +44,7 @@ class CDRRepository:
 
     async def get_all(self, limit: int = 200, offset: int = 0) -> list[CDR]:
         result = await self.session.execute(
-            select(cdr_table)
-            .order_by(cdr_table.c.call_date.desc())
-            .limit(limit)
-            .offset(offset)
+            select(cdr_table).order_by(cdr_table.c.call_date.desc()).limit(limit).offset(offset)
         )
         return [
             CDR(

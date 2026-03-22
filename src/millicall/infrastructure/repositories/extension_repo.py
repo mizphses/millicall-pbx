@@ -17,8 +17,8 @@ class ExtensionRepository:
             display_name=row.display_name,
             enabled=row.enabled,
             peer_id=row.peer_id,
-            type=row.type if hasattr(row, 'type') else "phone",
-            ai_agent_id=row.ai_agent_id if hasattr(row, 'ai_agent_id') else None,
+            type=row.type if hasattr(row, "type") else "phone",
+            ai_agent_id=row.ai_agent_id if hasattr(row, "ai_agent_id") else None,
         )
 
     async def get_all(self) -> list[Extension]:

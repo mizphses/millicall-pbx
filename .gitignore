@@ -11,3 +11,9 @@ venv/
 .env
 .ruff_cache/
 .pytest_cache/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/styled-system/
+frontend/.storybook-static/

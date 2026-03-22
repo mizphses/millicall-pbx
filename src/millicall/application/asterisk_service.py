@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from millicall.infrastructure.asterisk.config_writer import AsteriskConfigWriter
 from millicall.infrastructure.asterisk.reloader import AsteriskReloader
+from millicall.infrastructure.repositories.device_repo import DeviceRepository
 from millicall.infrastructure.repositories.extension_repo import ExtensionRepository
 from millicall.infrastructure.repositories.peer_repo import PeerRepository
 from millicall.infrastructure.repositories.trunk_repo import TrunkRepository
@@ -17,6 +18,7 @@ class AsteriskService:
         self.extension_repo = ExtensionRepository(session)
         self.peer_repo = PeerRepository(session)
         self.trunk_repo = TrunkRepository(session)
+        self.device_repo = DeviceRepository(session)
         self.config_writer = AsteriskConfigWriter()
         self.reloader = AsteriskReloader()
 
@@ -35,7 +37,15 @@ class AsteriskService:
         self.reloader.reload_all()
         logger.info("Asterisk reload complete")
 
+        # SIP NOTIFY check-sync (works if phone is registered)
         targets = notify_endpoints if notify_endpoints is not None else [p.username for p in peers]
         if targets:
-            logger.info("Sending check-sync to: %s", targets)
+            logger.info("Sending SIP check-sync to: %s", targets)
             self.reloader.send_check_sync_all(targets)
+
+        # HTTP resync to device IPs (works even if phone isn't SIP-registered)
+        devices = await self.device_repo.get_all()
+        device_ips = [d.ip_address for d in devices if d.ip_address and d.provisioned]
+        if device_ips:
+            logger.info("Sending HTTP resync to devices: %s", device_ips)
+            self.reloader.send_resync_to_devices(device_ips)

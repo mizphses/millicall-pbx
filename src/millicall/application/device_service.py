@@ -1,5 +1,4 @@
 import logging
-import re
 from datetime import datetime
 from pathlib import Path
 
@@ -79,7 +78,9 @@ class DeviceService:
 
         return await self.device_repo.assign(device_id, peer.id, ext.id)
 
-    async def scan_dhcp_leases(self, leases_path: str = "/var/lib/misc/dnsmasq.leases") -> list[Device]:
+    async def scan_dhcp_leases(
+        self, leases_path: str = "/var/lib/misc/dnsmasq.leases"
+    ) -> list[Device]:
         """Read dnsmasq leases file and upsert devices."""
         path = Path(leases_path)
         if not path.exists():

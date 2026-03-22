@@ -17,6 +17,8 @@ dependencies = [
     "python-multipart>=0.0.9",
     "httpx>=0.27",
     "websockets>=13.0",
+    "python-jose[cryptography]>=3.3",
+    "bcrypt>=4.0",
 ]
 
 [project.optional-dependencies]
@@ -25,14 +27,20 @@ dev = [
     "pytest-asyncio>=0.24",
     "httpx>=0.27",
     "ruff>=0.8",
+    "ty>=0.0.1a7",
 ]
 
 [tool.ruff]
 target-version = "py312"
 line-length = 100
+src = ["src"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W"]
+select = ["E", "F", "I", "N", "W", "UP", "B", "SIM", "TCH"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["millicall"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/millicall"]

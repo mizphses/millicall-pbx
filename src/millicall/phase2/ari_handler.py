@@ -9,18 +9,13 @@ Flow:
 """
 
 import asyncio
-import io
 import json
 import logging
 import os
-import tempfile
-import uuid
-import wave
 
 import httpx
 import websockets
 
-from millicall.config import settings
 from millicall.phase2 import llm_chat, stt, tts_coefont, tts_google
 
 logger = logging.getLogger(__name__)
@@ -28,7 +23,8 @@ logger = logging.getLogger(__name__)
 ARI_URL = "http://localhost:8088"
 ARI_USER = "millicall"
 ARI_PASSWORD = "millicall"
-STASIS_APP = "millicall-ai"
+STASIS_APP_AI = "millicall-ai"
+STASIS_APP_WORKFLOW = "millicall-workflow"
 
 # Per-call conversation contexts
 _conversations: dict[str, llm_chat.ConversationContext] = {}
@@ -38,13 +34,9 @@ async def _synthesize_tts(text: str, agent) -> bytes:
     """Route TTS to the configured provider."""
     if agent.tts_provider == "google":
         api_key = await _get_api_key("google")
-        return await tts_google.synthesize(
-            text, api_key, voice_name=agent.google_tts_voice
-        )
+        return await tts_google.synthesize(text, api_key, voice_name=agent.google_tts_voice)
     else:
-        return await tts_coefont.synthesize_for_asterisk(
-            text, agent.coefont_voice_id
-        )
+        return await tts_coefont.synthesize_for_asterisk(text, agent.coefont_voice_id)
 
 
 async def _get_api_key(provider: str) -> str:
@@ -96,24 +88,28 @@ async def _save_wav_to_asterisk(audio_wav: bytes, filename: str) -> str:
 async def _save_call_message(log_id: int, role: str, content: str, turn: int) -> None:
     """Persist a single call message to the database."""
     from datetime import datetime
+
     from millicall.domain.models import CallMessage
     from millicall.infrastructure.database import async_session
     from millicall.infrastructure.repositories.call_log_repo import CallLogRepository
 
     async with async_session() as session:
         repo = CallLogRepository(session)
-        await repo.add_message(CallMessage(
-            call_log_id=log_id,
-            role=role,
-            content=content,
-            turn=turn,
-            created_at=datetime.now(),
-        ))
+        await repo.add_message(
+            CallMessage(
+                call_log_id=log_id,
+                role=role,
+                content=content,
+                turn=turn,
+                created_at=datetime.now(),
+            )
+        )
 
 
 async def _handle_call(channel_id: str, extension: str) -> None:
     """Handle an incoming AI agent call."""
     from datetime import datetime
+
     from millicall.domain.models import CallLog
     from millicall.infrastructure.database import async_session
     from millicall.infrastructure.repositories.ai_agent_repo import AIAgentRepository
@@ -126,8 +122,7 @@ async def _handle_call(channel_id: str, extension: str) -> None:
 
     if not agent or not agent.enabled:
         logger.warning("No active AI agent for extension %s", extension)
-        await _ari_request("DELETE", f"/channels/{channel_id}",
-                          params={"reason_code": "404"})
+        await _ari_request("DELETE", f"/channels/{channel_id}", params={"reason_code": "404"})
         return
 
     safe_id = _sanitize_id(channel_id)
@@ -146,13 +141,15 @@ async def _handle_call(channel_id: str, extension: str) -> None:
     try:
         async with async_session() as session:
             log_repo = CallLogRepository(session)
-            call_log_id = await log_repo.create_log(CallLog(
-                agent_id=agent.id,
-                agent_name=agent.name,
-                extension_number=extension,
-                caller_channel=channel_id,
-                started_at=datetime.now(),
-            ))
+            call_log_id = await log_repo.create_log(
+                CallLog(
+                    agent_id=agent.id,
+                    agent_name=agent.name,
+                    extension_number=extension,
+                    caller_channel=channel_id,
+                    started_at=datetime.now(),
+                )
+            )
     except Exception as e:
         logger.error("Failed to create call log: %s", e)
 
@@ -163,11 +160,10 @@ async def _handle_call(channel_id: str, extension: str) -> None:
 
         # Play greeting
         greeting_audio = await _synthesize_tts(agent.greeting_text, agent)
-        sound_name = await _save_wav_to_asterisk(
-            greeting_audio, f"greeting_{safe_id}.wav"
+        sound_name = await _save_wav_to_asterisk(greeting_audio, f"greeting_{safe_id}.wav")
+        await _ari_request(
+            "POST", f"/channels/{channel_id}/play", params={"media": f"sound:{sound_name}"}
         )
-        await _ari_request("POST", f"/channels/{channel_id}/play",
-                          params={"media": f"sound:{sound_name}"})
         # Wait for greeting to finish
         await asyncio.sleep(len(greeting_audio) / (8000 * 2) + 0.5)
 
@@ -285,8 +281,9 @@ async def _handle_call(channel_id: str, extension: str) -> None:
                 logger.info("AI ending call (natural conclusion)")
                 await asyncio.sleep(0.5)
                 try:
-                    await _ari_request("DELETE", f"/channels/{channel_id}",
-                                      params={"reason_code": "16"})
+                    await _ari_request(
+                        "DELETE", f"/channels/{channel_id}", params={"reason_code": "16"}
+                    )
                 except Exception:
                     pass
                 break
@@ -311,6 +308,7 @@ async def _handle_call(channel_id: str, extension: str) -> None:
                 logger.error("Failed to finalize call log: %s", e)
         # Clean up temp audio files
         import glob
+
         for f in glob.glob(f"/usr/share/asterisk/sounds/en/millicall/*{safe_id}*"):
             try:
                 os.remove(f)
@@ -319,12 +317,56 @@ async def _handle_call(channel_id: str, extension: str) -> None:
         logger.info("AI call ended: channel=%s", channel_id)
 
 
+async def _handle_workflow_call(channel_id: str, extension: str) -> None:
+    """Handle an incoming workflow call."""
+    from millicall.infrastructure.database import async_session
+    from millicall.infrastructure.repositories.workflow_repo import WorkflowRepository
+    from millicall.phase2.workflow_executor import WorkflowExecutor, channel_gone
+
+    # Look up the workflow for this extension number
+    async with async_session() as session:
+        repo = WorkflowRepository(session)
+        workflow = await repo.get_by_number(extension)
+
+    if not workflow:
+        logger.warning("No enabled workflow for extension %s", extension)
+        await _ari_request("DELETE", f"/channels/{channel_id}", params={"reason_code": "404"})
+        return
+
+    logger.info(
+        "Workflow call started: ext=%s workflow=%s (type=%s) channel=%s",
+        extension,
+        workflow.name,
+        workflow.workflow_type,
+        channel_id,
+    )
+
+    try:
+        # Answer the call
+        await _ari_request("POST", f"/channels/{channel_id}/answer")
+        await asyncio.sleep(0.5)
+
+        # Execute the workflow
+        executor = WorkflowExecutor(channel_id, workflow)
+        await executor.execute()
+    except Exception as exc:
+        logger.error("Workflow call error on channel %s: %s", channel_id, exc, exc_info=True)
+        try:
+            await _ari_request("DELETE", f"/channels/{channel_id}", params={"reason_code": "16"})
+        except Exception:
+            pass
+    finally:
+        logger.info("Workflow call ended: channel=%s", channel_id)
+
+
 async def run_ari_listener() -> None:
-    """Connect to ARI WebSocket and handle Stasis events."""
+    """Connect to ARI WebSocket and handle Stasis events for both AI and workflow apps."""
+    from millicall.phase2.workflow_executor import channel_gone, dtmf_queues
+
     ws_url = (
         f"ws://localhost:8088/ari/events"
         f"?api_key={ARI_USER}:{ARI_PASSWORD}"
-        f"&app={STASIS_APP}"
+        f"&app={STASIS_APP_AI},{STASIS_APP_WORKFLOW}"
         f"&subscribeAll=true"
     )
 
@@ -332,7 +374,7 @@ async def run_ari_listener() -> None:
         try:
             logger.info("Connecting to ARI WebSocket...")
             async with websockets.connect(ws_url) as ws:
-                logger.info("ARI WebSocket connected")
+                logger.info("ARI WebSocket connected (apps: %s, %s)", STASIS_APP_AI, STASIS_APP_WORKFLOW)
                 async for message in ws:
                     event = json.loads(message)
                     event_type = event.get("type")
@@ -340,22 +382,43 @@ async def run_ari_listener() -> None:
                     if event_type == "StasisStart":
                         channel = event["channel"]
                         channel_id = channel["id"]
-                        # Extract dialed extension from channel dialplan
+                        app_name = event.get("application", "")
                         exten = channel.get("dialplan", {}).get("exten", "")
-                        logger.info("StasisStart: channel=%s exten=%s", channel_id, exten)
-                        asyncio.create_task(_handle_call(channel_id, exten))
+                        logger.info(
+                            "StasisStart: channel=%s exten=%s app=%s",
+                            channel_id,
+                            exten,
+                            app_name,
+                        )
+
+                        if app_name == STASIS_APP_WORKFLOW:
+                            asyncio.create_task(_handle_workflow_call(channel_id, exten))
+                        else:
+                            # Default to AI handler (millicall-ai)
+                            asyncio.create_task(_handle_call(channel_id, exten))
 
                     elif event_type == "StasisEnd":
                         channel_id = event["channel"]["id"]
                         logger.info("StasisEnd: channel=%s", channel_id)
+                        # Signal workflow executors that the channel is gone
+                        channel_gone[channel_id] = True
 
                     elif event_type == "ChannelHangupRequest":
                         channel_id = event["channel"]["id"]
                         logger.info("Hangup request: channel=%s", channel_id)
+                        channel_gone[channel_id] = True
                         try:
                             await _ari_request("DELETE", f"/channels/{channel_id}")
                         except Exception:
                             pass
+
+                    elif event_type == "ChannelDtmfReceived":
+                        channel_id = event["channel"]["id"]
+                        digit = event.get("digit", "")
+                        logger.info("DTMF received: channel=%s digit=%s", channel_id, digit)
+                        queue = dtmf_queues.get(channel_id)
+                        if queue is not None:
+                            await queue.put(digit)
 
         except (websockets.exceptions.ConnectionClosed, ConnectionRefusedError, OSError) as e:
             logger.warning("ARI WebSocket disconnected: %s, reconnecting in 5s...", e)

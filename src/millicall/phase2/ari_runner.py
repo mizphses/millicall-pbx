@@ -8,6 +8,7 @@ logging.basicConfig(level=logging.INFO)
 
 def main():
     from millicall.phase2.ari_handler import run_ari_listener
+
     asyncio.run(run_ari_listener())
 
 

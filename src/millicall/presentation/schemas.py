@@ -1,4 +1,29 @@
+from datetime import datetime
+from typing import Any
+
 from pydantic import BaseModel, Field
+
+# --- Auth ---
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    display_name: str
+    is_admin: bool
+
+
+# --- Extensions ---
 
 
 class ExtensionCreate(BaseModel):
@@ -6,6 +31,8 @@ class ExtensionCreate(BaseModel):
     display_name: str = Field(..., min_length=1, max_length=100)
     enabled: bool = True
     peer_id: int | None = None
+    type: str = "phone"
+    ai_agent_id: int | None = None
 
 
 class ExtensionUpdate(BaseModel):
@@ -13,6 +40,8 @@ class ExtensionUpdate(BaseModel):
     display_name: str = Field(..., min_length=1, max_length=100)
     enabled: bool = True
     peer_id: int | None = None
+    type: str = "phone"
+    ai_agent_id: int | None = None
 
 
 class ExtensionResponse(BaseModel):
@@ -21,6 +50,11 @@ class ExtensionResponse(BaseModel):
     display_name: str
     enabled: bool
     peer_id: int | None
+    type: str = "phone"
+    ai_agent_id: int | None = None
+
+
+# --- Peers ---
 
 
 class PeerCreate(BaseModel):
@@ -49,3 +83,227 @@ class PeerResponse(BaseModel):
     codecs: list[str]
     ip_address: str | None
     extension_id: int | None
+
+
+# --- Trunks ---
+
+
+class TrunkCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=50)
+    display_name: str = Field(..., min_length=1, max_length=100)
+    host: str = Field(..., min_length=1, max_length=100)
+    username: str = Field(..., min_length=1, max_length=50)
+    password: str = Field(..., min_length=1, max_length=100)
+    did_number: str = ""
+    caller_id: str = ""
+    incoming_dest: str = ""
+    outbound_prefixes: str = ""
+    enabled: bool = True
+
+
+class TrunkUpdate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=50)
+    display_name: str = Field(..., min_length=1, max_length=100)
+    host: str = Field(..., min_length=1, max_length=100)
+    username: str = Field(..., min_length=1, max_length=50)
+    password: str = Field(..., min_length=1, max_length=100)
+    did_number: str = ""
+    caller_id: str = ""
+    incoming_dest: str = ""
+    outbound_prefixes: str = ""
+    enabled: bool = True
+
+
+class TrunkResponse(BaseModel):
+    id: int
+    name: str
+    display_name: str
+    host: str
+    username: str
+    password: str
+    did_number: str
+    caller_id: str
+    incoming_dest: str
+    outbound_prefixes: str
+    enabled: bool
+
+
+# --- AI Agents ---
+
+
+class AgentCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    extension_number: str = Field(..., min_length=1, max_length=20)
+    system_prompt: str = Field(..., min_length=1)
+    greeting_text: str = "お電話ありがとうございます。ご用件をどうぞ。"
+    coefont_voice_id: str = ""
+    tts_provider: str = "coefont"
+    google_tts_voice: str = "ja-JP-Chirp3-HD-Aoede"
+    llm_provider: str = "google"
+    llm_model: str = "gemini-2.0-flash-lite"
+    max_history: int = 10
+    enabled: bool = True
+
+
+class AgentUpdate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    extension_number: str = Field(..., min_length=1, max_length=20)
+    system_prompt: str = Field(..., min_length=1)
+    greeting_text: str = "お電話ありがとうございます。ご用件をどうぞ。"
+    coefont_voice_id: str = ""
+    tts_provider: str = "coefont"
+    google_tts_voice: str = "ja-JP-Chirp3-HD-Aoede"
+    llm_provider: str = "google"
+    llm_model: str = "gemini-2.0-flash-lite"
+    max_history: int = 10
+    enabled: bool = True
+
+
+class AgentResponse(BaseModel):
+    id: int
+    name: str
+    extension_number: str
+    system_prompt: str
+    greeting_text: str
+    coefont_voice_id: str
+    tts_provider: str
+    google_tts_voice: str
+    llm_provider: str
+    llm_model: str
+    max_history: int
+    enabled: bool
+
+
+# --- Settings ---
+
+
+class SettingItem(BaseModel):
+    key: str
+    value: str
+    description: str | None = None
+
+
+# --- CDR ---
+
+
+class CDRResponse(BaseModel):
+    id: int
+    uniqueid: str
+    call_date: datetime
+    src: str
+    dst: str
+    dcontext: str
+    channel: str
+    dst_channel: str
+    duration: int
+    billsec: int
+    disposition: str
+
+
+# --- Call History ---
+
+
+class CallLogResponse(BaseModel):
+    id: int
+    agent_id: int
+    agent_name: str
+    extension_number: str
+    caller_channel: str
+    started_at: datetime | None
+    ended_at: datetime | None
+    turn_count: int
+
+
+class CallMessageResponse(BaseModel):
+    id: int
+    call_log_id: int
+    role: str
+    content: str
+    turn: int
+    created_at: datetime | None
+
+
+class CallLogDetailResponse(BaseModel):
+    id: int
+    agent_id: int
+    agent_name: str
+    extension_number: str
+    caller_channel: str
+    started_at: datetime | None
+    ended_at: datetime | None
+    turn_count: int
+    messages: list[CallMessageResponse]
+
+
+# --- Workflows ---
+
+
+class NodePosition(BaseModel):
+    x: float
+    y: float
+
+
+class WorkflowNode(BaseModel):
+    id: str
+    type: str
+    position: NodePosition
+    label: str = ""
+    config: dict[str, Any] = {}
+    data: dict[str, Any] = {}
+
+
+class WorkflowEdge(BaseModel):
+    id: str
+    source: str
+    target: str
+    sourceHandle: str | None = None
+    targetHandle: str | None = None
+    label: str | None = None
+
+
+class WorkflowDefinition(BaseModel):
+    nodes: list[WorkflowNode] = []
+    edges: list[WorkflowEdge] = []
+
+
+class WorkflowCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    number: str = Field(..., min_length=1, max_length=20, pattern=r"^\d+$")
+    description: str = ""
+    workflow_type: str = Field(..., pattern=r"^(ivr|ai_workflow)$")
+    definition: WorkflowDefinition = WorkflowDefinition()
+    enabled: bool = True
+
+
+class WorkflowUpdate(BaseModel):
+    name: str | None = None
+    number: str | None = None
+    description: str | None = None
+    workflow_type: str | None = None
+    definition: WorkflowDefinition | None = None
+    enabled: bool | None = None
+
+
+class WorkflowResponse(BaseModel):
+    id: int
+    name: str
+    number: str
+    description: str
+    extension_id: int | None
+    workflow_type: str
+    definition: WorkflowDefinition
+    enabled: bool
+    created_at: datetime | None
+    updated_at: datetime | None
+
+
+class WorkflowListResponse(BaseModel):
+    id: int
+    name: str
+    number: str
+    description: str
+    workflow_type: str
+    enabled: bool
+    node_count: int
+    created_at: datetime | None
+    updated_at: datetime | None

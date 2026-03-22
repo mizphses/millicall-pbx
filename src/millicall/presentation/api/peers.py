@@ -4,9 +4,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from millicall.application.asterisk_service import AsteriskService
 from millicall.application.peer_service import PeerService
 from millicall.infrastructure.database import get_session
+from millicall.presentation.auth import get_current_user
 from millicall.presentation.schemas import PeerCreate, PeerResponse, PeerUpdate
 
-router = APIRouter(prefix="/api/peers", tags=["peers"])
+router = APIRouter(
+    prefix="/api/peers",
+    tags=["peers"],
+    dependencies=[Depends(get_current_user)],
+)
 
 
 @router.get("", response_model=list[PeerResponse])
@@ -15,9 +20,13 @@ async def list_peers(session: AsyncSession = Depends(get_session)):
     peers = await service.list_peers()
     return [
         PeerResponse(
-            id=p.id, username=p.username, password=p.password,
-            transport=p.transport, codecs=p.codecs,
-            ip_address=p.ip_address, extension_id=p.extension_id,
+            id=p.id,
+            username=p.username,
+            password=p.password,
+            transport=p.transport,
+            codecs=p.codecs,
+            ip_address=p.ip_address,
+            extension_id=p.extension_id,
         )
         for p in peers
     ]
@@ -28,9 +37,13 @@ async def get_peer(peer_id: int, session: AsyncSession = Depends(get_session)):
     service = PeerService(session)
     p = await service.get_peer(peer_id)
     return PeerResponse(
-        id=p.id, username=p.username, password=p.password,
-        transport=p.transport, codecs=p.codecs,
-        ip_address=p.ip_address, extension_id=p.extension_id,
+        id=p.id,
+        username=p.username,
+        password=p.password,
+        transport=p.transport,
+        codecs=p.codecs,
+        ip_address=p.ip_address,
+        extension_id=p.extension_id,
     )
 
 
@@ -51,9 +64,13 @@ async def create_peer(
     asterisk = AsteriskService(session)
     await asterisk.apply_config()
     return PeerResponse(
-        id=p.id, username=p.username, password=p.password,
-        transport=p.transport, codecs=p.codecs,
-        ip_address=p.ip_address, extension_id=p.extension_id,
+        id=p.id,
+        username=p.username,
+        password=p.password,
+        transport=p.transport,
+        codecs=p.codecs,
+        ip_address=p.ip_address,
+        extension_id=p.extension_id,
     )
 
 
@@ -76,9 +93,13 @@ async def update_peer(
     asterisk = AsteriskService(session)
     await asterisk.apply_config()
     return PeerResponse(
-        id=p.id, username=p.username, password=p.password,
-        transport=p.transport, codecs=p.codecs,
-        ip_address=p.ip_address, extension_id=p.extension_id,
+        id=p.id,
+        username=p.username,
+        password=p.password,
+        transport=p.transport,
+        codecs=p.codecs,
+        ip_address=p.ip_address,
+        extension_id=p.extension_id,
     )
 
 

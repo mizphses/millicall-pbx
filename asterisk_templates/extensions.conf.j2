@@ -23,6 +23,11 @@ exten => {{ item.ext.number }},1,NoOp(AI Agent: {{ item.ext.display_name }})
  same => n,Answer()
  same => n,Stasis(millicall-ai)
  same => n,Hangup()
+{% elif item.ext.enabled and item.ext.type in ('ivr', 'ai_workflow') %}
+exten => {{ item.ext.number }},1,NoOp(Workflow: {{ item.ext.display_name }})
+ same => n,Answer()
+ same => n,Stasis(millicall-workflow)
+ same => n,Hangup()
 {% endif %}
 {% endfor %}
 

@@ -4,9 +4,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from millicall.application.asterisk_service import AsteriskService
 from millicall.application.extension_service import ExtensionService
 from millicall.infrastructure.database import get_session
+from millicall.presentation.auth import get_current_user
 from millicall.presentation.schemas import ExtensionCreate, ExtensionResponse, ExtensionUpdate
 
-router = APIRouter(prefix="/api/extensions", tags=["extensions"])
+router = APIRouter(
+    prefix="/api/extensions",
+    tags=["extensions"],
+    dependencies=[Depends(get_current_user)],
+)
 
 
 @router.get("", response_model=list[ExtensionResponse])
@@ -15,8 +20,13 @@ async def list_extensions(session: AsyncSession = Depends(get_session)):
     extensions = await service.list_extensions()
     return [
         ExtensionResponse(
-            id=e.id, number=e.number, display_name=e.display_name,
-            enabled=e.enabled, peer_id=e.peer_id,
+            id=e.id,
+            number=e.number,
+            display_name=e.display_name,
+            enabled=e.enabled,
+            peer_id=e.peer_id,
+            type=e.type,
+            ai_agent_id=e.ai_agent_id,
         )
         for e in extensions
     ]
@@ -27,8 +37,13 @@ async def get_extension(extension_id: int, session: AsyncSession = Depends(get_s
     service = ExtensionService(session)
     e = await service.get_extension(extension_id)
     return ExtensionResponse(
-        id=e.id, number=e.number, display_name=e.display_name,
-        enabled=e.enabled, peer_id=e.peer_id,
+        id=e.id,
+        number=e.number,
+        display_name=e.display_name,
+        enabled=e.enabled,
+        peer_id=e.peer_id,
+        type=e.type,
+        ai_agent_id=e.ai_agent_id,
     )
 
 
@@ -47,8 +62,13 @@ async def create_extension(
     asterisk = AsteriskService(session)
     await asterisk.apply_config()
     return ExtensionResponse(
-        id=e.id, number=e.number, display_name=e.display_name,
-        enabled=e.enabled, peer_id=e.peer_id,
+        id=e.id,
+        number=e.number,
+        display_name=e.display_name,
+        enabled=e.enabled,
+        peer_id=e.peer_id,
+        type=e.type,
+        ai_agent_id=e.ai_agent_id,
     )
 
 
@@ -69,8 +89,13 @@ async def update_extension(
     asterisk = AsteriskService(session)
     await asterisk.apply_config()
     return ExtensionResponse(
-        id=e.id, number=e.number, display_name=e.display_name,
-        enabled=e.enabled, peer_id=e.peer_id,
+        id=e.id,
+        number=e.number,
+        display_name=e.display_name,
+        enabled=e.enabled,
+        peer_id=e.peer_id,
+        type=e.type,
+        ai_agent_id=e.ai_agent_id,
     )
 
 

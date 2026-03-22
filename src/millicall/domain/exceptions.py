@@ -35,3 +35,8 @@ class DuplicateTrunkError(MillicallError):
 class AsteriskReloadError(MillicallError):
     def __init__(self, detail: str):
         super().__init__(f"Asterisk reload failed: {detail}")
+
+
+class WorkflowNotFoundError(MillicallError):
+    def __init__(self, workflow_id: int):
+        super().__init__(f"Workflow {workflow_id} not found")

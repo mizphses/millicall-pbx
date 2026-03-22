@@ -23,7 +23,7 @@ class ConversationContext:
         self.messages.append(ChatMessage(role=role, content=content))
         # Trim to max history
         if len(self.messages) > self.max_history:
-            self.messages = self.messages[-self.max_history:]
+            self.messages = self.messages[-self.max_history :]
 
 
 async def chat_google(
@@ -39,14 +39,18 @@ async def chat_google(
     # Build contents array
     contents = []
     for msg in context.messages:
-        contents.append({
-            "role": "user" if msg.role == "user" else "model",
-            "parts": [{"text": msg.content}],
-        })
-    contents.append({
-        "role": "user",
-        "parts": [{"text": user_text}],
-    })
+        contents.append(
+            {
+                "role": "user" if msg.role == "user" else "model",
+                "parts": [{"text": msg.content}],
+            }
+        )
+    contents.append(
+        {
+            "role": "user",
+            "parts": [{"text": user_text}],
+        }
+    )
 
     payload = {
         "contents": contents,

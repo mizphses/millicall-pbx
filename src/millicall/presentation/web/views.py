@@ -5,10 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from millicall.application.ai_agent_service import AIAgentService
 from millicall.application.asterisk_service import AsteriskService
-from millicall.application.settings_service import SettingsService
 from millicall.application.device_service import DeviceService
 from millicall.application.extension_service import ExtensionService
 from millicall.application.peer_service import PeerService
+from millicall.application.settings_service import SettingsService
 from millicall.application.trunk_service import TrunkService
 from millicall.infrastructure.database import get_session
 
@@ -31,17 +31,21 @@ async def dashboard(request: Request, session: AsyncSession = Depends(get_sessio
     ext_map = {e.id: e for e in extensions}
     peer_map = {p.id: p for p in peers}
 
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request,
-        "extensions": extensions,
-        "peers": peers,
-        "devices": devices,
-        "ext_map": ext_map,
-        "peer_map": peer_map,
-    })
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            "request": request,
+            "extensions": extensions,
+            "peers": peers,
+            "devices": devices,
+            "ext_map": ext_map,
+            "peer_map": peer_map,
+        },
+    )
 
 
 # --- Extension views ---
+
 
 @router.get("/extensions", response_class=HTMLResponse)
 async def extensions_list(request: Request, session: AsyncSession = Depends(get_session)):
@@ -58,26 +62,32 @@ async def extensions_list(request: Request, session: AsyncSession = Depends(get_
             agent = await agent_service.get_agent(ext.ai_agent_id)
             if agent:
                 agent_map[ext.ai_agent_id] = agent
-    return templates.TemplateResponse("extensions/list.html", {
-        "request": request,
-        "extensions": extensions,
-        "peers": peers,
-        "peer_map": peer_map,
-        "agent_map": agent_map,
-    })
+    return templates.TemplateResponse(
+        "extensions/list.html",
+        {
+            "request": request,
+            "extensions": extensions,
+            "peers": peers,
+            "peer_map": peer_map,
+            "agent_map": agent_map,
+        },
+    )
 
 
 @router.get("/extensions/new", response_class=HTMLResponse)
 async def extension_new_form(request: Request, session: AsyncSession = Depends(get_session)):
     peer_service = PeerService(session)
     peers = await peer_service.list_peers()
-    return templates.TemplateResponse("extensions/form.html", {
-        "request": request,
-        "extension": None,
-        "agent": None,
-        "peers": peers,
-        "default_prompt": DEFAULT_AGENT_PROMPT,
-    })
+    return templates.TemplateResponse(
+        "extensions/form.html",
+        {
+            "request": request,
+            "extension": None,
+            "agent": None,
+            "peers": peers,
+            "default_prompt": DEFAULT_AGENT_PROMPT,
+        },
+    )
 
 
 @router.get("/extensions/{extension_id}/edit", response_class=HTMLResponse)
@@ -94,13 +104,16 @@ async def extension_edit_form(
     if extension.type == "ai_agent" and extension.ai_agent_id:
         agent_service = AIAgentService(session)
         agent = await agent_service.get_agent(extension.ai_agent_id)
-    return templates.TemplateResponse("extensions/form.html", {
-        "request": request,
-        "extension": extension,
-        "agent": agent,
-        "peers": peers,
-        "default_prompt": DEFAULT_AGENT_PROMPT,
-    })
+    return templates.TemplateResponse(
+        "extensions/form.html",
+        {
+            "request": request,
+            "extension": extension,
+            "agent": agent,
+            "peers": peers,
+            "default_prompt": DEFAULT_AGENT_PROMPT,
+        },
+    )
 
 
 @router.post("/extensions", response_class=HTMLResponse)
@@ -214,22 +227,29 @@ async def extension_delete(
 
 # --- Peer views ---
 
+
 @router.get("/peers", response_class=HTMLResponse)
 async def peers_list(request: Request, session: AsyncSession = Depends(get_session)):
     peer_service = PeerService(session)
     peers = await peer_service.list_peers()
-    return templates.TemplateResponse("peers/list.html", {
-        "request": request,
-        "peers": peers,
-    })
+    return templates.TemplateResponse(
+        "peers/list.html",
+        {
+            "request": request,
+            "peers": peers,
+        },
+    )
 
 
 @router.get("/peers/new", response_class=HTMLResponse)
 async def peer_new_form(request: Request):
-    return templates.TemplateResponse("peers/form.html", {
-        "request": request,
-        "peer": None,
-    })
+    return templates.TemplateResponse(
+        "peers/form.html",
+        {
+            "request": request,
+            "peer": None,
+        },
+    )
 
 
 @router.get("/peers/{peer_id}/edit", response_class=HTMLResponse)
@@ -240,10 +260,13 @@ async def peer_edit_form(
 ):
     peer_service = PeerService(session)
     peer = await peer_service.get_peer(peer_id)
-    return templates.TemplateResponse("peers/form.html", {
-        "request": request,
-        "peer": peer,
-    })
+    return templates.TemplateResponse(
+        "peers/form.html",
+        {
+            "request": request,
+            "peer": peer,
+        },
+    )
 
 
 @router.post("/peers", response_class=HTMLResponse)
@@ -308,6 +331,7 @@ async def peer_delete(
 
 # --- Device views ---
 
+
 @router.get("/devices", response_class=HTMLResponse)
 async def devices_list(request: Request, session: AsyncSession = Depends(get_session)):
     device_service = DeviceService(session)
@@ -319,12 +343,15 @@ async def devices_list(request: Request, session: AsyncSession = Depends(get_ses
     peers = await peer_service.list_peers()
     ext_map = {e.id: e for e in extensions}
     peer_map = {p.id: p for p in peers}
-    return templates.TemplateResponse("devices/list.html", {
-        "request": request,
-        "devices": devices,
-        "ext_map": ext_map,
-        "peer_map": peer_map,
-    })
+    return templates.TemplateResponse(
+        "devices/list.html",
+        {
+            "request": request,
+            "devices": devices,
+            "ext_map": ext_map,
+            "peer_map": peer_map,
+        },
+    )
 
 
 @router.post("/devices/scan", response_class=HTMLResponse)
@@ -346,12 +373,15 @@ async def device_provision_form(
     device = await device_service.get_device(device_id)
     extensions = await ext_service.list_extensions()
     peers = await peer_service.list_peers()
-    return templates.TemplateResponse("devices/provision.html", {
-        "request": request,
-        "device": device,
-        "extensions": extensions,
-        "peers": peers,
-    })
+    return templates.TemplateResponse(
+        "devices/provision.html",
+        {
+            "request": request,
+            "device": device,
+            "extensions": extensions,
+            "peers": peers,
+        },
+    )
 
 
 @router.post("/devices/{device_id}/auto-provision", response_class=HTMLResponse)
@@ -410,19 +440,25 @@ DEFAULT_AGENT_PROMPT = """あなたは電話応対AIアシスタントです。
 async def agents_list(request: Request, session: AsyncSession = Depends(get_session)):
     agent_service = AIAgentService(session)
     agents = await agent_service.list_agents()
-    return templates.TemplateResponse("agents/list.html", {
-        "request": request,
-        "agents": agents,
-    })
+    return templates.TemplateResponse(
+        "agents/list.html",
+        {
+            "request": request,
+            "agents": agents,
+        },
+    )
 
 
 @router.get("/agents/new", response_class=HTMLResponse)
 async def agent_new_form(request: Request):
-    return templates.TemplateResponse("agents/form.html", {
-        "request": request,
-        "agent": None,
-        "default_prompt": DEFAULT_AGENT_PROMPT,
-    })
+    return templates.TemplateResponse(
+        "agents/form.html",
+        {
+            "request": request,
+            "agent": None,
+            "default_prompt": DEFAULT_AGENT_PROMPT,
+        },
+    )
 
 
 @router.get("/agents/{agent_id}/edit", response_class=HTMLResponse)
@@ -433,11 +469,14 @@ async def agent_edit_form(
 ):
     agent_service = AIAgentService(session)
     agent = await agent_service.get_agent(agent_id)
-    return templates.TemplateResponse("agents/form.html", {
-        "request": request,
-        "agent": agent,
-        "default_prompt": DEFAULT_AGENT_PROMPT,
-    })
+    return templates.TemplateResponse(
+        "agents/form.html",
+        {
+            "request": request,
+            "agent": agent,
+            "default_prompt": DEFAULT_AGENT_PROMPT,
+        },
+    )
 
 
 @router.post("/agents", response_class=HTMLResponse)
@@ -525,22 +564,29 @@ async def agent_delete(
 
 # --- Trunk views ---
 
+
 @router.get("/trunks", response_class=HTMLResponse)
 async def trunks_list(request: Request, session: AsyncSession = Depends(get_session)):
     trunk_service = TrunkService(session)
     trunks = await trunk_service.list_trunks()
-    return templates.TemplateResponse("trunks/list.html", {
-        "request": request,
-        "trunks": trunks,
-    })
+    return templates.TemplateResponse(
+        "trunks/list.html",
+        {
+            "request": request,
+            "trunks": trunks,
+        },
+    )
 
 
 @router.get("/trunks/new", response_class=HTMLResponse)
 async def trunk_new_form(request: Request):
-    return templates.TemplateResponse("trunks/form.html", {
-        "request": request,
-        "trunk": None,
-    })
+    return templates.TemplateResponse(
+        "trunks/form.html",
+        {
+            "request": request,
+            "trunk": None,
+        },
+    )
 
 
 @router.get("/trunks/{trunk_id}/edit", response_class=HTMLResponse)
@@ -551,10 +597,13 @@ async def trunk_edit_form(
 ):
     trunk_service = TrunkService(session)
     trunk = await trunk_service.get_trunk(trunk_id)
-    return templates.TemplateResponse("trunks/form.html", {
-        "request": request,
-        "trunk": trunk,
-    })
+    return templates.TemplateResponse(
+        "trunks/form.html",
+        {
+            "request": request,
+            "trunk": trunk,
+        },
+    )
 
 
 @router.post("/trunks", response_class=HTMLResponse)
@@ -623,19 +672,24 @@ async def trunk_delete(
 
 # --- Settings views ---
 
+
 @router.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request, session: AsyncSession = Depends(get_session)):
     from millicall.infrastructure.repositories.settings_repo import SettingsRepository
+
     repo = SettingsRepository(session)
     await repo.ensure_defaults()
     settings_svc = SettingsService(session)
     settings_list = await settings_svc.get_all()
     settings_dict = {s["key"]: s["value"] for s in settings_list}
-    return templates.TemplateResponse("settings.html", {
-        "request": request,
-        "settings_list": settings_list,
-        "s": settings_dict,
-    })
+    return templates.TemplateResponse(
+        "settings.html",
+        {
+            "request": request,
+            "settings_list": settings_list,
+            "s": settings_dict,
+        },
+    )
 
 
 @router.post("/settings", response_class=HTMLResponse)
@@ -655,15 +709,20 @@ async def settings_save(
 
 # --- Call History views ---
 
+
 @router.get("/call-history", response_class=HTMLResponse)
 async def call_history_list(request: Request, session: AsyncSession = Depends(get_session)):
     from millicall.infrastructure.repositories.call_log_repo import CallLogRepository
+
     repo = CallLogRepository(session)
     logs = await repo.get_all_logs()
-    return templates.TemplateResponse("call_history/list.html", {
-        "request": request,
-        "logs": logs,
-    })
+    return templates.TemplateResponse(
+        "call_history/list.html",
+        {
+            "request": request,
+            "logs": logs,
+        },
+    )
 
 
 @router.get("/call-history/{log_id}", response_class=HTMLResponse)
@@ -673,14 +732,18 @@ async def call_history_detail(
     session: AsyncSession = Depends(get_session),
 ):
     from millicall.infrastructure.repositories.call_log_repo import CallLogRepository
+
     repo = CallLogRepository(session)
     log = await repo.get_log(log_id)
     messages = await repo.get_messages(log_id) if log else []
-    return templates.TemplateResponse("call_history/detail.html", {
-        "request": request,
-        "log": log,
-        "messages": messages,
-    })
+    return templates.TemplateResponse(
+        "call_history/detail.html",
+        {
+            "request": request,
+            "log": log,
+            "messages": messages,
+        },
+    )
 
 
 @router.post("/call-history/{log_id}/delete", response_class=HTMLResponse)
@@ -689,6 +752,7 @@ async def call_history_delete(
     session: AsyncSession = Depends(get_session),
 ):
     from millicall.infrastructure.repositories.call_log_repo import CallLogRepository
+
     repo = CallLogRepository(session)
     await repo.delete_log(log_id)
     return RedirectResponse(url="/call-history", status_code=303)
@@ -696,22 +760,28 @@ async def call_history_delete(
 
 # --- CDR views ---
 
+
 @router.get("/cdr", response_class=HTMLResponse)
 async def cdr_list(request: Request, session: AsyncSession = Depends(get_session)):
     from millicall.application.cdr_service import CDRService
+
     service = CDRService(session)
     records = await service.list_records(limit=200)
     total = await service.count_records()
-    return templates.TemplateResponse("cdr/list.html", {
-        "request": request,
-        "records": records,
-        "total": total,
-    })
+    return templates.TemplateResponse(
+        "cdr/list.html",
+        {
+            "request": request,
+            "records": records,
+            "total": total,
+        },
+    )
 
 
 @router.post("/cdr/import", response_class=HTMLResponse)
 async def cdr_manual_import(session: AsyncSession = Depends(get_session)):
     from millicall.application.cdr_service import CDRService
+
     service = CDRService(session)
     await service.import_from_csv()
     return RedirectResponse(url="/cdr", status_code=303)
@@ -721,15 +791,76 @@ async def cdr_manual_import(session: AsyncSession = Depends(get_session)):
 
 from fastapi.responses import JSONResponse
 
+
 @router.get("/api/call-history")
 async def api_call_history(session: AsyncSession = Depends(get_session)):
     from millicall.infrastructure.repositories.call_log_repo import CallLogRepository
+
     repo = CallLogRepository(session)
     logs = await repo.get_all_logs()
     result = []
     for log in logs:
         messages = await repo.get_messages(log.id)
-        result.append({
+        result.append(
+            {
+                "id": log.id,
+                "agent_name": log.agent_name,
+                "extension_number": log.extension_number,
+                "caller_channel": log.caller_channel,
+                "started_at": log.started_at.isoformat() if log.started_at else None,
+                "ended_at": log.ended_at.isoformat() if log.ended_at else None,
+                "turn_count": log.turn_count,
+                "messages": [
+                    {
+                        "role": m.role,
+                        "content": m.content,
+                        "turn": m.turn,
+                        "created_at": m.created_at.isoformat() if m.created_at else None,
+                    }
+                    for m in messages
+                ],
+            }
+        )
+    return JSONResponse(content=result)
+
+
+@router.get("/api/cdr")
+async def api_cdr_list(session: AsyncSession = Depends(get_session)):
+    from millicall.application.cdr_service import CDRService
+
+    service = CDRService(session)
+    records = await service.list_records(limit=500)
+    return JSONResponse(
+        content=[
+            {
+                "id": r.id,
+                "uniqueid": r.uniqueid,
+                "call_date": r.call_date.isoformat() if r.call_date else None,
+                "src": r.src,
+                "dst": r.dst,
+                "dcontext": r.dcontext,
+                "channel": r.channel,
+                "dst_channel": r.dst_channel,
+                "duration": r.duration,
+                "billsec": r.billsec,
+                "disposition": r.disposition,
+            }
+            for r in records
+        ]
+    )
+
+
+@router.get("/api/call-history/{log_id}")
+async def api_call_history_detail(log_id: int, session: AsyncSession = Depends(get_session)):
+    from millicall.infrastructure.repositories.call_log_repo import CallLogRepository
+
+    repo = CallLogRepository(session)
+    log = await repo.get_log(log_id)
+    if not log:
+        return JSONResponse(content={"error": "not found"}, status_code=404)
+    messages = await repo.get_messages(log_id)
+    return JSONResponse(
+        content={
             "id": log.id,
             "agent_name": log.agent_name,
             "extension_number": log.extension_number,
@@ -746,56 +877,5 @@ async def api_call_history(session: AsyncSession = Depends(get_session)):
                 }
                 for m in messages
             ],
-        })
-    return JSONResponse(content=result)
-
-
-@router.get("/api/cdr")
-async def api_cdr_list(session: AsyncSession = Depends(get_session)):
-    from millicall.application.cdr_service import CDRService
-    service = CDRService(session)
-    records = await service.list_records(limit=500)
-    return JSONResponse(content=[
-        {
-            "id": r.id,
-            "uniqueid": r.uniqueid,
-            "call_date": r.call_date.isoformat() if r.call_date else None,
-            "src": r.src,
-            "dst": r.dst,
-            "dcontext": r.dcontext,
-            "channel": r.channel,
-            "dst_channel": r.dst_channel,
-            "duration": r.duration,
-            "billsec": r.billsec,
-            "disposition": r.disposition,
         }
-        for r in records
-    ])
-
-
-@router.get("/api/call-history/{log_id}")
-async def api_call_history_detail(log_id: int, session: AsyncSession = Depends(get_session)):
-    from millicall.infrastructure.repositories.call_log_repo import CallLogRepository
-    repo = CallLogRepository(session)
-    log = await repo.get_log(log_id)
-    if not log:
-        return JSONResponse(content={"error": "not found"}, status_code=404)
-    messages = await repo.get_messages(log_id)
-    return JSONResponse(content={
-        "id": log.id,
-        "agent_name": log.agent_name,
-        "extension_number": log.extension_number,
-        "caller_channel": log.caller_channel,
-        "started_at": log.started_at.isoformat() if log.started_at else None,
-        "ended_at": log.ended_at.isoformat() if log.ended_at else None,
-        "turn_count": log.turn_count,
-        "messages": [
-            {
-                "role": m.role,
-                "content": m.content,
-                "turn": m.turn,
-                "created_at": m.created_at.isoformat() if m.created_at else None,
-            }
-            for m in messages
-        ],
-    })
+    )

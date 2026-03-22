@@ -11,6 +11,11 @@ class Settings(BaseSettings):
     web_host: str = "0.0.0.0"
     web_port: int = 8000
 
+    # JWT Auth
+    jwt_secret: str = "millicall-dev-secret-change-me"
+    jwt_expiry_minutes: int = 1440
+    admin_password: str = "admin"
+
     # Phase 2
     coefont_access_key: str = ""
     coefont_access_secret: str = ""

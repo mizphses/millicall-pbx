@@ -27,6 +27,7 @@ class Peer:
 @dataclass
 class PeerWithExtension:
     """Peer with its associated extension info for config generation."""
+
     peer: Peer
     extension: Extension | None = None
 
@@ -106,10 +107,33 @@ class CDR:
 
 
 @dataclass
+class User:
+    username: str
+    hashed_password: str
+    display_name: str
+    is_admin: bool = True
+    id: int | None = None
+
+
+@dataclass
 class CallMessage:
     call_log_id: int
     role: str  # "user" or "assistant"
     content: str
     turn: int = 0
     created_at: datetime | None = None
+    id: int | None = None
+
+
+@dataclass
+class Workflow:
+    name: str
+    number: str  # extension number to dial this workflow
+    workflow_type: str  # "ivr" | "ai_workflow"
+    definition: dict = field(default_factory=dict)
+    extension_id: int | None = None  # auto-managed
+    description: str = ""
+    enabled: bool = True
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
     id: int | None = None

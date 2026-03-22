@@ -23,7 +23,9 @@ peers_table = Table(
     Column("transport", String(10), default="udp", nullable=False),
     Column("codecs", Text, default="ulaw,alaw", nullable=False),  # comma-separated
     Column("ip_address", String(45), nullable=True),
-    Column("extension_id", Integer, ForeignKey("extensions.id", ondelete="SET NULL"), nullable=True),
+    Column(
+        "extension_id", Integer, ForeignKey("extensions.id", ondelete="SET NULL"), nullable=True
+    ),
 )
 
 trunks_table = Table(
@@ -51,7 +53,9 @@ devices_table = Table(
     Column("hostname", String(100), nullable=True),
     Column("model", String(50), nullable=True),
     Column("peer_id", Integer, ForeignKey("peers.id", ondelete="SET NULL"), nullable=True),
-    Column("extension_id", Integer, ForeignKey("extensions.id", ondelete="SET NULL"), nullable=True),
+    Column(
+        "extension_id", Integer, ForeignKey("extensions.id", ondelete="SET NULL"), nullable=True
+    ),
     Column("provisioned", Boolean, default=False, nullable=False),
     Column("last_seen", DateTime, nullable=True),
 )
@@ -63,11 +67,18 @@ ai_agents_table = Table(
     Column("name", String(100), nullable=False),
     Column("extension_number", String(20), unique=True, nullable=False),
     Column("system_prompt", Text, nullable=False),
-    Column("greeting_text", String(500), nullable=False, default="お電話ありがとうございます。ご用件をどうぞ。"),
+    Column(
+        "greeting_text",
+        String(500),
+        nullable=False,
+        default="お電話ありがとうございます。ご用件をどうぞ。",
+    ),
     Column("coefont_voice_id", String(100), nullable=False, default=""),
     Column("tts_provider", String(20), nullable=False, default="coefont"),  # coefont or google
     Column("google_tts_voice", String(100), nullable=False, default="ja-JP-Chirp3-HD-Aoede"),
-    Column("llm_provider", String(20), nullable=False, default="google"),  # google, openai, anthropic
+    Column(
+        "llm_provider", String(20), nullable=False, default="google"
+    ),  # google, openai, anthropic
     Column("llm_model", String(50), nullable=False, default="gemini-2.0-flash-lite"),
     Column("max_history", Integer, nullable=False, default=10),
     Column("enabled", Boolean, default=True, nullable=False),
@@ -114,6 +125,33 @@ cdr_table = Table(
     Column("disposition", String(30), nullable=False),
     Column("account_code", String(50), nullable=False, server_default=""),
     Column("userfield", String(255), nullable=False, server_default=""),
+)
+
+users_table = Table(
+    "users",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("username", String(50), unique=True, nullable=False),
+    Column("hashed_password", String(200), nullable=False),
+    Column("display_name", String(100), nullable=False),
+    Column("is_admin", Boolean, default=True, nullable=False),
+)
+
+workflows_table = Table(
+    "workflows",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("name", String(100), nullable=False),
+    Column("number", String(20), nullable=False),
+    Column("description", Text, nullable=False, server_default=""),
+    Column(
+        "extension_id", Integer, ForeignKey("extensions.id", ondelete="SET NULL"), nullable=True
+    ),
+    Column("workflow_type", String(20), nullable=False),
+    Column("definition", Text, nullable=False, server_default="{}"),
+    Column("enabled", Boolean, default=True, nullable=False),
+    Column("created_at", DateTime, nullable=False),
+    Column("updated_at", DateTime, nullable=False),
 )
 
 settings_table = Table(

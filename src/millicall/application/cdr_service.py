@@ -37,6 +37,7 @@ class CDRService:
 
     async def import_from_csv(self) -> int:
         if not self.CDR_CSV_PATH.exists():
+            logger.debug("CDR CSV file not found: %s", self.CDR_CSV_PATH)
             return 0
 
         records: list[CDR] = []

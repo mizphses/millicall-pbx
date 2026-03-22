@@ -16,18 +16,13 @@ class SettingsRepository:
         return row.value if row else ""
 
     async def get_all(self) -> dict[str, str]:
-        result = await self.session.execute(
-            select(settings_table).order_by(settings_table.c.key)
-        )
+        result = await self.session.execute(select(settings_table).order_by(settings_table.c.key))
         return {row.key: row.value for row in result}
 
     async def get_all_with_desc(self) -> list[dict]:
-        result = await self.session.execute(
-            select(settings_table).order_by(settings_table.c.key)
-        )
+        result = await self.session.execute(select(settings_table).order_by(settings_table.c.key))
         return [
-            {"key": row.key, "value": row.value, "description": row.description}
-            for row in result
+            {"key": row.key, "value": row.value, "description": row.description} for row in result
         ]
 
     async def set(self, key: str, value: str, description: str | None = None) -> None:
@@ -39,16 +34,13 @@ class SettingsRepository:
             )
             if result.first():
                 from sqlalchemy import update
+
                 await self.session.execute(
-                    update(settings_table)
-                    .where(settings_table.c.key == key)
-                    .values(value=value)
+                    update(settings_table).where(settings_table.c.key == key).values(value=value)
                 )
             else:
                 await self.session.execute(
-                    settings_table.insert().values(
-                        key=key, value=value, description=description
-                    )
+                    settings_table.insert().values(key=key, value=value, description=description)
                 )
         await self.session.commit()
 
@@ -67,8 +59,6 @@ class SettingsRepository:
             )
             if not result.first():
                 await self.session.execute(
-                    settings_table.insert().values(
-                        key=key, value=default, description=desc
-                    )
+                    settings_table.insert().values(key=key, value=default, description=desc)
                 )
         await self.session.commit()

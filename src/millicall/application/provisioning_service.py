@@ -34,6 +34,7 @@ class ProvisioningService:
             f'CFG_STANDARD_FILE_PATH="http://{PBX_ADDR}:8000/provisioning/Panasonic/Config{{MAC}}.cfg"',
             f'CFG_MASTER_FILE_PATH="http://{PBX_ADDR}:8000/provisioning/Panasonic/ConfigCommon.cfg"',
             'CFG_RESYNC_TIME="02:00"',
+            'CFG_RESYNC_FROM_SIP="Y"',
             "",
             "# NTP",
             f'NTP_ADDR="{PBX_ADDR}"',
@@ -66,7 +67,7 @@ class ProvisioningService:
     async def generate_device_config(self, mac_address: str) -> str | None:
         """Generate Config{MAC}.cfg for a specific phone."""
         mac_clean = mac_address.upper().replace(":", "").replace("-", "").replace(".", "")
-        mac_colon = ":".join(mac_clean[i:i+2] for i in range(0, 12, 2))
+        mac_colon = ":".join(mac_clean[i : i + 2] for i in range(0, 12, 2))
 
         device = await self.device_repo.get_by_mac(mac_colon)
         if not device or not device.peer_id or not device.extension_id:
@@ -100,10 +101,10 @@ class ProvisioningService:
             'SIP_DNSSRV_ENA_1="N"',
             "",
             "# Codec Settings - Line 1",
-            '# Enable PCMU (G.711u)',
+            "# Enable PCMU (G.711u)",
             'CODEC_ENABLE4_1="Y"',
             'CODEC_PRIORITY4_1="1"',
-            '# Enable PCMA (G.711a)',
+            "# Enable PCMA (G.711a)",
             'CODEC_ENABLE1_1="Y"',
             'CODEC_PRIORITY1_1="2"',
             "",

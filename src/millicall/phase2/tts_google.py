@@ -51,6 +51,7 @@ async def synthesize(
         data = response.json()
 
     import base64
+
     audio_content = base64.b64decode(data["audioContent"])
 
     # Wrap raw PCM in WAV header

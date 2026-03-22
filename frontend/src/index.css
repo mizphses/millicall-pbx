@@ -1,0 +1,10 @@
+@layer reset, base, tokens, recipes, utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+body {
+  font-family: "Noto Sans JP", sans-serif;
+  background: #f0eeeb;
+  color: #1b1b1f;
+  -webkit-font-smoothing: antialiased;
+}

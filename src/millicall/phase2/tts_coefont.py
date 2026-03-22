@@ -35,6 +35,7 @@ async def synthesize(text: str, coefont_id: str | None = None) -> bytes:
 
     # Build request body
     import json as _json
+
     payload = {
         "coefont": voice_id,
         "text": text,
@@ -68,9 +69,9 @@ async def synthesize_for_asterisk(text: str, coefont_id: str | None = None) -> b
 
     Returns raw signed linear 16-bit audio (slin) suitable for Asterisk playback.
     """
+    import audioop
     import io
     import wave
-    import audioop
 
     wav_data = await synthesize(text, coefont_id)
 

@@ -18,5 +18,13 @@ services:
     env_file:
       - .env
 
+  frontend:
+    build: ./frontend
+    container_name: millicall-frontend
+    network_mode: host
+    restart: unless-stopped
+    depends_on:
+      - millicall
+
 volumes:
   millicall-data:

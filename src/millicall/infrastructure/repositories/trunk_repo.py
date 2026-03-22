@@ -26,16 +26,12 @@ class TrunkRepository:
         )
 
     async def get_all(self) -> list[Trunk]:
-        result = await self.session.execute(
-            select(trunks_table).order_by(trunks_table.c.name)
-        )
+        result = await self.session.execute(select(trunks_table).order_by(trunks_table.c.name))
         return [self._row_to_model(row) for row in result]
 
     async def get_all_enabled(self) -> list[Trunk]:
         result = await self.session.execute(
-            select(trunks_table)
-            .where(trunks_table.c.enabled == True)
-            .order_by(trunks_table.c.name)
+            select(trunks_table).where(trunks_table.c.enabled == True).order_by(trunks_table.c.name)
         )
         return [self._row_to_model(row) for row in result]
 
@@ -49,9 +45,7 @@ class TrunkRepository:
         return self._row_to_model(row)
 
     async def get_by_name(self, name: str) -> Trunk | None:
-        result = await self.session.execute(
-            select(trunks_table).where(trunks_table.c.name == name)
-        )
+        result = await self.session.execute(select(trunks_table).where(trunks_table.c.name == name))
         row = result.first()
         return self._row_to_model(row) if row else None
 
@@ -82,6 +76,7 @@ class TrunkRepository:
         if existing and existing.id != trunk.id:
             raise DuplicateTrunkError(trunk.name)
         from sqlalchemy import update
+
         await self.session.execute(
             update(trunks_table)
             .where(trunks_table.c.id == trunk.id)
@@ -103,7 +98,6 @@ class TrunkRepository:
 
     async def delete(self, trunk_id: int) -> None:
         from sqlalchemy import delete
-        await self.session.execute(
-            delete(trunks_table).where(trunks_table.c.id == trunk_id)
-        )
+
+        await self.session.execute(delete(trunks_table).where(trunks_table.c.id == trunk_id))
         await self.session.commit()

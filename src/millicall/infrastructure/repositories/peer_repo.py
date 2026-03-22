@@ -22,15 +22,11 @@ class PeerRepository:
         )
 
     async def get_all(self) -> list[Peer]:
-        result = await self.session.execute(
-            select(peers_table).order_by(peers_table.c.username)
-        )
+        result = await self.session.execute(select(peers_table).order_by(peers_table.c.username))
         return [self._row_to_model(row) for row in result]
 
     async def get_by_id(self, peer_id: int) -> Peer:
-        result = await self.session.execute(
-            select(peers_table).where(peers_table.c.id == peer_id)
-        )
+        result = await self.session.execute(select(peers_table).where(peers_table.c.id == peer_id))
         row = result.first()
         if row is None:
             raise PeerNotFoundError(peer_id)
@@ -86,9 +82,7 @@ class PeerRepository:
         return peer
 
     async def delete(self, peer_id: int) -> None:
-        result = await self.session.execute(
-            delete(peers_table).where(peers_table.c.id == peer_id)
-        )
+        result = await self.session.execute(delete(peers_table).where(peers_table.c.id == peer_id))
         if result.rowcount == 0:
             raise PeerNotFoundError(peer_id)
         await self.session.commit()

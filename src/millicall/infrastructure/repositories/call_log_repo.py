@@ -28,6 +28,7 @@ class CallLogRepository:
 
     async def finish_log(self, log_id: int, turn_count: int) -> None:
         from sqlalchemy import update
+
         await self.session.execute(
             update(call_logs_table)
             .where(call_logs_table.c.id == log_id)
@@ -103,10 +104,9 @@ class CallLogRepository:
 
     async def delete_log(self, log_id: int) -> None:
         from sqlalchemy import delete
+
         await self.session.execute(
             delete(call_messages_table).where(call_messages_table.c.call_log_id == log_id)
         )
-        await self.session.execute(
-            delete(call_logs_table).where(call_logs_table.c.id == log_id)
-        )
+        await self.session.execute(delete(call_logs_table).where(call_logs_table.c.id == log_id))
         await self.session.commit()

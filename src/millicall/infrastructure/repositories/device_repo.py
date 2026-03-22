@@ -111,7 +111,5 @@ class DeviceRepository:
         return device
 
     async def delete(self, device_id: int) -> None:
-        await self.session.execute(
-            delete(devices_table).where(devices_table.c.id == device_id)
-        )
+        await self.session.execute(delete(devices_table).where(devices_table.c.id == device_id))
         await self.session.commit()
