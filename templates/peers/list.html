@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}SIP Peers - Millicall PBX{% endblock %}
+{% block content %}
+<hgroup>
+    <h1>SIP Peers</h1>
+    <p>Manage SIP endpoint accounts</p>
+</hgroup>
+
+<a href="/peers/new" role="button">Add Peer</a>
+
+{% if peers %}
+<table>
+    <thead>
+        <tr>
+            <th>Username</th>
+            <th>Transport</th>
+            <th>Codecs</th>
+            <th>IP Address</th>
+            <th>Extension</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for peer in peers %}
+        <tr>
+            <td><strong>{{ peer.username }}</strong></td>
+            <td><span class="badge badge-info">{{ peer.transport|upper }}</span></td>
+            <td>{{ peer.codecs|join(", ") }}</td>
+            <td>{{ peer.ip_address or "Dynamic" }}</td>
+            <td>
+                {% if peer.extension_id and ext_map.get(peer.extension_id) %}
+                {{ ext_map[peer.extension_id].number }} - {{ ext_map[peer.extension_id].display_name }}
+                {% else %}
+                -
+                {% endif %}
+            </td>
+            <td class="actions">
+                <a href="/peers/{{ peer.id }}/edit" role="button" class="outline secondary">Edit</a>
+                <form method="post" action="/peers/{{ peer.id }}/delete" style="display:inline"
+                      onsubmit="return confirm('Delete peer {{ peer.username }}?')">
+                    <button type="submit" class="outline contrast">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No SIP peers configured. <a href="/peers/new">Add one</a>.</p>
+{% endif %}
+{% endblock %}

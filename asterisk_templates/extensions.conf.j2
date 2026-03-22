@@ -1,0 +1,33 @@
+; ===========================================
+; Millicall PBX - Dialplan Configuration
+; Auto-generated - DO NOT EDIT MANUALLY
+; ===========================================
+
+[general]
+static=yes
+writeprotect=no
+
+[globals]
+
+[internal]
+; --- Extension routing ---
+{% for item in extensions %}
+{% if item.ext.enabled and item.peer %}
+exten => {{ item.ext.number }},1,NoOp(Calling {{ item.ext.display_name }})
+ same => n,Set(CALLERID(name)=${CALLERID(name)})
+ same => n,Dial(PJSIP/{{ item.peer.username }},30,tTr)
+ same => n,VoiceMail({{ item.ext.number }}@default,u)
+ same => n,Hangup()
+{% endif %}
+{% endfor %}
+
+; --- Echo test ---
+exten => *43,1,NoOp(Echo Test)
+ same => n,Answer()
+ same => n,Echo()
+ same => n,Hangup()
+
+; --- Invalid extension ---
+exten => i,1,NoOp(Invalid extension dialed)
+ same => n,Playback(pbx-invalid)
+ same => n,Hangup()

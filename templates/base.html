@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Millicall PBX{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <style>
+        :root {
+            --pico-font-size: 16px;
+        }
+        nav {
+            margin-bottom: 1rem;
+        }
+        .badge {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .badge-success { background: #2ecc71; color: white; }
+        .badge-danger { background: #e74c3c; color: white; }
+        .badge-info { background: #3498db; color: white; }
+        .actions { white-space: nowrap; }
+        .actions a, .actions button {
+            margin-right: 0.25rem;
+            font-size: 0.85rem;
+        }
+        table { margin-top: 1rem; }
+        .stat-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+        .stat-card h2 {
+            font-size: 2.5rem;
+            margin-bottom: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="container-fluid">
+        <ul>
+            <li><strong>Millicall PBX</strong></li>
+        </ul>
+        <ul>
+            <li><a href="/">Dashboard</a></li>
+            <li><a href="/extensions">Extensions</a></li>
+            <li><a href="/peers">SIP Peers</a></li>
+        </ul>
+    </nav>
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="container">
+        <small>Millicall PBX v0.1.0</small>
+    </footer>
+</body>
+</html>

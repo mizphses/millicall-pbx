@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit" if peer else "New" }} SIP Peer - Millicall PBX{% endblock %}
+{% block content %}
+<h1>{{ "Edit" if peer else "New" }} SIP Peer</h1>
+
+<form method="post" action="{{ '/peers/' ~ peer.id if peer else '/peers' }}">
+    <label for="username">
+        Username
+        <input type="text" id="username" name="username" placeholder="phone1001"
+               value="{{ peer.username if peer else '' }}"
+               required pattern="[a-zA-Z0-9_-]+" maxlength="50">
+    </label>
+
+    <label for="password">
+        Password
+        <input type="text" id="password" name="password" placeholder="secure-password"
+               value="{{ peer.password if peer else '' }}"
+               required minlength="4" maxlength="100">
+    </label>
+
+    <div class="grid">
+        <label for="transport">
+            Transport
+            <select id="transport" name="transport">
+                <option value="udp" {{ "selected" if not peer or peer.transport == "udp" }}>UDP</option>
+                <option value="tcp" {{ "selected" if peer and peer.transport == "tcp" }}>TCP</option>
+            </select>
+        </label>
+
+        <label for="codecs">
+            Codecs (comma-separated)
+            <input type="text" id="codecs" name="codecs"
+                   value="{{ peer.codecs|join(',') if peer else 'ulaw,alaw' }}"
+                   placeholder="ulaw,alaw,opus">
+        </label>
+    </div>
+
+    <label for="ip_address">
+        IP Address (leave empty for dynamic registration)
+        <input type="text" id="ip_address" name="ip_address"
+               value="{{ peer.ip_address if peer and peer.ip_address else '' }}"
+               placeholder="172.20.1.10">
+    </label>
+
+    <label for="extension_id">
+        Linked Extension
+        <select id="extension_id" name="extension_id">
+            <option value="">-- None --</option>
+            {% for ext in extensions %}
+            <option value="{{ ext.id }}"
+                    {{ "selected" if peer and peer.extension_id == ext.id }}>
+                {{ ext.number }} - {{ ext.display_name }}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <div class="grid">
+        <button type="submit">{{ "Update" if peer else "Create" }}</button>
+        <a href="/peers" role="button" class="secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}

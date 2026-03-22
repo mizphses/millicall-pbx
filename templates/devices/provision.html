@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Provision Device - Millicall PBX{% endblock %}
+{% block content %}
+<h1>Provision Device</h1>
+
+<article>
+    <header>Device Info</header>
+    <p><strong>MAC:</strong> <code>{{ device.mac_address }}</code></p>
+    <p><strong>IP:</strong> {{ device.ip_address or "Unknown" }}</p>
+    <p><strong>Hostname:</strong> {{ device.hostname or "Unknown" }}</p>
+</article>
+
+{% if device.provisioned %}
+<article>
+    <header>Current Assignment</header>
+    <p>This device is already provisioned.</p>
+    {% if device.extension_id and extensions %}
+    {% for ext in extensions if ext.id == device.extension_id %}
+    <p><strong>Extension:</strong> {{ ext.number }} - {{ ext.display_name }}</p>
+    {% endfor %}
+    {% endif %}
+    {% if device.peer_id and peers %}
+    {% for peer in peers if peer.id == device.peer_id %}
+    <p><strong>SIP Peer:</strong> {{ peer.username }}</p>
+    {% endfor %}
+    {% endif %}
+</article>
+
+<h2>Reassign to Existing Peer/Extension</h2>
+<form method="post" action="/devices/{{ device.id }}/assign">
+    <div class="grid">
+        <label for="peer_id">
+            SIP Peer
+            <select id="peer_id" name="peer_id">
+                <option value="">-- None --</option>
+                {% for peer in peers %}
+                <option value="{{ peer.id }}" {{ "selected" if device.peer_id == peer.id }}>
+                    {{ peer.username }}
+                </option>
+                {% endfor %}
+            </select>
+        </label>
+        <label for="extension_id">
+            Extension
+            <select id="extension_id" name="extension_id">
+                <option value="">-- None --</option>
+                {% for ext in extensions %}
+                <option value="{{ ext.id }}" {{ "selected" if device.extension_id == ext.id }}>
+                    {{ ext.number }} - {{ ext.display_name }}
+                </option>
+                {% endfor %}
+            </select>
+        </label>
+    </div>
+    <div class="grid">
+        <button type="submit">Update Assignment</button>
+        <a href="/" role="button" class="secondary">Cancel</a>
+    </div>
+</form>
+
+{% else %}
+
+<h2>Auto Provision (New)</h2>
+<p>Create a new extension and SIP peer automatically for this device.</p>
+<form method="post" action="/devices/{{ device.id }}/auto-provision">
+    <div class="grid">
+        <label for="extension_number">
+            Extension Number
+            <input type="text" id="extension_number" name="extension_number"
+                   placeholder="4001" required pattern="\d+" maxlength="20">
+        </label>
+        <label for="display_name">
+            Display Name
+            <input type="text" id="display_name" name="display_name"
+                   placeholder="Reception" required maxlength="100">
+        </label>
+    </div>
+    <button type="submit">Auto Provision</button>
+</form>
+
+<hr>
+
+<h2>Or Assign Existing Peer/Extension</h2>
+<form method="post" action="/devices/{{ device.id }}/assign">
+    <div class="grid">
+        <label for="peer_id">
+            SIP Peer
+            <select id="peer_id" name="peer_id">
+                <option value="">-- None --</option>
+                {% for peer in peers %}
+                <option value="{{ peer.id }}">{{ peer.username }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label for="extension_id">
+            Extension
+            <select id="extension_id" name="extension_id">
+                <option value="">-- None --</option>
+                {% for ext in extensions %}
+                <option value="{{ ext.id }}">{{ ext.number }} - {{ ext.display_name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+    </div>
+    <div class="grid">
+        <button type="submit" class="secondary">Assign Existing</button>
+        <a href="/" role="button" class="outline">Cancel</a>
+    </div>
+</form>
+{% endif %}
+{% endblock %}

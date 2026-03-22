@@ -1,0 +1,49 @@
+; ===========================================
+; Millicall PBX - PJSIP Configuration
+; Auto-generated - DO NOT EDIT MANUALLY
+; ===========================================
+
+; --- Transport ---
+[transport-udp]
+type=transport
+protocol=udp
+bind={{ bind_address }}:5060
+
+[transport-tcp]
+type=transport
+protocol=tcp
+bind={{ bind_address }}:5060
+
+{% for peer in peers %}
+; --- Peer: {{ peer.username }} ---
+[{{ peer.username }}]
+type=endpoint
+context=internal
+disallow=all
+{% for codec in peer.codecs %}
+allow={{ codec }}
+{% endfor %}
+auth={{ peer.username }}
+aors={{ peer.username }}
+direct_media=no
+rtp_symmetric=yes
+force_rport=yes
+rewrite_contact=yes
+
+[{{ peer.username }}]
+type=auth
+auth_type=userpass
+username={{ peer.username }}
+password={{ peer.password }}
+
+[{{ peer.username }}]
+type=aor
+max_contacts=5
+remove_existing=yes
+{% if peer.ip_address %}
+contact=sip:{{ peer.ip_address }}
+{% endif %}
+default_expiration=3600
+minimum_expiration=60
+
+{% endfor %}

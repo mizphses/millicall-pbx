@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Millicall PBX{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+<div class="grid">
+    <article class="stat-card">
+        <h2>{{ extensions|length }}</h2>
+        <p>Extensions</p>
+    </article>
+    <article class="stat-card">
+        <h2>{{ peers|length }}</h2>
+        <p>SIP Peers</p>
+    </article>
+    <article class="stat-card">
+        <h2>{{ devices|length }}</h2>
+        <p>Devices</p>
+    </article>
+</div>
+
+<h2>Connected Devices</h2>
+<p>DHCP leases from the 172.20.0.0/16 network. Devices are auto-discovered when they connect.</p>
+
+{% if devices %}
+<table>
+    <thead>
+        <tr>
+            <th>MAC Address</th>
+            <th>IP Address</th>
+            <th>Hostname</th>
+            <th>Status</th>
+            <th>Extension</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for device in devices %}
+        <tr>
+            <td><code>{{ device.mac_address }}</code></td>
+            <td>{{ device.ip_address or "-" }}</td>
+            <td>{{ device.hostname or "-" }}</td>
+            <td>
+                {% if device.provisioned %}
+                <span class="badge badge-success">Provisioned</span>
+                {% else %}
+                <span class="badge badge-danger">Unprovisioned</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if device.extension_id and ext_map.get(device.extension_id) %}
+                {{ ext_map[device.extension_id].number }} - {{ ext_map[device.extension_id].display_name }}
+                {% elif device.peer_id and peer_map.get(device.peer_id) %}
+                Peer: {{ peer_map[device.peer_id].username }}
+                {% else %}
+                -
+                {% endif %}
+            </td>
+            <td class="actions">
+                {% if not device.provisioned %}
+                <a href="/devices/{{ device.id }}/provision" role="button" class="outline">Provision</a>
+                {% else %}
+                <a href="/devices/{{ device.id }}/provision" role="button" class="outline secondary">Edit</a>
+                {% endif %}
+                <form method="post" action="/devices/{{ device.id }}/delete" style="display:inline"
+                      onsubmit="return confirm('Remove device {{ device.mac_address }}?')">
+                    <button type="submit" class="outline contrast">Remove</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No devices detected yet. Connect a phone to the 172.20 network and refresh.</p>
+{% endif %}
+
+<h2>Quick Actions</h2>
+<div class="grid">
+    <a href="/extensions/new" role="button">Add Extension</a>
+    <a href="/peers/new" role="button" class="secondary">Add SIP Peer</a>
+</div>
+{% endblock %}

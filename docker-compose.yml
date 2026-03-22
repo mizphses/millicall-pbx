@@ -1,0 +1,22 @@
+services:
+  millicall:
+    build: .
+    container_name: millicall-pbx
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - millicall-data:/app/data
+      - ./asterisk_templates:/app/asterisk_templates:ro
+      - /var/lib/misc/dnsmasq.leases:/var/lib/misc/dnsmasq.leases:ro
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./data/millicall.db
+      - ASTERISK_CONFIG_DIR=/etc/asterisk
+      - ASTERISK_TEMPLATES_DIR=/app/asterisk_templates
+      - PBX_BIND_ADDRESS=0.0.0.0
+      - WEB_HOST=0.0.0.0
+      - WEB_PORT=8000
+    env_file:
+      - .env
+
+volumes:
+  millicall-data:

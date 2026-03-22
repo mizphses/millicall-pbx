@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Extensions - Millicall PBX{% endblock %}
+{% block content %}
+<hgroup>
+    <h1>Extensions</h1>
+    <p>Manage phone extensions</p>
+</hgroup>
+
+<a href="/extensions/new" role="button">Add Extension</a>
+
+{% if extensions %}
+<table>
+    <thead>
+        <tr>
+            <th>Number</th>
+            <th>Display Name</th>
+            <th>Status</th>
+            <th>SIP Peer</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for ext in extensions %}
+        <tr>
+            <td><strong>{{ ext.number }}</strong></td>
+            <td>{{ ext.display_name }}</td>
+            <td>
+                {% if ext.enabled %}
+                <span class="badge badge-success">Active</span>
+                {% else %}
+                <span class="badge badge-danger">Disabled</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if ext.peer_id and peer_map.get(ext.peer_id) %}
+                <span class="badge badge-info">{{ peer_map[ext.peer_id].username }}</span>
+                {% else %}
+                <span>-</span>
+                {% endif %}
+            </td>
+            <td class="actions">
+                <a href="/extensions/{{ ext.id }}/edit" role="button" class="outline secondary">Edit</a>
+                <form method="post" action="/extensions/{{ ext.id }}/delete" style="display:inline"
+                      onsubmit="return confirm('Delete extension {{ ext.number }}?')">
+                    <button type="submit" class="outline contrast">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No extensions configured. <a href="/extensions/new">Add one</a>.</p>
+{% endif %}
+{% endblock %}

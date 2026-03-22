@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit" if extension else "New" }} Extension - Millicall PBX{% endblock %}
+{% block content %}
+<h1>{{ "Edit" if extension else "New" }} Extension</h1>
+
+<form method="post" action="{{ '/extensions/' ~ extension.id if extension else '/extensions' }}">
+    <label for="number">
+        Extension Number
+        <input type="text" id="number" name="number" placeholder="1001"
+               value="{{ extension.number if extension else '' }}"
+               required pattern="\d+" maxlength="20">
+    </label>
+
+    <label for="display_name">
+        Display Name
+        <input type="text" id="display_name" name="display_name" placeholder="Reception"
+               value="{{ extension.display_name if extension else '' }}"
+               required maxlength="100">
+    </label>
+
+    <label for="peer_id">
+        SIP Peer
+        <select id="peer_id" name="peer_id">
+            <option value="">-- None --</option>
+            {% for peer in peers %}
+            <option value="{{ peer.id }}"
+                    {{ "selected" if extension and extension.peer_id == peer.id }}>
+                {{ peer.username }}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <fieldset>
+        <label>
+            <input type="checkbox" name="enabled" value="true"
+                   {{ "checked" if not extension or extension.enabled }}>
+            Enabled
+        </label>
+    </fieldset>
+
+    <div class="grid">
+        <button type="submit">{{ "Update" if extension else "Create" }}</button>
+        <a href="/extensions" role="button" class="secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}
