@@ -1,55 +1,61 @@
 {% extends "base.html" %}
-{% block title %}Extensions - Millicall PBX{% endblock %}
+{% block title %}内線番号 - Millicall PBX{% endblock %}
 {% block content %}
-<hgroup>
-    <h1>Extensions</h1>
-    <p>Manage phone extensions</p>
-</hgroup>
-
-<a href="/extensions/new" role="button">Add Extension</a>
+<div class="page-header-row">
+    <div class="page-header">
+        <h1>内線番号</h1>
+        <p>電話の内線番号を管理します</p>
+    </div>
+    <a href="/extensions/new" class="btn btn-primary">内線番号を追加</a>
+</div>
 
 {% if extensions %}
-<table>
-    <thead>
-        <tr>
-            <th>Number</th>
-            <th>Display Name</th>
-            <th>Status</th>
-            <th>SIP Peer</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for ext in extensions %}
-        <tr>
-            <td><strong>{{ ext.number }}</strong></td>
-            <td>{{ ext.display_name }}</td>
-            <td>
-                {% if ext.enabled %}
-                <span class="badge badge-success">Active</span>
-                {% else %}
-                <span class="badge badge-danger">Disabled</span>
-                {% endif %}
-            </td>
-            <td>
-                {% if ext.peer_id and peer_map.get(ext.peer_id) %}
-                <span class="badge badge-info">{{ peer_map[ext.peer_id].username }}</span>
-                {% else %}
-                <span>-</span>
-                {% endif %}
-            </td>
-            <td class="actions">
-                <a href="/extensions/{{ ext.id }}/edit" role="button" class="outline secondary">Edit</a>
-                <form method="post" action="/extensions/{{ ext.id }}/delete" style="display:inline"
-                      onsubmit="return confirm('Delete extension {{ ext.number }}?')">
-                    <button type="submit" class="outline contrast">Delete</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>番号</th>
+                <th>表示名</th>
+                <th>状態</th>
+                <th>SIPピア</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ext in extensions %}
+            <tr>
+                <td><strong>{{ ext.number }}</strong></td>
+                <td>{{ ext.display_name }}</td>
+                <td>
+                    {% if ext.enabled %}
+                    <span class="badge badge-success">有効</span>
+                    {% else %}
+                    <span class="badge badge-danger">無効</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if ext.peer_id and peer_map.get(ext.peer_id) %}
+                    <span class="badge badge-info">{{ peer_map[ext.peer_id].username }}</span>
+                    {% else %}
+                    <span style="color: var(--ink-faint)">-</span>
+                    {% endif %}
+                </td>
+                <td class="cell-actions">
+                    <a href="/extensions/{{ ext.id }}/edit" class="btn btn-ghost btn-sm">編集</a>
+                    <form method="post" action="/extensions/{{ ext.id }}/delete"
+                          onsubmit="return confirm('内線番号 {{ ext.number }} を削除しますか？')">
+                        <button type="submit" class="btn btn-danger btn-sm">削除</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% else %}
-<p>No extensions configured. <a href="/extensions/new">Add one</a>.</p>
+<div class="card empty-state">
+    <p>内線番号がまだ登録されていません</p>
+    <a href="/extensions/new" class="btn btn-primary">最初の内線番号を追加</a>
+</div>
 {% endif %}
 {% endblock %}

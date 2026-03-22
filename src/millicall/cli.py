@@ -7,6 +7,7 @@ import sys
 from millicall.infrastructure.asterisk.config_writer import AsteriskConfigWriter
 from millicall.infrastructure.database import async_session, engine
 from millicall.infrastructure.orm import metadata
+from millicall.infrastructure.repositories.ai_agent_repo import AIAgentRepository
 from millicall.infrastructure.repositories.extension_repo import ExtensionRepository
 from millicall.infrastructure.repositories.peer_repo import PeerRepository
 
@@ -22,14 +23,16 @@ async def generate_config() -> None:
     async with async_session() as session:
         ext_repo = ExtensionRepository(session)
         peer_repo = PeerRepository(session)
+        ai_repo = AIAgentRepository(session)
 
         extensions = await ext_repo.get_all()
         peers = await peer_repo.get_all()
+        ai_agents = await ai_repo.get_all()
 
     peer_map = {p.id: p for p in peers if p.id is not None}
     writer = AsteriskConfigWriter()
     writer.write_pjsip_config(peers)
-    writer.write_extensions_config(extensions, peer_map)
+    writer.write_extensions_config(extensions, peer_map, ai_agents)
     logger.info("Asterisk config files generated successfully")
 
 

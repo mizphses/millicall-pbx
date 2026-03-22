@@ -40,3 +40,19 @@ class Device:
     provisioned: bool = False
     last_seen: datetime | None = None
     id: int | None = None
+
+
+@dataclass
+class AIAgent:
+    name: str
+    extension_number: str
+    system_prompt: str
+    coefont_voice_id: str
+    greeting_text: str = "お電話ありがとうございます。ご用件をどうぞ。"
+    tts_provider: str = "coefont"  # coefont or google
+    google_tts_voice: str = "ja-JP-Chirp3-HD-Aoede"
+    llm_provider: str = "google"
+    llm_model: str = "gemini-2.0-flash-lite"
+    max_history: int = 10
+    enabled: bool = True
+    id: int | None = None

@@ -21,6 +21,24 @@ exten => {{ item.ext.number }},1,NoOp(Calling {{ item.ext.display_name }})
 {% endif %}
 {% endfor %}
 
+; --- AI Agent extensions ---
+{% for agent in ai_agents %}
+{% if agent.enabled %}
+exten => {{ agent.extension_number }},1,NoOp(AI Agent: {{ agent.name }})
+ same => n,Answer()
+ same => n,Stasis(millicall-ai)
+ same => n,Hangup()
+{% endif %}
+{% endfor %}
+
+{% if trunk.enabled %}
+; --- Outbound PSTN calls (dial 0 + number) ---
+exten => _0.,1,NoOp(PSTN Outbound: ${EXTEN})
+ same => n,Set(CALLERID(num)={{ trunk.caller_id }})
+ same => n,Dial(PJSIP/${EXTEN}@hikari-trunk,60,tT)
+ same => n,Hangup()
+{% endif %}
+
 ; --- Echo test ---
 exten => *43,1,NoOp(Echo Test)
  same => n,Answer()
@@ -31,3 +49,25 @@ exten => *43,1,NoOp(Echo Test)
 exten => i,1,NoOp(Invalid extension dialed)
  same => n,Playback(pbx-invalid)
  same => n,Hangup()
+
+{% if trunk.enabled %}
+; ===========================================
+; Incoming PSTN calls
+; ===========================================
+[from-pstn]
+exten => _X.,1,NoOp(PSTN Incoming: ${EXTEN} from ${CALLERID(num)})
+{% if trunk.incoming_dest %}
+ same => n,Goto(internal,{{ trunk.incoming_dest }},1)
+{% else %}
+; Default: ring all extensions
+{% for item in extensions %}
+{% if item.ext.enabled and item.peer %}
+ same => n,Dial(PJSIP/{{ item.peer.username }},30,tT)
+{% endif %}
+{% endfor %}
+{% endif %}
+ same => n,VoiceMail(0@default,u)
+ same => n,Hangup()
+
+exten => s,1,Goto(from-pstn,{{ trunk.did_number or 's' }},1)
+{% endif %}

@@ -30,6 +30,12 @@ async def lifespan(app: FastAPI):
     # Create tables if they don't exist (fallback for dev without alembic)
     async with engine.begin() as conn:
         await conn.run_sync(metadata.create_all)
+    # Ensure default settings exist
+    from millicall.infrastructure.database import async_session
+    from millicall.infrastructure.repositories.settings_repo import SettingsRepository
+    async with async_session() as session:
+        repo = SettingsRepository(session)
+        await repo.ensure_defaults()
     logger.info("Millicall PBX started")
     yield
     await engine.dispose()

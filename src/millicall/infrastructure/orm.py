@@ -37,3 +37,28 @@ devices_table = Table(
     Column("provisioned", Boolean, default=False, nullable=False),
     Column("last_seen", DateTime, nullable=True),
 )
+
+ai_agents_table = Table(
+    "ai_agents",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("name", String(100), nullable=False),
+    Column("extension_number", String(20), unique=True, nullable=False),
+    Column("system_prompt", Text, nullable=False),
+    Column("greeting_text", String(500), nullable=False, default="お電話ありがとうございます。ご用件をどうぞ。"),
+    Column("coefont_voice_id", String(100), nullable=False, default=""),
+    Column("tts_provider", String(20), nullable=False, default="coefont"),  # coefont or google
+    Column("google_tts_voice", String(100), nullable=False, default="ja-JP-Chirp3-HD-Aoede"),
+    Column("llm_provider", String(20), nullable=False, default="google"),  # google, openai, anthropic
+    Column("llm_model", String(50), nullable=False, default="gemini-2.0-flash-lite"),
+    Column("max_history", Integer, nullable=False, default=10),
+    Column("enabled", Boolean, default=True, nullable=False),
+)
+
+settings_table = Table(
+    "app_settings",
+    metadata,
+    Column("key", String(100), primary_key=True),
+    Column("value", Text, nullable=False, default=""),
+    Column("description", String(200), nullable=True),
+)

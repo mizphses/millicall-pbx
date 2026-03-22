@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}設定 - Millicall PBX{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>設定</h1>
+    <p>APIキーとサービス認証情報</p>
+</div>
+
+<div class="card">
+    <form method="post" action="/settings">
+        {% for item in settings_list %}
+        <div class="field">
+            <label for="{{ item.key }}">{{ item.description or item.key }}</label>
+            <input type="{{ 'password' if 'secret' in item.key or 'api_key' in item.key else 'text' }}"
+                   id="{{ item.key }}" name="{{ item.key }}"
+                   value="{{ item.value }}"
+                   placeholder="未設定"
+                   autocomplete="off">
+        </div>
+        {% endfor %}
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-lg">設定を保存</button>
+        </div>
+    </form>
+</div>
+
+<details class="section-gap">
+    <summary>APIキーの取得方法</summary>
+    <div class="table-wrap" style="margin-top: 0.75rem;">
+        <table>
+            <thead>
+                <tr>
+                    <th>サービス</th>
+                    <th>取得先</th>
+                    <th>用途</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>CoeFont</strong></td>
+                    <td>CoeFont ダッシュボード</td>
+                    <td>日本語音声合成</td>
+                </tr>
+                <tr>
+                    <td><strong>Google API Key</strong></td>
+                    <td>Google AI Studio / Cloud Console</td>
+                    <td>Gemini LLM / Chirp3 TTS</td>
+                </tr>
+                <tr>
+                    <td><strong>OpenAI API Key</strong></td>
+                    <td>platform.openai.com</td>
+                    <td>Whisper STT / GPTモデル</td>
+                </tr>
+                <tr>
+                    <td><strong>Anthropic API Key</strong></td>
+                    <td>console.anthropic.com</td>
+                    <td>Claudeモデル</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</details>
+{% endblock %}

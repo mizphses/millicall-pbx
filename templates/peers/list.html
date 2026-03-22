@@ -1,51 +1,57 @@
 {% extends "base.html" %}
-{% block title %}SIP Peers - Millicall PBX{% endblock %}
+{% block title %}SIPピア - Millicall PBX{% endblock %}
 {% block content %}
-<hgroup>
-    <h1>SIP Peers</h1>
-    <p>Manage SIP endpoint accounts</p>
-</hgroup>
-
-<a href="/peers/new" role="button">Add Peer</a>
+<div class="page-header-row">
+    <div class="page-header">
+        <h1>SIPピア</h1>
+        <p>SIPエンドポイントのアカウントを管理します</p>
+    </div>
+    <a href="/peers/new" class="btn btn-primary">SIPピアを追加</a>
+</div>
 
 {% if peers %}
-<table>
-    <thead>
-        <tr>
-            <th>Username</th>
-            <th>Transport</th>
-            <th>Codecs</th>
-            <th>IP Address</th>
-            <th>Extension</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for peer in peers %}
-        <tr>
-            <td><strong>{{ peer.username }}</strong></td>
-            <td><span class="badge badge-info">{{ peer.transport|upper }}</span></td>
-            <td>{{ peer.codecs|join(", ") }}</td>
-            <td>{{ peer.ip_address or "Dynamic" }}</td>
-            <td>
-                {% if peer.extension_id and ext_map.get(peer.extension_id) %}
-                {{ ext_map[peer.extension_id].number }} - {{ ext_map[peer.extension_id].display_name }}
-                {% else %}
-                -
-                {% endif %}
-            </td>
-            <td class="actions">
-                <a href="/peers/{{ peer.id }}/edit" role="button" class="outline secondary">Edit</a>
-                <form method="post" action="/peers/{{ peer.id }}/delete" style="display:inline"
-                      onsubmit="return confirm('Delete peer {{ peer.username }}?')">
-                    <button type="submit" class="outline contrast">Delete</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>ユーザー名</th>
+                <th>トランスポート</th>
+                <th>コーデック</th>
+                <th>IPアドレス</th>
+                <th>内線番号</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for peer in peers %}
+            <tr>
+                <td><strong>{{ peer.username }}</strong></td>
+                <td><span class="badge badge-muted">{{ peer.transport|upper }}</span></td>
+                <td>{{ peer.codecs|join(", ") }}</td>
+                <td>{{ peer.ip_address or "動的" }}</td>
+                <td>
+                    {% if peer.extension_id and ext_map.get(peer.extension_id) %}
+                    {{ ext_map[peer.extension_id].number }} - {{ ext_map[peer.extension_id].display_name }}
+                    {% else %}
+                    <span style="color: var(--ink-faint)">-</span>
+                    {% endif %}
+                </td>
+                <td class="cell-actions">
+                    <a href="/peers/{{ peer.id }}/edit" class="btn btn-ghost btn-sm">編集</a>
+                    <form method="post" action="/peers/{{ peer.id }}/delete"
+                          onsubmit="return confirm('SIPピア {{ peer.username }} を削除しますか？')">
+                        <button type="submit" class="btn btn-danger btn-sm">削除</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% else %}
-<p>No SIP peers configured. <a href="/peers/new">Add one</a>.</p>
+<div class="card empty-state">
+    <p>SIPピアがまだ登録されていません</p>
+    <a href="/peers/new" class="btn btn-primary">最初のSIPピアを追加</a>
+</div>
 {% endif %}
 {% endblock %}

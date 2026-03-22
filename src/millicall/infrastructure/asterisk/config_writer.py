@@ -1,10 +1,22 @@
 import fcntl
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 
 from millicall.config import settings
-from millicall.domain.models import Extension, Peer
+from millicall.domain.models import AIAgent, Extension, Peer
+
+
+@dataclass
+class TrunkConfig:
+    enabled: bool = False
+    host: str = ""
+    username: str = ""
+    password: str = ""
+    did_number: str = ""
+    caller_id: str = ""
+    incoming_dest: str = ""  # Extension to ring on incoming PSTN calls
 
 
 class AsteriskConfigWriter:
@@ -24,11 +36,13 @@ class AsteriskConfigWriter:
         self,
         peers: list[Peer],
         bind_address: str | None = None,
+        trunk: TrunkConfig | None = None,
     ) -> Path:
         template = self.env.get_template("pjsip.conf.j2")
         content = template.render(
             peers=peers,
             bind_address=bind_address or settings.pbx_bind_address,
+            trunk=trunk or TrunkConfig(),
         )
         output_path = self.output_dir / "pjsip.conf"
         self._write_locked(output_path, content)
@@ -38,6 +52,8 @@ class AsteriskConfigWriter:
         self,
         extensions: list[Extension],
         peer_map: dict[int, Peer],
+        ai_agents: list[AIAgent] | None = None,
+        trunk: TrunkConfig | None = None,
     ) -> Path:
         template = self.env.get_template("extensions.conf.j2")
 
@@ -46,7 +62,11 @@ class AsteriskConfigWriter:
             peer = peer_map.get(ext.peer_id) if ext.peer_id else None
             ext_with_peers.append({"ext": ext, "peer": peer})
 
-        content = template.render(extensions=ext_with_peers)
+        content = template.render(
+            extensions=ext_with_peers,
+            ai_agents=ai_agents or [],
+            trunk=trunk or TrunkConfig(),
+        )
         output_path = self.output_dir / "extensions.conf"
         self._write_locked(output_path, content)
         return output_path

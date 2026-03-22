@@ -47,3 +47,47 @@ default_expiration=3600
 minimum_expiration=60
 
 {% endfor %}
+
+{% if trunk.enabled %}
+; ===========================================
+; PSTN Trunk - Hikari Denwa (NTT HGW)
+; ===========================================
+
+[hikari-trunk]
+type=registration
+outbound_auth=hikari-trunk-auth
+server_uri=sip:{{ trunk.host }}
+client_uri=sip:{{ trunk.username }}@{{ trunk.host }}
+contact_user={{ trunk.username }}
+retry_interval=60
+expiration=3600
+
+[hikari-trunk-auth]
+type=auth
+auth_type=userpass
+username={{ trunk.username }}
+password={{ trunk.password }}
+
+[hikari-trunk]
+type=aor
+contact=sip:{{ trunk.host }}
+
+[hikari-trunk]
+type=endpoint
+context=from-pstn
+disallow=all
+allow=ulaw
+allow=alaw
+outbound_auth=hikari-trunk-auth
+aors=hikari-trunk
+from_user={{ trunk.username }}
+from_domain={{ trunk.host }}
+direct_media=no
+rtp_symmetric=yes
+set_var=SIPUSERAGENT=IPphone1
+
+[hikari-trunk]
+type=identify
+endpoint=hikari-trunk
+match={{ trunk.host }}
+{% endif %}

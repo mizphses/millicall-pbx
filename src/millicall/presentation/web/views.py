@@ -3,7 +3,9 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from millicall.application.ai_agent_service import AIAgentService
 from millicall.application.asterisk_service import AsteriskService
+from millicall.application.settings_service import SettingsService
 from millicall.application.device_service import DeviceService
 from millicall.application.extension_service import ExtensionService
 from millicall.application.peer_service import PeerService
@@ -312,3 +314,158 @@ async def device_delete(
     if device:
         await device_service.device_repo.delete(device_id)
     return RedirectResponse(url="/", status_code=303)
+
+
+# --- AI Agent views ---
+
+DEFAULT_AGENT_PROMPT = """あなたは電話応対AIアシスタントです。
+丁寧な敬語で応対してください。
+回答は3文以内で簡潔にしてください。
+分からないことは正直に「担当者に確認いたします」と答えてください。"""
+
+
+@router.get("/agents", response_class=HTMLResponse)
+async def agents_list(request: Request, session: AsyncSession = Depends(get_session)):
+    agent_service = AIAgentService(session)
+    agents = await agent_service.list_agents()
+    return templates.TemplateResponse("agents/list.html", {
+        "request": request,
+        "agents": agents,
+    })
+
+
+@router.get("/agents/new", response_class=HTMLResponse)
+async def agent_new_form(request: Request):
+    return templates.TemplateResponse("agents/form.html", {
+        "request": request,
+        "agent": None,
+        "default_prompt": DEFAULT_AGENT_PROMPT,
+    })
+
+
+@router.get("/agents/{agent_id}/edit", response_class=HTMLResponse)
+async def agent_edit_form(
+    request: Request,
+    agent_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    agent_service = AIAgentService(session)
+    agent = await agent_service.get_agent(agent_id)
+    return templates.TemplateResponse("agents/form.html", {
+        "request": request,
+        "agent": agent,
+        "default_prompt": DEFAULT_AGENT_PROMPT,
+    })
+
+
+@router.post("/agents", response_class=HTMLResponse)
+async def agent_create(
+    request: Request,
+    name: str = Form(...),
+    extension_number: str = Form(...),
+    system_prompt: str = Form(...),
+    greeting_text: str = Form(...),
+    coefont_voice_id: str = Form(default=""),
+    tts_provider: str = Form(default="coefont"),
+    google_tts_voice: str = Form(default="ja-JP-Chirp3-HD-Aoede"),
+    llm_provider: str = Form(default="google"),
+    llm_model: str = Form(default="gemini-2.0-flash-lite"),
+    max_history: int = Form(default=10),
+    enabled: bool = Form(default=False),
+    session: AsyncSession = Depends(get_session),
+):
+    agent_service = AIAgentService(session)
+    await agent_service.create_agent(
+        name=name,
+        extension_number=extension_number,
+        system_prompt=system_prompt,
+        greeting_text=greeting_text,
+        coefont_voice_id=coefont_voice_id,
+        tts_provider=tts_provider,
+        google_tts_voice=google_tts_voice,
+        llm_provider=llm_provider,
+        llm_model=llm_model,
+        max_history=max_history,
+        enabled=enabled,
+    )
+    asterisk = AsteriskService(session)
+    await asterisk.apply_config()
+    return RedirectResponse(url="/agents", status_code=303)
+
+
+@router.post("/agents/{agent_id}", response_class=HTMLResponse)
+async def agent_update(
+    agent_id: int,
+    name: str = Form(...),
+    extension_number: str = Form(...),
+    system_prompt: str = Form(...),
+    greeting_text: str = Form(...),
+    coefont_voice_id: str = Form(default=""),
+    tts_provider: str = Form(default="coefont"),
+    google_tts_voice: str = Form(default="ja-JP-Chirp3-HD-Aoede"),
+    llm_provider: str = Form(default="google"),
+    llm_model: str = Form(default="gemini-2.0-flash-lite"),
+    max_history: int = Form(default=10),
+    enabled: bool = Form(default=False),
+    session: AsyncSession = Depends(get_session),
+):
+    agent_service = AIAgentService(session)
+    await agent_service.update_agent(
+        agent_id=agent_id,
+        name=name,
+        extension_number=extension_number,
+        system_prompt=system_prompt,
+        greeting_text=greeting_text,
+        coefont_voice_id=coefont_voice_id,
+        tts_provider=tts_provider,
+        google_tts_voice=google_tts_voice,
+        llm_provider=llm_provider,
+        llm_model=llm_model,
+        max_history=max_history,
+        enabled=enabled,
+    )
+    asterisk = AsteriskService(session)
+    await asterisk.apply_config()
+    return RedirectResponse(url="/agents", status_code=303)
+
+
+@router.post("/agents/{agent_id}/delete", response_class=HTMLResponse)
+async def agent_delete(
+    agent_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    agent_service = AIAgentService(session)
+    await agent_service.delete_agent(agent_id)
+    asterisk = AsteriskService(session)
+    await asterisk.apply_config()
+    return RedirectResponse(url="/agents", status_code=303)
+
+
+# --- Settings views ---
+
+@router.get("/settings", response_class=HTMLResponse)
+async def settings_page(request: Request, session: AsyncSession = Depends(get_session)):
+    from millicall.infrastructure.repositories.settings_repo import SettingsRepository
+    repo = SettingsRepository(session)
+    await repo.ensure_defaults()
+    settings_svc = SettingsService(session)
+    settings_list = await settings_svc.get_all()
+    return templates.TemplateResponse("settings.html", {
+        "request": request,
+        "settings_list": settings_list,
+    })
+
+
+@router.post("/settings", response_class=HTMLResponse)
+async def settings_save(
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+):
+    form = await request.form()
+    settings_svc = SettingsService(session)
+    for key, value in form.items():
+        await settings_svc.set(key, value)
+    # Regenerate Asterisk config (trunk settings may have changed)
+    asterisk = AsteriskService(session)
+    await asterisk.apply_config()
+    return RedirectResponse(url="/settings", status_code=303)
