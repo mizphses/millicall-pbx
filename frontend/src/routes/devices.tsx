@@ -207,6 +207,19 @@ function DevicesPage() {
           { header: "IPアドレス", accessor: (d) => d.ip_address || "-" },
           { header: "ホスト名", accessor: (d) => d.hostname || "-" },
           {
+            header: "最終検出",
+            accessor: (d) => {
+              if (!d.last_seen) return "-";
+              const date = new Date(d.last_seen);
+              return date.toLocaleString("ja-JP", {
+                month: "numeric",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+            },
+          },
+          {
             header: "状態",
             accessor: (d) =>
               d.provisioned ? <Tag variant="ok">設定済み</Tag> : <Tag variant="ng">未設定</Tag>,

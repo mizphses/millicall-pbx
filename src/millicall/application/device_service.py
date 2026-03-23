@@ -81,21 +81,23 @@ class DeviceService:
     async def scan_dhcp_leases(
         self, leases_path: str = "/var/lib/misc/dnsmasq.leases"
     ) -> list[Device]:
-        """Read dnsmasq leases file and upsert devices."""
+        """Read dnsmasq leases file, upsert active devices, deactivate missing ones."""
         path = Path(leases_path)
         if not path.exists():
             logger.warning("DHCP leases file not found: %s", leases_path)
             return []
 
         devices = []
+        active_macs: set[str] = set()
         for line in path.read_text().strip().splitlines():
             parts = line.split()
             if len(parts) >= 4:
                 # Format: timestamp mac ip hostname *
-                mac = parts[1].upper()
+                mac = parts[1].upper().replace("-", ":").replace(".", ":")
                 ip = parts[2]
                 hostname = parts[3] if parts[3] != "*" else None
 
+                active_macs.add(mac)
                 device = Device(
                     mac_address=mac,
                     ip_address=ip,
@@ -104,5 +106,10 @@ class DeviceService:
                 )
                 device = await self.device_repo.upsert(device)
                 devices.append(device)
+
+        # リースファイルに載っていないデバイスを非アクティブにする
+        deactivated = await self.device_repo.deactivate_missing(active_macs)
+        if deactivated:
+            logger.info("Deactivated %d devices not in current DHCP leases", deactivated)
 
         return devices

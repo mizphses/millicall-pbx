@@ -34,6 +34,7 @@ async def list_devices(session: AsyncSession = Depends(get_session)):
             "extension_id": d.extension_id,
             "provisioned": d.provisioned,
             "last_seen": d.last_seen.isoformat() if d.last_seen else None,
+            "active": d.active,
         }
         for d in devices
     ]

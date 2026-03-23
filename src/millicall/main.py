@@ -1,10 +1,11 @@
 import asyncio
 import logging
+import urllib.parse
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Form, Query, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from millicall.config import settings
@@ -145,16 +146,224 @@ app.include_router(users_api_router)
 app.include_router(contacts_api_router)
 app.include_router(guide_api_router)
 
+# ---------------------------------------------------------------------------
+# MCP OAuth login page
+# ---------------------------------------------------------------------------
+@app.get("/mcp-login", response_class=HTMLResponse)
+async def mcp_login_page(
+    client_id: str = Query(...),
+    redirect_uri: str = Query(...),
+    code_challenge: str = Query(...),
+    state: str = Query(""),
+    scopes: str = Query(""),
+):
+    """Show login form for MCP OAuth authorization."""
+    return f"""<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Millicall PBX - MCP認証</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap">
+<style>
+  * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+  body {{
+    font-family: "Noto Sans JP", sans-serif;
+    background: #f0eeeb;
+    color: #1b1b1f;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    padding-top: 80px;
+  }}
+  .container {{
+    width: 100%;
+    max-width: 400px;
+    padding: 0 16px;
+  }}
+  h1 {{
+    font-size: 21px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }}
+  .subtitle {{
+    font-size: 13px;
+    color: #4a4a52;
+    margin-bottom: 24px;
+  }}
+  .card {{
+    background: #ffffff;
+    border: 1px solid #d4d2cd;
+    border-radius: 5px;
+    padding: 20px;
+  }}
+  .form-group {{
+    margin-bottom: 16px;
+  }}
+  label {{
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1b1b1f;
+    margin-bottom: 6px;
+  }}
+  input[type="text"],
+  input[type="password"] {{
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 14px;
+    font-family: "Noto Sans JP", sans-serif;
+    color: #1b1b1f;
+    background: #ffffff;
+    border: 1px solid #d4d2cd;
+    border-radius: 5px;
+    min-height: 38px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }}
+  input[type="text"]:focus,
+  input[type="password"]:focus {{
+    border-color: #c45d2c;
+    box-shadow: 0 0 0 2px rgba(196, 93, 44, 0.12);
+  }}
+  button {{
+    width: 100%;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: "Noto Sans JP", sans-serif;
+    border: none;
+    border-radius: 5px;
+    background: #c45d2c;
+    color: #ffffff;
+    min-height: 38px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }}
+  button:hover {{
+    background: #a84e24;
+  }}
+  .error {{
+    font-size: 13px;
+    color: #b83232;
+    margin-bottom: 12px;
+    display: none;
+  }}
+  .mcp-badge {{
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    color: #365a8a;
+    background: rgba(54, 90, 138, 0.08);
+    border: 1px solid rgba(54, 90, 138, 0.2);
+    border-radius: 3px;
+    padding: 2px 6px;
+    margin-bottom: 16px;
+  }}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>ログイン</h1>
+  <p class="subtitle">Millicall PBXアカウントで認証してください</p>
+  <div class="card">
+    <div class="mcp-badge">MCP接続</div>
+    <div class="error" id="error"></div>
+    <form method="post" action="/mcp-login/callback">
+      <input type="hidden" name="client_id" value="{client_id}">
+      <input type="hidden" name="redirect_uri" value="{redirect_uri}">
+      <input type="hidden" name="code_challenge" value="{code_challenge}">
+      <input type="hidden" name="state" value="{state}">
+      <input type="hidden" name="scopes" value="{scopes}">
+      <div class="form-group">
+        <label for="username">ユーザー名</label>
+        <input type="text" id="username" name="username" required autofocus>
+      </div>
+      <div class="form-group">
+        <label for="password">パスワード</label>
+        <input type="password" id="password" name="password" required>
+      </div>
+      <button type="submit">認証</button>
+    </form>
+  </div>
+</div>
+</body>
+</html>"""
+
+
+@app.post("/mcp-login/callback")
+async def mcp_login_callback(
+    client_id: str = Form(...),
+    redirect_uri: str = Form(...),
+    code_challenge: str = Form(...),
+    state: str = Form(""),
+    scopes: str = Form(""),
+    username: str = Form(...),
+    password: str = Form(...),
+):
+    """Authenticate user and redirect back to MCP client with auth code."""
+    from millicall.infrastructure.database import async_session
+    from millicall.infrastructure.repositories.user_repo import UserRepository
+    from millicall.presentation.auth import verify_password
+
+    # Authenticate
+    async with async_session() as session:
+        repo = UserRepository(session)
+        user = await repo.get_by_username(username)
+
+    if not user or not verify_password(password, user.hashed_password):
+        return HTMLResponse(
+            '<html><body><script>alert("ユーザー名またはパスワードが正しくありません");history.back();</script></body></html>',
+            status_code=401,
+        )
+
+    # Check role allows MCP access
+    role = getattr(user, "role", "admin")
+    if role not in ("admin", "user", "mcp"):
+        return HTMLResponse(
+            '<html><body><script>alert("MCP接続の権限がありません");history.back();</script></body></html>',
+            status_code=403,
+        )
+
+    # Create authorization code
+    from millicall.mcp_server import oauth_provider
+
+    scope_list = [s for s in scopes.split(",") if s] if scopes else []
+    code = oauth_provider.create_auth_code(
+        client_id=client_id,
+        username=username,
+        code_challenge=code_challenge,
+        redirect_uri=redirect_uri,
+        scopes=scope_list,
+    )
+
+    # Redirect back to MCP client
+    params = {"code": code}
+    if state:
+        params["state"] = state
+    separator = "&" if "?" in redirect_uri else "?"
+    return RedirectResponse(
+        url=f"{redirect_uri}{separator}{urllib.parse.urlencode(params)}",
+        status_code=302,
+    )
+
+
 # Mount MCP server (Streamable HTTP at /mcp)
 try:
     from millicall.mcp_server import get_streamable_http_app
 
     mcp_app = get_streamable_http_app()
     # Extract session manager for lifespan initialization
+    # With OAuth, session_manager is nested: route.app (RequireAuthMiddleware) -> .app (StreamableHTTPASGIApp)
     for route in mcp_app.routes:
         handler = getattr(route, "app", None)
         if hasattr(handler, "session_manager"):
             app.state.mcp_session_manager = handler.session_manager
+            break
+        inner = getattr(handler, "app", None)
+        if inner and hasattr(inner, "session_manager"):
+            app.state.mcp_session_manager = inner.session_manager
             break
     app.mount("/", mcp_app)
     logger.info("MCP server mounted at /mcp")

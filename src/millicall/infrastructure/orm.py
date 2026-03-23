@@ -58,6 +58,7 @@ devices_table = Table(
     ),
     Column("provisioned", Boolean, default=False, nullable=False),
     Column("last_seen", DateTime, nullable=True),
+    Column("active", Boolean, default=True, nullable=False, server_default="1"),
 )
 
 ai_agents_table = Table(
@@ -135,6 +136,7 @@ users_table = Table(
     Column("hashed_password", String(200), nullable=False),
     Column("display_name", String(100), nullable=False),
     Column("is_admin", Boolean, default=True, nullable=False),
+    Column("role", String(20), default="admin", nullable=False, server_default="admin"),
 )
 
 workflows_table = Table(

@@ -57,6 +57,7 @@ class Device:
     extension_id: int | None = None
     provisioned: bool = False
     last_seen: datetime | None = None
+    active: bool = True
     id: int | None = None
 
 
@@ -112,6 +113,7 @@ class User:
     hashed_password: str
     display_name: str
     is_admin: bool = True
+    role: str = "admin"  # "admin", "user", "mcp"
     id: int | None = None
 
 

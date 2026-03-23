@@ -8,13 +8,228 @@ import asyncio
 import json
 import logging
 import os
+import secrets
+import time
+import urllib.parse
+from dataclasses import dataclass, field
 
 import httpx
-
+from mcp.server.auth.provider import AuthorizationParams
+from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions
 from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp.server import TransportSecuritySettings
+from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# OAuth configuration
+# ---------------------------------------------------------------------------
+MCP_ISSUER_URL = os.environ.get("MCP_ISSUER_URL", "https://millicall.miz.cab")
+
+
+@dataclass
+class StoredAuthCode:
+    code: str
+    client_id: str
+    scopes: list[str]
+    code_challenge: str
+    redirect_uri: str
+    redirect_uri_provided_explicitly: bool
+    username: str
+    created_at: float = field(default_factory=time.time)
+    expires_at: float = field(default=0.0)
+
+    def __post_init__(self):
+        if self.expires_at == 0.0:
+            self.expires_at = self.created_at + 600  # 10 minutes
+
+
+@dataclass
+class StoredToken:
+    token: str
+    client_id: str
+    username: str
+    scopes: list[str]
+    expires_at: float
+    token_type: str = "access"  # "access" or "refresh"
+
+
+class MillicallOAuthProvider:
+    """OAuth 2.1 provider backed by Millicall user database."""
+
+    def __init__(self) -> None:
+        self._clients: dict[str, OAuthClientInformationFull] = {}
+        self._auth_codes: dict[str, StoredAuthCode] = {}
+        self._access_tokens: dict[str, StoredToken] = {}
+        self._refresh_tokens: dict[str, StoredToken] = {}
+
+    # -- Client registration (DCR) --
+
+    async def get_client(self, client_id: str) -> OAuthClientInformationFull | None:
+        return self._clients.get(client_id)
+
+    async def register_client(self, client_info: OAuthClientInformationFull) -> None:
+        self._clients[client_info.client_id] = client_info
+        logger.info("MCP OAuth: registered client %s", client_info.client_id)
+
+    # -- Authorization --
+
+    async def authorize(
+        self, client: OAuthClientInformationFull, params: AuthorizationParams
+    ) -> str:
+        # Redirect to our login page with OAuth params
+        login_params = {
+            "client_id": client.client_id,
+            "redirect_uri": str(params.redirect_uri),
+            "code_challenge": params.code_challenge,
+            "state": params.state or "",
+            "scopes": ",".join(params.scopes) if params.scopes else "",
+        }
+        return f"{MCP_ISSUER_URL}/mcp-login?{urllib.parse.urlencode(login_params)}"
+
+    # -- Auth code management --
+
+    async def load_authorization_code(
+        self, client: OAuthClientInformationFull, authorization_code: str
+    ) -> StoredAuthCode | None:
+        code = self._auth_codes.get(authorization_code)
+        if code and code.client_id == client.client_id:
+            # Expire after 10 minutes
+            if time.time() - code.created_at > 600:
+                del self._auth_codes[authorization_code]
+                return None
+            return code
+        return None
+
+    async def exchange_authorization_code(
+        self, client: OAuthClientInformationFull, authorization_code: StoredAuthCode
+    ) -> OAuthToken:
+        # Remove used code
+        self._auth_codes.pop(authorization_code.code, None)
+
+        # Generate tokens
+        access_token = secrets.token_urlsafe(48)
+        refresh_token = secrets.token_urlsafe(48)
+        expires_in = 86400  # 24 hours
+
+        self._access_tokens[access_token] = StoredToken(
+            token=access_token,
+            client_id=client.client_id,
+            username=authorization_code.username,
+            scopes=authorization_code.scopes,
+            expires_at=time.time() + expires_in,
+        )
+        self._refresh_tokens[refresh_token] = StoredToken(
+            token=refresh_token,
+            client_id=client.client_id,
+            username=authorization_code.username,
+            scopes=authorization_code.scopes,
+            expires_at=time.time() + 86400 * 30,  # 30 days
+            token_type="refresh",
+        )
+
+        logger.info("MCP OAuth: issued tokens for user %s", authorization_code.username)
+        return OAuthToken(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            expires_in=expires_in,
+            scope=" ".join(authorization_code.scopes) if authorization_code.scopes else None,
+        )
+
+    # -- Refresh token --
+
+    async def load_refresh_token(
+        self, client: OAuthClientInformationFull, refresh_token: str
+    ) -> StoredToken | None:
+        token = self._refresh_tokens.get(refresh_token)
+        if token and token.client_id == client.client_id:
+            if time.time() > token.expires_at:
+                del self._refresh_tokens[refresh_token]
+                return None
+            return token
+        return None
+
+    async def exchange_refresh_token(
+        self,
+        client: OAuthClientInformationFull,
+        refresh_token: StoredToken,
+        scopes: list[str],
+    ) -> OAuthToken:
+        # Revoke old refresh token
+        self._refresh_tokens.pop(refresh_token.token, None)
+
+        # Issue new tokens
+        new_access = secrets.token_urlsafe(48)
+        new_refresh = secrets.token_urlsafe(48)
+        expires_in = 86400
+        use_scopes = scopes or refresh_token.scopes
+
+        self._access_tokens[new_access] = StoredToken(
+            token=new_access,
+            client_id=client.client_id,
+            username=refresh_token.username,
+            scopes=use_scopes,
+            expires_at=time.time() + expires_in,
+        )
+        self._refresh_tokens[new_refresh] = StoredToken(
+            token=new_refresh,
+            client_id=client.client_id,
+            username=refresh_token.username,
+            scopes=use_scopes,
+            expires_at=time.time() + 86400 * 30,
+            token_type="refresh",
+        )
+
+        return OAuthToken(
+            access_token=new_access,
+            refresh_token=new_refresh,
+            expires_in=expires_in,
+            scope=" ".join(use_scopes) if use_scopes else None,
+        )
+
+    # -- Access token verification --
+
+    async def load_access_token(self, token: str) -> StoredToken | None:
+        stored = self._access_tokens.get(token)
+        if stored and time.time() < stored.expires_at:
+            return stored
+        if stored:
+            del self._access_tokens[token]
+        return None
+
+    # -- Revocation --
+
+    async def revoke_token(
+        self, token: StoredToken
+    ) -> None:
+        self._access_tokens.pop(token.token, None)
+        self._refresh_tokens.pop(token.token, None)
+
+    # -- Helper: create auth code after user login --
+
+    def create_auth_code(
+        self, client_id: str, username: str, code_challenge: str,
+        redirect_uri: str, scopes: list[str],
+        redirect_uri_provided_explicitly: bool = True,
+    ) -> str:
+        code = secrets.token_urlsafe(32)
+        self._auth_codes[code] = StoredAuthCode(
+            code=code,
+            client_id=client_id,
+            scopes=scopes,
+            code_challenge=code_challenge,
+            redirect_uri=redirect_uri,
+            redirect_uri_provided_explicitly=redirect_uri_provided_explicitly,
+            username=username,
+        )
+        return code
+
+
+# Singleton — shared between MCP server and login endpoint
+oauth_provider = MillicallOAuthProvider()
+
 
 # ---------------------------------------------------------------------------
 # ARI configuration (same as ari_handler.py)
@@ -32,7 +247,39 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite+aiosqlite:///./data/millic
 # ---------------------------------------------------------------------------
 mcp = FastMCP(
     "Millicall PBX",
-    instructions="IP-PBX管理・電話発信・通話制御ツール",
+    instructions="""\
+Millicall PBX — IP電話の発信・通話制御ツール。
+
+## 電話をかける時
+常に `converse` ツールを最優先で使ってください。
+converseは発信→自律会話→切電まで全自動で行います。
+あなたは目的(purpose)と要点(key_points)を渡すだけです。
+
+dial, say, say_and_listen, listen, hangup はユーザーが明示的に手動制御を指示した場合のみ使用してください。
+デフォルトでは常にconverseを選んでください。
+
+## converseの使い方
+- purpose: 会話の目的を具体的に書く（例: "ラーメンを1杯注文する"）
+- key_points: 伝えるべき情報を改行区切りで書く（例: "味噌ラーメン\\n大盛り"）
+- your_name: 名乗る名前（任意）
+
+## その他のツール
+- `list_contacts` / `add_contact` / `delete_contact`: 電話帳
+- `list_extensions` / `list_trunks`: PBX情報
+
+## 禁止事項
+- ユーザーの明示的な指示なしに電話をかけないでください。
+- ユーザーに確認せず勝手にかけ直さないでください。
+""",
+    transport_security=TransportSecuritySettings(
+        allowed_hosts=["millicall.miz.cab", "localhost", "127.0.0.1", "192.168.1.2"],
+    ),
+    auth_server_provider=oauth_provider,
+    auth=AuthSettings(
+        issuer_url=MCP_ISSUER_URL,
+        resource_server_url=MCP_ISSUER_URL,
+        client_registration_options=ClientRegistrationOptions(enabled=True),
+    ),
 )
 
 
@@ -101,48 +348,162 @@ async def _get_api_key(provider: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# LLM helper for autonomous conversation
+# ---------------------------------------------------------------------------
+async def _llm_respond(
+    system_prompt: str, conversation_history: list[dict], model: str = "gpt-4o-mini"
+) -> str:
+    """Generate a response using OpenAI API."""
+    api_key = await _get_api_key("openai")
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        resp = await client.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}"},
+            json={
+                "model": model,
+                "messages": [{"role": "system", "content": system_prompt}]
+                + conversation_history,
+                "max_tokens": 200,
+                "temperature": 0.7,
+            },
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"].strip()
+
+
+# ---------------------------------------------------------------------------
 # Call Management Tools
 # ---------------------------------------------------------------------------
-@mcp.tool()
-async def dial(
-    phone_number: str, caller_id: str = "", trunk: str = ""
-) -> str:
-    """外線または内線に電話を発信します。
-
-    Args:
-        phone_number: 発信先の電話番号（外線は0から始まる番号、内線は内線番号）
-        caller_id: 発信者番号（省略時はトランクのデフォルト）
-        trunk: 使用するトランク名（省略時はデフォルトトランク）
-
-    Returns:
-        通話のchannel_id
-    """
-    # Determine endpoint
+async def _resolve_endpoint(phone_number: str, trunk: str = "", caller_id: str = "") -> tuple[str, str]:
+    """Resolve phone_number to a PJSIP endpoint and caller_id."""
     if trunk:
-        endpoint = f"PJSIP/{phone_number}@{trunk}"
+        return f"PJSIP/{phone_number}@{trunk}", caller_id
     elif phone_number.startswith("0") or phone_number.startswith("184") or phone_number.startswith("186"):
-        # External call - find a trunk
         session_factory, engine = await _get_db_session()
         try:
             async with session_factory() as session:
                 from millicall.infrastructure.repositories.trunk_repo import TrunkRepository
-
                 repo = TrunkRepository(session)
                 trunks = await repo.get_all()
                 enabled_trunks = [t for t in trunks if t.enabled]
                 if not enabled_trunks:
-                    return json.dumps({"error": "利用可能なトランクがありません"}, ensure_ascii=False)
+                    raise ValueError("利用可能なトランクがありません")
                 trunk_obj = enabled_trunks[0]
-                endpoint = f"PJSIP/{phone_number}@{trunk_obj.name}"
                 if not caller_id and trunk_obj.caller_id:
                     caller_id = trunk_obj.caller_id
+                return f"PJSIP/{phone_number}@{trunk_obj.name}", caller_id
         finally:
             await engine.dispose()
     else:
-        # Internal extension
-        endpoint = f"PJSIP/{phone_number}"
+        session_factory, engine = await _get_db_session()
+        try:
+            async with session_factory() as session:
+                from sqlalchemy import text as sa_text
+                row = await session.execute(
+                    sa_text(
+                        "SELECT p.username FROM extensions e "
+                        "JOIN peers p ON p.id = e.peer_id "
+                        "WHERE e.number = :num AND e.enabled = 1"
+                    ),
+                    {"num": phone_number},
+                )
+                result = row.fetchone()
+                ep = f"PJSIP/{result[0]}" if result else f"PJSIP/{phone_number}"
+                return ep, caller_id
+        finally:
+            await engine.dispose()
 
-    # Build originate parameters
+
+async def _tts_play(channel_id: str, text: str, voice: str = "ja-JP-Chirp3-HD-Aoede") -> float:
+    """Synthesize text and play on channel. Returns duration in seconds."""
+    api_key = await _get_api_key("google")
+    from millicall.phase2.tts_google import synthesize
+    audio_wav = await synthesize(text, api_key, voice_name=voice)
+
+    safe_id = _sanitize_id(channel_id)
+    filename = f"mcp_say_{safe_id}.wav"
+    sound_name = await _save_wav_to_asterisk(audio_wav, filename)
+
+    await _ari_request(
+        "POST",
+        f"/channels/{channel_id}/play",
+        params={"media": f"sound:{sound_name}"},
+    )
+
+    duration = len(audio_wav) / (8000 * 2)
+    await asyncio.sleep(duration + 0.5)
+
+    try:
+        os.remove(f"/usr/share/asterisk/sounds/en/{sound_name}.wav")
+    except OSError:
+        pass
+    return duration
+
+
+async def _record_and_transcribe(channel_id: str, max_seconds: int = 15) -> str:
+    """Record from channel and return transcribed text."""
+    safe_id = _sanitize_id(channel_id)
+    recording_name = f"mcp_listen_{safe_id}"
+
+    await _ari_request(
+        "POST",
+        f"/channels/{channel_id}/record",
+        params={
+            "name": recording_name,
+            "format": "wav",
+            "maxDurationSeconds": max_seconds,
+            "maxSilenceSeconds": 3,
+            "beep": "false",
+            "terminateOn": "none",
+        },
+    )
+
+    audio_data = None
+    for _ in range(max_seconds + 5):
+        await asyncio.sleep(1)
+        try:
+            result = await _ari_request(
+                "GET", f"/recordings/stored/{recording_name}/file"
+            )
+            if result and isinstance(result, bytes) and len(result) > 100:
+                audio_data = result
+                break
+        except Exception:
+            continue
+
+    if not audio_data:
+        return ""
+
+    from millicall.phase2.stt import transcribe
+    stt_key = await _get_api_key("openai")
+    text = await transcribe(audio_data, stt_key)
+
+    try:
+        await _ari_request("DELETE", f"/recordings/stored/{recording_name}")
+    except Exception:
+        pass
+    return text
+
+
+@mcp.tool()
+async def dial(
+    phone_number: str, caller_id: str = "", trunk: str = ""
+) -> str:
+    """電話を発信し、相手が応答するまで待ちます。応答したらchannel_idを返します。
+
+    Args:
+        phone_number: 発信先（外線は0始まりの番号、内線は内線番号 例: "800"）
+        caller_id: 発信者番号（省略時はトランクのデフォルト）
+        trunk: 使用するトランク名（省略時は自動選択）
+
+    Returns:
+        channel_idと接続状態。このchannel_idをsay_and_listen等に渡してください。
+    """
+    try:
+        endpoint, caller_id = await _resolve_endpoint(phone_number, trunk, caller_id)
+    except ValueError as e:
+        return json.dumps({"error": str(e)}, ensure_ascii=False)
+
     params = {
         "endpoint": endpoint,
         "app": STASIS_APP,
@@ -153,19 +514,36 @@ async def dial(
 
     try:
         result = await _ari_request("POST", "/channels", params=params)
-        if isinstance(result, dict):
-            channel_id = result.get("id", "")
-            state = result.get("state", "")
-            return json.dumps(
-                {
-                    "channel_id": channel_id,
-                    "state": state,
-                    "endpoint": endpoint,
-                    "message": f"{phone_number} に発信しました",
-                },
-                ensure_ascii=False,
-            )
-        return json.dumps({"error": "予期しないレスポンス"}, ensure_ascii=False)
+        if not isinstance(result, dict):
+            return json.dumps({"error": "予期しないレスポンス"}, ensure_ascii=False)
+
+        channel_id = result.get("id", "")
+
+        # Wait for answer (poll up to 30 seconds)
+        for _ in range(30):
+            await asyncio.sleep(1)
+            try:
+                status = await _ari_request("GET", f"/channels/{channel_id}")
+                if isinstance(status, dict) and status.get("state") == "Up":
+                    return json.dumps(
+                        {
+                            "channel_id": channel_id,
+                            "state": "Up",
+                            "message": f"{phone_number} が応答しました。say_and_listenで会話を始めてください。",
+                        },
+                        ensure_ascii=False,
+                    )
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 404:
+                    return json.dumps(
+                        {"error": "相手が応答しませんでした（不在または拒否）"},
+                        ensure_ascii=False,
+                    )
+
+        return json.dumps(
+            {"error": "30秒以内に応答がありませんでした", "channel_id": channel_id},
+            ensure_ascii=False,
+        )
     except httpx.HTTPStatusError as e:
         return json.dumps(
             {"error": f"発信に失敗しました: {e.response.status_code} {e.response.text}"},
@@ -176,10 +554,49 @@ async def dial(
 
 
 @mcp.tool()
+async def say_and_listen(
+    channel_id: str,
+    text: str,
+    max_listen_seconds: int = 15,
+    voice: str = "ja-JP-Chirp3-HD-Aoede",
+) -> str:
+    """相手にテキストを話しかけ、その後相手の返答を聞き取ります。
+    会話の1ターン（こちらが話す→相手が話す）を1回のツール呼び出しで行います。
+
+    Args:
+        channel_id: 通話のチャネルID（dialの戻り値）
+        text: 相手に伝えるテキスト
+        max_listen_seconds: 相手の発話を待つ最大秒数
+        voice: Google TTSのボイス名
+
+    Returns:
+        相手の返答テキスト
+    """
+    try:
+        # Step 1: Speak
+        duration = await _tts_play(channel_id, text, voice)
+
+        # Step 2: Listen for response
+        response_text = await _record_and_transcribe(channel_id, max_listen_seconds)
+
+        return json.dumps(
+            {
+                "you_said": text[:100],
+                "they_said": response_text,
+                "message": response_text if response_text else "（相手の発話が検出されませんでした）",
+            },
+            ensure_ascii=False,
+        )
+    except Exception as e:
+        return json.dumps({"error": f"会話エラー: {e}"}, ensure_ascii=False)
+
+
+@mcp.tool()
 async def say(
     channel_id: str, text: str, voice: str = "ja-JP-Chirp3-HD-Aoede"
 ) -> str:
-    """通話中の相手にテキストを音声で伝えます（TTS）。
+    """相手にテキストを話します（返答は聞きません）。
+    通話の最後の挨拶やお礼など、返答を待たない場面で使います。
 
     Args:
         channel_id: 通話のチャネルID
@@ -190,32 +607,7 @@ async def say(
         再生完了メッセージ
     """
     try:
-        api_key = await _get_api_key("google")
-        from millicall.phase2.tts_google import synthesize
-
-        audio_wav = await synthesize(text, api_key, voice_name=voice)
-
-        safe_id = _sanitize_id(channel_id)
-        filename = f"mcp_say_{safe_id}.wav"
-        sound_name = await _save_wav_to_asterisk(audio_wav, filename)
-
-        await _ari_request(
-            "POST",
-            f"/channels/{channel_id}/play",
-            params={"media": f"sound:{sound_name}"},
-        )
-
-        # Wait for playback to finish (approximate from audio size)
-        duration = len(audio_wav) / (8000 * 2)
-        await asyncio.sleep(duration + 0.5)
-
-        # Clean up temp file
-        try:
-            filepath = f"/usr/share/asterisk/sounds/en/{sound_name}.wav"
-            os.remove(filepath)
-        except OSError:
-            pass
-
+        duration = await _tts_play(channel_id, text, voice)
         return json.dumps(
             {"status": "ok", "message": f"「{text[:50]}」を再生しました", "duration_sec": round(duration, 1)},
             ensure_ascii=False,
@@ -226,7 +618,8 @@ async def say(
 
 @mcp.tool()
 async def listen(channel_id: str, max_seconds: int = 15) -> str:
-    """通話中の相手の発話を録音してテキストに変換します（STT）。
+    """相手の発話だけを聞き取ります（こちらは何も話しません）。
+    相手がまだ話し続けている場合など、追加で聞きたい時に使います。
 
     Args:
         channel_id: 通話のチャネルID
@@ -235,55 +628,10 @@ async def listen(channel_id: str, max_seconds: int = 15) -> str:
     Returns:
         相手が話した内容のテキスト
     """
-    safe_id = _sanitize_id(channel_id)
-    recording_name = f"mcp_listen_{safe_id}"
-
     try:
-        # Start recording
-        await _ari_request(
-            "POST",
-            f"/channels/{channel_id}/record",
-            params={
-                "name": recording_name,
-                "format": "wav",
-                "maxDurationSeconds": max_seconds,
-                "maxSilenceSeconds": 3,
-                "beep": "false",
-                "terminateOn": "none",
-            },
-        )
-
-        # Poll for recording completion
-        audio_data = None
-        for _ in range(max_seconds + 5):
-            await asyncio.sleep(1)
-            try:
-                result = await _ari_request(
-                    "GET", f"/recordings/stored/{recording_name}/file"
-                )
-                if result and isinstance(result, bytes) and len(result) > 100:
-                    audio_data = result
-                    break
-            except Exception:
-                continue
-
-        if not audio_data:
-            return json.dumps({"text": "", "message": "録音データが取得できませんでした"}, ensure_ascii=False)
-
-        # STT
-        from millicall.phase2.stt import transcribe
-
-        stt_key = await _get_api_key("openai")
-        text = await transcribe(audio_data, stt_key)
-
-        # Clean up recording
-        try:
-            await _ari_request("DELETE", f"/recordings/stored/{recording_name}")
-        except Exception:
-            pass
-
+        text = await _record_and_transcribe(channel_id, max_seconds)
         return json.dumps(
-            {"text": text, "message": "音声をテキストに変換しました" if text else "音声が検出されませんでした"},
+            {"text": text, "message": text if text else "（相手の発話が検出されませんでした）"},
             ensure_ascii=False,
         )
     except Exception as e:
@@ -309,6 +657,163 @@ async def hangup(channel_id: str) -> str:
         return json.dumps({"error": f"通話終了に失敗: {e}"}, ensure_ascii=False)
     except Exception as e:
         return json.dumps({"error": f"通話終了エラー: {e}"}, ensure_ascii=False)
+
+
+@mcp.tool()
+async def converse(
+    phone_number: str,
+    purpose: str,
+    key_points: str = "",
+    your_name: str = "",
+    max_turns: int = 10,
+    caller_id: str = "",
+    trunk: str = "",
+    voice: str = "ja-JP-Chirp3-HD-Aoede",
+) -> str:
+    """電話を発信し、目的に沿って自律的に会話を行います。
+    会話の目的と要点を指定するだけで、発信→会話→切電まで自動で行います。
+
+    Args:
+        phone_number: 発信先（外線: "09012345678"、内線: "800"）
+        purpose: 会話の目的（例: "ラーメンを1杯注文する"、"明日の会議の時間を確認する"）
+        key_points: 伝えるべき要点（改行区切り。例: "味噌ラーメン\\n大盛り\\n届け先は東京都..."）
+        your_name: 自分の名前（名乗る時に使用。省略時は名乗りません）
+        max_turns: 最大会話ターン数（デフォルト10）
+        caller_id: 発信者番号（省略時はデフォルト）
+        trunk: トランク名（省略時は自動選択）
+        voice: TTSボイス名
+
+    Returns:
+        会話の全文トランスクリプトと結果サマリー
+    """
+    # Build system prompt for the conversation agent
+    name_part = f"あなたの名前は「{your_name}」です。最初に名乗ってください。" if your_name else ""
+    points_part = f"\n\n## 伝えるべき要点\n{key_points}" if key_points else ""
+
+    system_prompt = f"""\
+あなたは電話で会話をしているAIアシスタントです。
+相手は電話の向こうにいる人間です。自然な日本語の電話会話を行ってください。
+
+## 会話の目的
+{purpose}
+
+{name_part}{points_part}
+
+## 重要なルール
+- 1回の発話は1〜2文に留めてください。電話では短く区切って話すのが自然です。
+- 敬語を使ってください。
+- 相手の発話に適切に反応してください（相槌、確認、質問への回答など）。
+- 目的が達成できたら「ありがとうございました。失礼いたします。」のように締めの挨拶をして、[DONE] を発話の末尾に付けてください。
+- 目的が達成できない場合（相手が断った等）も、丁寧に終了して [DONE] を付けてください。
+- [DONE] は相手には読み上げられません。会話終了の合図としてだけ使います。
+- 相手の発話が空だった場合は「もしもし、聞こえていますか？」と確認してください。
+- わからないことを聞かれたら「確認して折り返します」と伝えてください。
+"""
+
+    transcript: list[dict] = []
+    conversation_history: list[dict] = []
+
+    # Step 1: Dial
+    try:
+        endpoint, caller_id = await _resolve_endpoint(phone_number, trunk, caller_id)
+    except ValueError as e:
+        return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+    params = {"endpoint": endpoint, "app": STASIS_APP, "appArgs": phone_number}
+    if caller_id:
+        params["callerId"] = caller_id
+
+    try:
+        result = await _ari_request("POST", "/channels", params=params)
+        if not isinstance(result, dict):
+            return json.dumps({"error": "発信に失敗しました"}, ensure_ascii=False)
+        channel_id = result.get("id", "")
+    except Exception as e:
+        return json.dumps({"error": f"発信エラー: {e}"}, ensure_ascii=False)
+
+    # Wait for answer
+    answered = False
+    for _ in range(30):
+        await asyncio.sleep(1)
+        try:
+            status = await _ari_request("GET", f"/channels/{channel_id}")
+            if isinstance(status, dict) and status.get("state") == "Up":
+                answered = True
+                break
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                return json.dumps(
+                    {"error": "相手が応答しませんでした", "transcript": transcript},
+                    ensure_ascii=False,
+                )
+
+    if not answered:
+        try:
+            await _ari_request("DELETE", f"/channels/{channel_id}", params={"reason_code": "16"})
+        except Exception:
+            pass
+        return json.dumps(
+            {"error": "30秒以内に応答がありませんでした", "transcript": transcript},
+            ensure_ascii=False,
+        )
+
+    # Step 2: Conversation loop
+    try:
+        for turn in range(max_turns):
+            # Generate what to say
+            ai_response = await _llm_respond(system_prompt, conversation_history)
+
+            # Check if conversation should end
+            done = "[DONE]" in ai_response
+            ai_text = ai_response.replace("[DONE]", "").strip()
+
+            if not ai_text:
+                break
+
+            transcript.append({"turn": turn + 1, "speaker": "ai", "text": ai_text})
+            conversation_history.append({"role": "assistant", "content": ai_text})
+
+            if done:
+                # Final message — say without listening
+                await _tts_play(channel_id, ai_text, voice)
+                break
+            else:
+                # Say and listen
+                await _tts_play(channel_id, ai_text, voice)
+                their_text = await _record_and_transcribe(channel_id, 15)
+
+                transcript.append({"turn": turn + 1, "speaker": "human", "text": their_text or "（無言）"})
+                conversation_history.append({"role": "user", "content": their_text or "（相手は無言でした）"})
+
+    except Exception as e:
+        transcript.append({"speaker": "system", "text": f"エラー: {e}"})
+
+    # Step 3: Hang up
+    try:
+        await _ari_request("DELETE", f"/channels/{channel_id}", params={"reason_code": "16"})
+    except Exception:
+        pass
+
+    # Generate summary
+    try:
+        summary = await _llm_respond(
+            "以下の電話会話のトランスクリプトを読んで、結果を1〜2文で要約してください。目的が達成できたかどうかも述べてください。",
+            [{"role": "user", "content": json.dumps(transcript, ensure_ascii=False)}],
+        )
+    except Exception:
+        summary = ""
+
+    return json.dumps(
+        {
+            "status": "completed",
+            "phone_number": phone_number,
+            "purpose": purpose,
+            "turns": len([t for t in transcript if t.get("speaker") == "ai"]),
+            "summary": summary,
+            "transcript": transcript,
+        },
+        ensure_ascii=False,
+    )
 
 
 @mcp.tool()
@@ -631,34 +1136,43 @@ async def list_trunks() -> str:
 @mcp.resource("guide://outbound-calling")
 async def outbound_calling_guide() -> str:
     """外線発信のガイド"""
-    return """# Millicall PBX 外線発信ガイド
+    return """# Millicall PBX 電話会話ガイド
 
-## 基本的な発信方法
-1. `list_trunks` で利用可能なトランクとプレフィックスを確認
-2. `dial` ツールで発信（phone_number に電話番号を指定）
-3. 通話が接続されたら `say` で話す、`listen` で聞く
-4. `hangup` で通話終了
+## 基本の会話フロー（3ステップ）
+1. `dial` で発信（応答まで自動で待ちます）
+2. `say_and_listen` で会話のやりとり（何ターンでも繰り返し可能）
+3. `hangup` で通話終了
 
 ## 電話番号の形式
-- 内線: 番号をそのまま（例: "4001"）
+- 内線: 番号をそのまま（例: "800", "4001"）
 - 外線: 0 + 番号（例: "09012345678"）
 - 非通知発信: 184 + 0 + 番号
 - 番号通知発信: 186 + 0 + 番号
-- プレフィックス付き: トランクのプレフィックス + 番号
 
-## 会話の流れ
-### テキストベース会話
+## 会話例：ラーメンの注文
 ```
-channel = dial("09012345678")
-say(channel, "こんにちは、○○の件でお電話しました")
-response = listen(channel)  # 相手の返答をテキストで取得
-say(channel, "承知しました。ありがとうございます")
-hangup(channel)
+# 1. 発信（応答を待つ）
+result = dial("09012345678")
+channel_id = result["channel_id"]
+
+# 2. 会話（say_and_listen = こちらが話す→相手の返答を聞く）
+r1 = say_and_listen(channel_id, "こんにちは、ラーメンを1杯お願いしたいのですが")
+# r1["they_said"] = "はい、味はどうしますか？"
+
+r2 = say_and_listen(channel_id, "味噌ラーメンをお願いします")
+# r2["they_said"] = "かしこまりました。20分ほどでお届けします"
+
+# 3. 最後の挨拶（返答不要なのでsayだけ）→ 切る
+say(channel_id, "ありがとうございます。お願いします")
+hangup(channel_id)
 ```
 
-## 電話帳の活用
-- `list_contacts` で連絡先を検索
-- `add_contact` で新しい連絡先を保存
+## ツール使い分け
+- `say_and_listen`: 通常の会話（話す→聞く）
+- `say`: 最後の一言（お礼・挨拶など返答不要）
+- `listen`: 追加で相手の話を聞きたい時
+- `dial`: 発信（応答まで待つ）
+- `hangup`: 切電
 """
 
 

@@ -22,10 +22,10 @@ def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
 
-def create_access_token(data: dict) -> str:
+def create_access_token(data: dict, role: str = "admin") -> str:
     to_encode = data.copy()
     expire = datetime.now(UTC) + timedelta(minutes=settings.jwt_expiry_minutes)
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire, "role": role})
     return jwt.encode(to_encode, settings.jwt_secret, algorithm="HS256")
 
 

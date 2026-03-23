@@ -22,12 +22,15 @@ class DeviceRepository:
             extension_id=row.extension_id,
             provisioned=row.provisioned,
             last_seen=row.last_seen,
+            active=row.active,
         )
 
-    async def get_all(self) -> list[Device]:
-        result = await self.session.execute(
-            select(devices_table).order_by(devices_table.c.mac_address)
-        )
+    async def get_all(self, active_only: bool = True) -> list[Device]:
+        stmt = select(devices_table)
+        if active_only:
+            stmt = stmt.where(devices_table.c.active == True)  # noqa: E712
+        stmt = stmt.order_by(devices_table.c.last_seen.desc().nullslast())
+        result = await self.session.execute(stmt)
         return [self._row_to_model(row) for row in result]
 
     async def get_by_id(self, device_id: int) -> Device | None:
@@ -60,6 +63,7 @@ class DeviceRepository:
                     hostname=device.hostname or existing.hostname,
                     model=device.model or existing.model,
                     last_seen=device.last_seen or datetime.now(),
+                    active=True,
                 )
             )
             await self.session.commit()
@@ -109,6 +113,20 @@ class DeviceRepository:
         device.extension_id = extension_id
         device.provisioned = True
         return device
+
+    async def deactivate_missing(self, active_macs: set[str]) -> int:
+        """Mark devices as inactive if their MAC is not in the current lease set."""
+        stmt = (
+            update(devices_table)
+            .where(
+                devices_table.c.active == True,  # noqa: E712
+                devices_table.c.mac_address.notin_(active_macs),
+            )
+            .values(active=False)
+        )
+        result = await self.session.execute(stmt)
+        await self.session.commit()
+        return result.rowcount
 
     async def delete(self, device_id: int) -> None:
         await self.session.execute(delete(devices_table).where(devices_table.c.id == device_id))

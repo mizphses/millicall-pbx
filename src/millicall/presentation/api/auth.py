@@ -24,7 +24,7 @@ async def login(data: LoginRequest, session: AsyncSession = Depends(get_session)
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token = create_access_token(data={"sub": user.username})
+    access_token = create_access_token(data={"sub": user.username}, role=user.role)
     return TokenResponse(access_token=access_token, token_type="bearer")
 
 
