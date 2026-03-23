@@ -4,7 +4,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from millicall.domain.models import User
 from millicall.infrastructure.database import get_session
 from millicall.infrastructure.repositories.user_repo import UserRepository
-from millicall.presentation.auth import get_current_user, hash_password, require_admin, verify_password
+from millicall.presentation.auth import (
+    get_current_user,
+    hash_password,
+    require_admin,
+    verify_password,
+)
 from millicall.presentation.schemas import (
     ChangePasswordRequest,
     UserCreate,

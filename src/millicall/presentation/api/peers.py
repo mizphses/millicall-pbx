@@ -3,8 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from millicall.application.asterisk_service import AsteriskService
 from millicall.application.peer_service import PeerService
-from millicall.infrastructure.database import get_session
 from millicall.domain.models import User
+from millicall.infrastructure.database import get_session
 from millicall.presentation.auth import get_current_user, require_admin
 from millicall.presentation.schemas import PeerCreate, PeerResponse, PeerUpdate
 

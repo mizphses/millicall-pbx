@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from millicall.application.ai_agent_service import AIAgentService
-from millicall.infrastructure.database import get_session
 from millicall.domain.models import User
+from millicall.infrastructure.database import get_session
 from millicall.presentation.auth import get_current_user, require_admin
 from millicall.presentation.schemas import AgentCreate, AgentResponse, AgentUpdate
 

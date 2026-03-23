@@ -1,10 +1,9 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from millicall.domain.models import Contact
+from millicall.domain.models import Contact, User
 from millicall.infrastructure.database import get_session
 from millicall.infrastructure.repositories.contact_repo import ContactRepository
-from millicall.domain.models import User
 from millicall.presentation.auth import get_current_user, require_admin
 from millicall.presentation.schemas import ContactCreate, ContactResponse, ContactUpdate
 

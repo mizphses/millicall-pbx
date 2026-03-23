@@ -9,9 +9,9 @@ from millicall.application.asterisk_service import AsteriskService
 from millicall.application.device_service import DeviceService
 from millicall.application.extension_service import ExtensionService
 from millicall.application.peer_service import PeerService
+from millicall.domain.models import User
 from millicall.infrastructure.database import get_session
 from millicall.infrastructure.repositories.extension_repo import ExtensionRepository
-from millicall.domain.models import User
 from millicall.presentation.auth import get_current_user, require_admin
 
 router = APIRouter(
@@ -43,7 +43,9 @@ async def list_devices(session: AsyncSession = Depends(get_session)):
 
 
 @router.post("/scan")
-async def scan_devices(session: AsyncSession = Depends(get_session), _admin: User = Depends(require_admin)):
+async def scan_devices(
+    session: AsyncSession = Depends(get_session), _admin: User = Depends(require_admin)
+):
     service = DeviceService(session)
     devices = await service.scan_dhcp_leases()
     return {"scanned": len(devices)}

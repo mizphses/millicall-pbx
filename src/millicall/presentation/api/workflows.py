@@ -8,9 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from millicall.application.asterisk_service import AsteriskService
 from millicall.application.workflow_service import WorkflowService
+from millicall.domain.models import User
 from millicall.domain.node_types import get_node_types_for_workflow_type
 from millicall.infrastructure.database import get_session
-from millicall.domain.models import User
 from millicall.presentation.auth import get_current_user, require_admin
 from millicall.presentation.schemas import (
     TTSConfig,
