@@ -126,6 +126,16 @@ class CallMessage:
 
 
 @dataclass
+class Contact:
+    name: str
+    phone_number: str
+    company: str = ""
+    department: str = ""
+    notes: str = ""
+    id: int | None = None
+
+
+@dataclass
 class Workflow:
     name: str
     number: str  # extension number to dial this workflow

@@ -252,6 +252,34 @@ class CallLogDetailResponse(BaseModel):
     messages: list[CallMessageResponse]
 
 
+# --- Contacts ---
+
+
+class ContactCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    phone_number: str = Field(..., min_length=1, max_length=30)
+    company: str = Field(default="", max_length=100)
+    department: str = Field(default="", max_length=100)
+    notes: str = ""
+
+
+class ContactUpdate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    phone_number: str = Field(..., min_length=1, max_length=30)
+    company: str = Field(default="", max_length=100)
+    department: str = Field(default="", max_length=100)
+    notes: str = ""
+
+
+class ContactResponse(BaseModel):
+    id: int
+    name: str
+    phone_number: str
+    company: str
+    department: str
+    notes: str
+
+
 # --- Workflows ---
 
 

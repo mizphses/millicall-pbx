@@ -227,6 +227,42 @@ function SettingsPage() {
           外線トランク管理へ
         </Link>
       </div>
+
+      <div
+        className={css({
+          background: "#ffffff",
+          border: "1px solid #d4d2cd",
+          borderRadius: "6px",
+          padding: "20px",
+          marginTop: "20px",
+        })}
+      >
+        <h2 className={css({ fontSize: "15px", fontWeight: 600, marginBottom: "8px" })}>
+          MCP連携
+        </h2>
+        <p className={css({ fontSize: "13px", color: "#4a4a52", marginBottom: "12px" })}>
+          Claude DesktopなどのAIアシスタントからMillicallを操作するためのMCP設定ガイドです。
+        </p>
+        <Link
+          to="/mcp-guide"
+          className={css({
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "7px 14px",
+            fontSize: "13px",
+            fontWeight: 500,
+            borderRadius: "5px",
+            background: "#ffffff",
+            color: "#1b1b1f",
+            border: "1px solid #d4d2cd",
+            textDecoration: "none",
+            _hover: { background: "#e6e4e0" },
+          })}
+        >
+          MCP連携ガイドを見る
+        </Link>
+      </div>
     </>
   );
 }

@@ -40,3 +40,8 @@ class AsteriskReloadError(MillicallError):
 class WorkflowNotFoundError(MillicallError):
     def __init__(self, workflow_id: int):
         super().__init__(f"Workflow {workflow_id} not found")
+
+
+class ContactNotFoundError(MillicallError):
+    def __init__(self, contact_id: int):
+        super().__init__(f"Contact {contact_id} not found")

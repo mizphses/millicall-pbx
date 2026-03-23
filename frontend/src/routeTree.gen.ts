@@ -14,9 +14,11 @@ import { Route as UsersRouteImport } from './routes/users'
 import { Route as TrunksRouteImport } from './routes/trunks'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PeersRouteImport } from './routes/peers'
+import { Route as McpGuideRouteImport } from './routes/mcp-guide'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ExtensionsRouteImport } from './routes/extensions'
 import { Route as DevicesRouteImport } from './routes/devices'
+import { Route as ContactsRouteImport } from './routes/contacts'
 import { Route as CdrRouteImport } from './routes/cdr'
 import { Route as CallHistoryRouteImport } from './routes/call-history'
 import { Route as IndexRouteImport } from './routes/index'
@@ -24,11 +26,13 @@ import { Route as WorkflowsNewRouteImport } from './routes/workflows_.new'
 import { Route as TrunksNewRouteImport } from './routes/trunks_.new'
 import { Route as PeersNewRouteImport } from './routes/peers_.new'
 import { Route as ExtensionsNewRouteImport } from './routes/extensions_.new'
+import { Route as ContactsNewRouteImport } from './routes/contacts_.new'
 import { Route as CallHistoryLogIdRouteImport } from './routes/call-history_.$logId'
 import { Route as WorkflowsWorkflowIdEditRouteImport } from './routes/workflows_.$workflowId.edit'
 import { Route as TrunksTrunkIdEditRouteImport } from './routes/trunks_.$trunkId.edit'
 import { Route as PeersPeerIdEditRouteImport } from './routes/peers_.$peerId.edit'
 import { Route as ExtensionsExtensionIdEditRouteImport } from './routes/extensions_.$extensionId.edit'
+import { Route as ContactsContactIdEditRouteImport } from './routes/contacts_.$contactId.edit'
 
 const WorkflowsRoute = WorkflowsRouteImport.update({
   id: '/workflows',
@@ -55,6 +59,11 @@ const PeersRoute = PeersRouteImport.update({
   path: '/peers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const McpGuideRoute = McpGuideRouteImport.update({
+  id: '/mcp-guide',
+  path: '/mcp-guide',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -68,6 +77,11 @@ const ExtensionsRoute = ExtensionsRouteImport.update({
 const DevicesRoute = DevicesRouteImport.update({
   id: '/devices',
   path: '/devices',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactsRoute = ContactsRouteImport.update({
+  id: '/contacts',
+  path: '/contacts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CdrRoute = CdrRouteImport.update({
@@ -105,6 +119,11 @@ const ExtensionsNewRoute = ExtensionsNewRouteImport.update({
   path: '/extensions/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContactsNewRoute = ContactsNewRouteImport.update({
+  id: '/contacts_/new',
+  path: '/contacts/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CallHistoryLogIdRoute = CallHistoryLogIdRouteImport.update({
   id: '/call-history_/$logId',
   path: '/call-history/$logId',
@@ -131,24 +150,33 @@ const ExtensionsExtensionIdEditRoute =
     path: '/extensions/$extensionId/edit',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ContactsContactIdEditRoute = ContactsContactIdEditRouteImport.update({
+  id: '/contacts_/$contactId/edit',
+  path: '/contacts/$contactId/edit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/call-history': typeof CallHistoryRoute
   '/cdr': typeof CdrRoute
+  '/contacts': typeof ContactsRoute
   '/devices': typeof DevicesRoute
   '/extensions': typeof ExtensionsRoute
   '/login': typeof LoginRoute
+  '/mcp-guide': typeof McpGuideRoute
   '/peers': typeof PeersRoute
   '/settings': typeof SettingsRoute
   '/trunks': typeof TrunksRoute
   '/users': typeof UsersRoute
   '/workflows': typeof WorkflowsRoute
   '/call-history/$logId': typeof CallHistoryLogIdRoute
+  '/contacts/new': typeof ContactsNewRoute
   '/extensions/new': typeof ExtensionsNewRoute
   '/peers/new': typeof PeersNewRoute
   '/trunks/new': typeof TrunksNewRoute
   '/workflows/new': typeof WorkflowsNewRoute
+  '/contacts/$contactId/edit': typeof ContactsContactIdEditRoute
   '/extensions/$extensionId/edit': typeof ExtensionsExtensionIdEditRoute
   '/peers/$peerId/edit': typeof PeersPeerIdEditRoute
   '/trunks/$trunkId/edit': typeof TrunksTrunkIdEditRoute
@@ -158,19 +186,23 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/call-history': typeof CallHistoryRoute
   '/cdr': typeof CdrRoute
+  '/contacts': typeof ContactsRoute
   '/devices': typeof DevicesRoute
   '/extensions': typeof ExtensionsRoute
   '/login': typeof LoginRoute
+  '/mcp-guide': typeof McpGuideRoute
   '/peers': typeof PeersRoute
   '/settings': typeof SettingsRoute
   '/trunks': typeof TrunksRoute
   '/users': typeof UsersRoute
   '/workflows': typeof WorkflowsRoute
   '/call-history/$logId': typeof CallHistoryLogIdRoute
+  '/contacts/new': typeof ContactsNewRoute
   '/extensions/new': typeof ExtensionsNewRoute
   '/peers/new': typeof PeersNewRoute
   '/trunks/new': typeof TrunksNewRoute
   '/workflows/new': typeof WorkflowsNewRoute
+  '/contacts/$contactId/edit': typeof ContactsContactIdEditRoute
   '/extensions/$extensionId/edit': typeof ExtensionsExtensionIdEditRoute
   '/peers/$peerId/edit': typeof PeersPeerIdEditRoute
   '/trunks/$trunkId/edit': typeof TrunksTrunkIdEditRoute
@@ -181,19 +213,23 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/call-history': typeof CallHistoryRoute
   '/cdr': typeof CdrRoute
+  '/contacts': typeof ContactsRoute
   '/devices': typeof DevicesRoute
   '/extensions': typeof ExtensionsRoute
   '/login': typeof LoginRoute
+  '/mcp-guide': typeof McpGuideRoute
   '/peers': typeof PeersRoute
   '/settings': typeof SettingsRoute
   '/trunks': typeof TrunksRoute
   '/users': typeof UsersRoute
   '/workflows': typeof WorkflowsRoute
   '/call-history_/$logId': typeof CallHistoryLogIdRoute
+  '/contacts_/new': typeof ContactsNewRoute
   '/extensions_/new': typeof ExtensionsNewRoute
   '/peers_/new': typeof PeersNewRoute
   '/trunks_/new': typeof TrunksNewRoute
   '/workflows_/new': typeof WorkflowsNewRoute
+  '/contacts_/$contactId/edit': typeof ContactsContactIdEditRoute
   '/extensions_/$extensionId/edit': typeof ExtensionsExtensionIdEditRoute
   '/peers_/$peerId/edit': typeof PeersPeerIdEditRoute
   '/trunks_/$trunkId/edit': typeof TrunksTrunkIdEditRoute
@@ -205,19 +241,23 @@ export interface FileRouteTypes {
     | '/'
     | '/call-history'
     | '/cdr'
+    | '/contacts'
     | '/devices'
     | '/extensions'
     | '/login'
+    | '/mcp-guide'
     | '/peers'
     | '/settings'
     | '/trunks'
     | '/users'
     | '/workflows'
     | '/call-history/$logId'
+    | '/contacts/new'
     | '/extensions/new'
     | '/peers/new'
     | '/trunks/new'
     | '/workflows/new'
+    | '/contacts/$contactId/edit'
     | '/extensions/$extensionId/edit'
     | '/peers/$peerId/edit'
     | '/trunks/$trunkId/edit'
@@ -227,19 +267,23 @@ export interface FileRouteTypes {
     | '/'
     | '/call-history'
     | '/cdr'
+    | '/contacts'
     | '/devices'
     | '/extensions'
     | '/login'
+    | '/mcp-guide'
     | '/peers'
     | '/settings'
     | '/trunks'
     | '/users'
     | '/workflows'
     | '/call-history/$logId'
+    | '/contacts/new'
     | '/extensions/new'
     | '/peers/new'
     | '/trunks/new'
     | '/workflows/new'
+    | '/contacts/$contactId/edit'
     | '/extensions/$extensionId/edit'
     | '/peers/$peerId/edit'
     | '/trunks/$trunkId/edit'
@@ -249,19 +293,23 @@ export interface FileRouteTypes {
     | '/'
     | '/call-history'
     | '/cdr'
+    | '/contacts'
     | '/devices'
     | '/extensions'
     | '/login'
+    | '/mcp-guide'
     | '/peers'
     | '/settings'
     | '/trunks'
     | '/users'
     | '/workflows'
     | '/call-history_/$logId'
+    | '/contacts_/new'
     | '/extensions_/new'
     | '/peers_/new'
     | '/trunks_/new'
     | '/workflows_/new'
+    | '/contacts_/$contactId/edit'
     | '/extensions_/$extensionId/edit'
     | '/peers_/$peerId/edit'
     | '/trunks_/$trunkId/edit'
@@ -272,19 +320,23 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CallHistoryRoute: typeof CallHistoryRoute
   CdrRoute: typeof CdrRoute
+  ContactsRoute: typeof ContactsRoute
   DevicesRoute: typeof DevicesRoute
   ExtensionsRoute: typeof ExtensionsRoute
   LoginRoute: typeof LoginRoute
+  McpGuideRoute: typeof McpGuideRoute
   PeersRoute: typeof PeersRoute
   SettingsRoute: typeof SettingsRoute
   TrunksRoute: typeof TrunksRoute
   UsersRoute: typeof UsersRoute
   WorkflowsRoute: typeof WorkflowsRoute
   CallHistoryLogIdRoute: typeof CallHistoryLogIdRoute
+  ContactsNewRoute: typeof ContactsNewRoute
   ExtensionsNewRoute: typeof ExtensionsNewRoute
   PeersNewRoute: typeof PeersNewRoute
   TrunksNewRoute: typeof TrunksNewRoute
   WorkflowsNewRoute: typeof WorkflowsNewRoute
+  ContactsContactIdEditRoute: typeof ContactsContactIdEditRoute
   ExtensionsExtensionIdEditRoute: typeof ExtensionsExtensionIdEditRoute
   PeersPeerIdEditRoute: typeof PeersPeerIdEditRoute
   TrunksTrunkIdEditRoute: typeof TrunksTrunkIdEditRoute
@@ -328,6 +380,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PeersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mcp-guide': {
+      id: '/mcp-guide'
+      path: '/mcp-guide'
+      fullPath: '/mcp-guide'
+      preLoaderRoute: typeof McpGuideRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -347,6 +406,13 @@ declare module '@tanstack/react-router' {
       path: '/devices'
       fullPath: '/devices'
       preLoaderRoute: typeof DevicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contacts': {
+      id: '/contacts'
+      path: '/contacts'
+      fullPath: '/contacts'
+      preLoaderRoute: typeof ContactsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cdr': {
@@ -398,6 +464,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExtensionsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contacts_/new': {
+      id: '/contacts_/new'
+      path: '/contacts/new'
+      fullPath: '/contacts/new'
+      preLoaderRoute: typeof ContactsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/call-history_/$logId': {
       id: '/call-history_/$logId'
       path: '/call-history/$logId'
@@ -433,6 +506,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExtensionsExtensionIdEditRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contacts_/$contactId/edit': {
+      id: '/contacts_/$contactId/edit'
+      path: '/contacts/$contactId/edit'
+      fullPath: '/contacts/$contactId/edit'
+      preLoaderRoute: typeof ContactsContactIdEditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -440,19 +520,23 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CallHistoryRoute: CallHistoryRoute,
   CdrRoute: CdrRoute,
+  ContactsRoute: ContactsRoute,
   DevicesRoute: DevicesRoute,
   ExtensionsRoute: ExtensionsRoute,
   LoginRoute: LoginRoute,
+  McpGuideRoute: McpGuideRoute,
   PeersRoute: PeersRoute,
   SettingsRoute: SettingsRoute,
   TrunksRoute: TrunksRoute,
   UsersRoute: UsersRoute,
   WorkflowsRoute: WorkflowsRoute,
   CallHistoryLogIdRoute: CallHistoryLogIdRoute,
+  ContactsNewRoute: ContactsNewRoute,
   ExtensionsNewRoute: ExtensionsNewRoute,
   PeersNewRoute: PeersNewRoute,
   TrunksNewRoute: TrunksNewRoute,
   WorkflowsNewRoute: WorkflowsNewRoute,
+  ContactsContactIdEditRoute: ContactsContactIdEditRoute,
   ExtensionsExtensionIdEditRoute: ExtensionsExtensionIdEditRoute,
   PeersPeerIdEditRoute: PeersPeerIdEditRoute,
   TrunksTrunkIdEditRoute: TrunksTrunkIdEditRoute,

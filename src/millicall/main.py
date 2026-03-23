@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from millicall.config import settings
 from millicall.domain.exceptions import (
+    ContactNotFoundError,
     DuplicateExtensionError,
     DuplicatePeerError,
     DuplicateTrunkError,
@@ -31,7 +32,9 @@ from millicall.presentation.api.peers import router as peers_api_router
 from millicall.presentation.api.settings import router as settings_api_router
 from millicall.presentation.api.trunks import router as trunks_api_router
 from millicall.presentation.api.users import router as users_api_router
+from millicall.presentation.api.contacts import router as contacts_api_router
 from millicall.presentation.api.workflows import router as workflows_api_router
+from millicall.presentation.api.guide import router as guide_api_router
 from millicall.presentation.web.provisioning import router as provisioning_router
 from millicall.presentation.web.views import router as web_router
 
@@ -100,8 +103,15 @@ async def lifespan(app: FastAPI):
     await _ensure_admin_user()
     # Start CDR import background task
     cdr_task = asyncio.create_task(_cdr_import_loop())
+    # Start MCP session manager if mounted
+    mcp_cm = None
+    if hasattr(app.state, "mcp_session_manager"):
+        mcp_cm = app.state.mcp_session_manager.run()
+        await mcp_cm.__aenter__()
     logger.info("Millicall PBX started")
     yield
+    if mcp_cm:
+        await mcp_cm.__aexit__(None, None, None)
     cdr_task.cancel()
     await engine.dispose()
     logger.info("Millicall PBX stopped")
@@ -132,6 +142,25 @@ app.include_router(cdr_api_router)
 app.include_router(dashboard_api_router)
 app.include_router(workflows_api_router)
 app.include_router(users_api_router)
+app.include_router(contacts_api_router)
+app.include_router(guide_api_router)
+
+# Mount MCP server (Streamable HTTP at /mcp)
+try:
+    from millicall.mcp_server import get_streamable_http_app
+
+    mcp_app = get_streamable_http_app()
+    # Extract session manager for lifespan initialization
+    for route in mcp_app.routes:
+        handler = getattr(route, "app", None)
+        if hasattr(handler, "session_manager"):
+            app.state.mcp_session_manager = handler.session_manager
+            break
+    app.mount("/", mcp_app)
+    logger.info("MCP server mounted at /mcp")
+except Exception as e:
+    logger.warning("Failed to mount MCP server: %s", e)
+
 # Provisioning (no auth — devices need unauthenticated access)
 app.include_router(provisioning_router)
 # Web UI (backward compat)
@@ -143,6 +172,7 @@ app.include_router(web_router)
 @app.exception_handler(PeerNotFoundError)
 @app.exception_handler(TrunkNotFoundError)
 @app.exception_handler(WorkflowNotFoundError)
+@app.exception_handler(ContactNotFoundError)
 async def not_found_handler(request: Request, exc: MillicallError):
     return JSONResponse(status_code=404, content={"detail": str(exc)})
 

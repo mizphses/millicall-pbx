@@ -25,6 +25,10 @@ ARI_USER = "millicall"
 ARI_PASSWORD = "millicall"
 STASIS_APP_AI = "millicall-ai"
 STASIS_APP_WORKFLOW = "millicall-workflow"
+STASIS_APP_MCP = "millicall-mcp"
+
+# Tracks MCP-originated channels (channel_id -> True when connected)
+mcp_channels: dict[str, bool] = {}
 
 # Per-call conversation contexts
 _conversations: dict[str, llm_chat.ConversationContext] = {}
@@ -366,7 +370,7 @@ async def run_ari_listener() -> None:
     ws_url = (
         f"ws://localhost:8088/ari/events"
         f"?api_key={ARI_USER}:{ARI_PASSWORD}"
-        f"&app={STASIS_APP_AI},{STASIS_APP_WORKFLOW}"
+        f"&app={STASIS_APP_AI},{STASIS_APP_WORKFLOW},{STASIS_APP_MCP}"
         f"&subscribeAll=true"
     )
 
@@ -375,7 +379,10 @@ async def run_ari_listener() -> None:
             logger.info("Connecting to ARI WebSocket...")
             async with websockets.connect(ws_url) as ws:
                 logger.info(
-                    "ARI WebSocket connected (apps: %s, %s)", STASIS_APP_AI, STASIS_APP_WORKFLOW
+                    "ARI WebSocket connected (apps: %s, %s, %s)",
+                    STASIS_APP_AI,
+                    STASIS_APP_WORKFLOW,
+                    STASIS_APP_MCP,
                 )
                 async for message in ws:
                     event = json.loads(message)
@@ -393,7 +400,11 @@ async def run_ari_listener() -> None:
                             app_name,
                         )
 
-                        if app_name == STASIS_APP_WORKFLOW:
+                        if app_name == STASIS_APP_MCP:
+                            # MCP-originated call: just track it, MCP tools control it
+                            logger.info("MCP call connected: channel=%s", channel_id)
+                            mcp_channels[channel_id] = True
+                        elif app_name == STASIS_APP_WORKFLOW:
                             asyncio.create_task(_handle_workflow_call(channel_id, exten))
                         else:
                             # Default to AI handler (millicall-ai)
@@ -404,6 +415,8 @@ async def run_ari_listener() -> None:
                         logger.info("StasisEnd: channel=%s", channel_id)
                         # Signal workflow executors that the channel is gone
                         channel_gone[channel_id] = True
+                        # Clean up MCP channel tracking
+                        mcp_channels.pop(channel_id, None)
 
                     elif event_type == "ChannelHangupRequest":
                         channel_id = event["channel"]["id"]

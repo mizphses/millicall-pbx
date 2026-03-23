@@ -19,6 +19,7 @@ const navLinks = [
   { to: "/peers", label: "SIP電話機登録" },
   { to: "/trunks", label: "外線トランク" },
   { to: "/devices", label: "デバイス管理" },
+  { to: "/contacts", label: "電話帳" },
   { to: "/cdr", label: "発着信記録" },
   { to: "/call-history", label: "AI通話履歴" },
   { to: "/settings", label: "詳細設定" },

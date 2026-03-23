@@ -155,6 +155,17 @@ workflows_table = Table(
     Column("updated_at", DateTime, nullable=False),
 )
 
+contacts_table = Table(
+    "contacts",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("name", String(100), nullable=False),
+    Column("phone_number", String(30), nullable=False),
+    Column("company", String(100), nullable=False, server_default=""),
+    Column("department", String(100), nullable=False, server_default=""),
+    Column("notes", Text, nullable=False, server_default=""),
+)
+
 settings_table = Table(
     "app_settings",
     metadata,

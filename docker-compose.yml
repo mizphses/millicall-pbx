@@ -26,5 +26,16 @@ services:
     depends_on:
       - millicall
 
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: millicall-tunnel
+    network_mode: host
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - frontend
+
 volumes:
   millicall-data:
