@@ -1,4 +1,4 @@
-"""Generate Panasonic KX-HDV phone provisioning config files."""
+"""Generate phone provisioning config files (Panasonic KX-HDV, Yealink)."""
 
 import logging
 
@@ -116,3 +116,106 @@ class ProvisioningService:
             "",
         ]
         return "\r\n".join(lines) + "\r\n"
+
+    # ── Yealink provisioning ──────────────────────────────────────
+
+    def generate_yealink_boot(self) -> str:
+        """Generate y000000000000.boot — tells all Yealink phones where to find configs."""
+        lines = [
+            "#!version:1.0.0.1",
+            "",
+            f"include:config <http://{PBX_ADDR}:8000/provisioning/Yealink/common.cfg>",
+            f'include:config "http://{PBX_ADDR}:8000/provisioning/Yealink/{{{{mac}}}}.cfg"',
+            "",
+            "overwrite_mode = 1",
+            "specific_model.excluded_mode = 0",
+        ]
+        return "\n".join(lines) + "\n"
+
+    def generate_yealink_common_config(self) -> str:
+        """Generate common.cfg shared by all Yealink phones."""
+        lines = [
+            "#!version:1.0.0.1",
+            "",
+            "## Millicall PBX - Yealink Common Configuration",
+            "",
+            "## Auto Provisioning",
+            f"static.auto_provision.server.url = http://{PBX_ADDR}:8000/provisioning/Yealink",
+            "static.auto_provision.power_on = 1",
+            "static.auto_provision.repeat.enable = 1",
+            "static.auto_provision.repeat.minutes = 1440",
+            "",
+            "## NTP / Timezone (Asia/Tokyo, +9)",
+            f"local_time.ntp_server1 = {PBX_ADDR}",
+            "local_time.time_zone = +9",
+            "local_time.time_zone_name = Japan",
+            "local_time.summer_time = 0",
+            "local_time.date_format = 2",
+            "local_time.time_format = 1",
+            "",
+            "## Language",
+            "lang.gui = Japanese",
+            "lang.wui = Japanese",
+            "",
+            "## Tone - Japanese",
+            'voice.tone.dial = 400/0',
+            'voice.tone.busy = 400/500,0/500',
+            'voice.tone.ring = 400+15/1000,0/2000',
+            "",
+        ]
+        return "\n".join(lines) + "\n"
+
+    async def generate_yealink_device_config(self, mac_address: str) -> str | None:
+        """Generate {mac}.cfg for a specific Yealink phone."""
+        mac_clean = mac_address.upper().replace(":", "").replace("-", "").replace(".", "")
+        mac_colon = ":".join(mac_clean[i : i + 2] for i in range(0, 12, 2))
+
+        device = await self.device_repo.get_by_mac(mac_colon)
+        if not device or not device.peer_id or not device.extension_id:
+            return None
+
+        peer = await self.peer_repo.get_by_id(device.peer_id)
+        extension = await self.extension_repo.get_by_id(device.extension_id)
+
+        if not peer or not extension:
+            return None
+
+        lines = [
+            "#!version:1.0.0.1",
+            "",
+            f"## Millicall PBX - Config for {mac_colon}",
+            f"## Extension: {extension.number} ({extension.display_name})",
+            "",
+            "## Account 1 - Registration",
+            "account.1.enable = 1",
+            f"account.1.label = {extension.number}",
+            f"account.1.display_name = {extension.display_name}",
+            f"account.1.auth_name = {peer.username}",
+            f"account.1.user_name = {peer.username}",
+            f"account.1.password = {peer.password}",
+            f"account.1.sip_server.1.address = {PBX_ADDR}",
+            "account.1.sip_server.1.port = 5060",
+            "account.1.sip_server.1.transport_type = 0",
+            "account.1.sip_server.1.expires = 300",
+            "",
+            "## Codec (G.711u priority 1, G.711a priority 2)",
+            "account.1.codec.pcmu.enable = 1",
+            "account.1.codec.pcmu.priority = 1",
+            "account.1.codec.pcma.enable = 1",
+            "account.1.codec.pcma.priority = 2",
+            "account.1.codec.g722.enable = 1",
+            "account.1.codec.g722.priority = 3",
+            "account.1.codec.g729.enable = 0",
+            "",
+            "## NAT",
+            "account.1.nat.nat_traversal = 0",
+            "account.1.nat.udp_update_enable = 1",
+            "account.1.nat.udp_update_time = 30",
+            "account.1.nat.rport = 1",
+            "",
+            "## DTMF (RFC2833)",
+            "account.1.dtmf.type = 1",
+            "account.1.dtmf.dtmf_payload = 101",
+            "",
+        ]
+        return "\n".join(lines) + "\n"

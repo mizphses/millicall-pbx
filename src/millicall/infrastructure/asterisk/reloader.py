@@ -30,7 +30,10 @@ class AsteriskReloader:
                 logger.warning("Failed to send check-sync to %s", ep)
 
     def send_http_resync(self, phone_ip: str, admin_password: str = "adminpass") -> bool:
-        """Send HTTP request to KX-HDV phone to trigger config resync."""
+        """Send HTTP request to phone to trigger config resync.
+
+        Tries Panasonic KX-HDV endpoints first, then Yealink Action URI.
+        """
         try:
             import base64
 
@@ -40,19 +43,36 @@ class AsteriskReloader:
             req = Request(url)
             req.add_header("Authorization", f"Basic {credentials}")
             urlopen(req, timeout=5)
-            logger.info("HTTP resync sent to %s", phone_ip)
+            logger.info("HTTP resync sent to %s (Panasonic)", phone_ip)
             return True
         except Exception:
-            logger.warning("HTTP resync failed for %s, trying alternative", phone_ip)
-            try:
-                # Alternative: some KX-HDV firmware uses this endpoint
-                url = f"http://{phone_ip}/cgi-bin/api-provision?event=resync"
-                urlopen(url, timeout=5)
-                logger.info("HTTP resync (alt) sent to %s", phone_ip)
-                return True
-            except Exception:
-                logger.warning("HTTP resync (alt) also failed for %s", phone_ip)
-                return False
+            logger.debug("Panasonic resync failed for %s, trying alternatives", phone_ip)
+
+        # Panasonic alternative endpoint
+        try:
+            url = f"http://{phone_ip}/cgi-bin/api-provision?event=resync"
+            urlopen(url, timeout=5)
+            logger.info("HTTP resync (Panasonic alt) sent to %s", phone_ip)
+            return True
+        except Exception:
+            logger.debug("Panasonic alt resync failed for %s", phone_ip)
+
+        # Yealink Action URI — triggers autoprovision now
+        try:
+            import base64
+            import urllib.parse
+
+            credentials = base64.b64encode(f"admin:{admin_password}".encode()).decode()
+            action = urllib.parse.quote("http://127.0.0.1/autoprovision")
+            url = f"http://{phone_ip}/servlet?key=AutoProvision&value={action}"
+            req = Request(url)
+            req.add_header("Authorization", f"Basic {credentials}")
+            urlopen(req, timeout=5)
+            logger.info("HTTP resync sent to %s (Yealink)", phone_ip)
+            return True
+        except Exception:
+            logger.warning("HTTP resync failed for %s (all methods)", phone_ip)
+            return False
 
     def send_resync_to_devices(self, device_ips: list[str]) -> None:
         """Try HTTP resync for all device IPs, then SIP check-sync as fallback."""
