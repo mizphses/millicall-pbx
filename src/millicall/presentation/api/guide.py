@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from millicall.infrastructure.database import get_session
-from millicall.infrastructure.repositories.trunk_repo import TrunkRepository
 from millicall.infrastructure.repositories.extension_repo import ExtensionRepository
+from millicall.infrastructure.repositories.trunk_repo import TrunkRepository
 from millicall.presentation.auth import get_current_user
 
 router = APIRouter(
@@ -31,26 +31,32 @@ async def outbound_guide(session: AsyncSession = Depends(get_session)):
                     continue
                 if ":" in entry:
                     pfx, prepend = entry.split(":", 1)
-                    rules.append({
-                        "prefix": pfx.strip(),
-                        "prepend": prepend.strip(),
-                        "example": f"{pfx.strip()}0312345678 → {prepend.strip()}0312345678",
-                    })
+                    rules.append(
+                        {
+                            "prefix": pfx.strip(),
+                            "prepend": prepend.strip(),
+                            "example": f"{pfx.strip()}0312345678 → {prepend.strip()}0312345678",
+                        }
+                    )
                 else:
-                    rules.append({
-                        "prefix": entry,
-                        "prepend": "",
-                        "example": f"{entry}0312345678 → 0312345678",
-                    })
-        trunk_info.append({
-            "name": t.name,
-            "display_name": t.display_name,
-            "did_number": t.did_number,
-            "caller_id": t.caller_id,
-            "host": t.host,
-            "prefix_rules": rules,
-            "has_prefix": bool(rules),
-        })
+                    rules.append(
+                        {
+                            "prefix": entry,
+                            "prepend": "",
+                            "example": f"{entry}0312345678 → 0312345678",
+                        }
+                    )
+        trunk_info.append(
+            {
+                "name": t.name,
+                "display_name": t.display_name,
+                "did_number": t.did_number,
+                "caller_id": t.caller_id,
+                "host": t.host,
+                "prefix_rules": rules,
+                "has_prefix": bool(rules),
+            }
+        )
 
     return {
         "trunks": trunk_info,
@@ -86,8 +92,12 @@ async def mcp_config(session: AsyncSession = Depends(get_session)):
                 "millicall": {
                     "command": "docker",
                     "args": [
-                        "exec", "-i", "millicall-pbx",
-                        "python", "-m", "millicall.mcp_server",
+                        "exec",
+                        "-i",
+                        "millicall-pbx",
+                        "python",
+                        "-m",
+                        "millicall.mcp_server",
                     ],
                 }
             }
@@ -95,12 +105,24 @@ async def mcp_config(session: AsyncSession = Depends(get_session)):
         "available_tools": [
             {"name": "dial", "description": "電話を発信する", "category": "通話制御"},
             {"name": "say", "description": "TTSでテキストを読み上げる", "category": "通話制御"},
-            {"name": "listen", "description": "相手の発話を録音→テキスト変換", "category": "通話制御"},
+            {
+                "name": "listen",
+                "description": "相手の発話を録音→テキスト変換",
+                "category": "通話制御",
+            },
             {"name": "hangup", "description": "通話を終了する", "category": "通話制御"},
             {"name": "send_dtmf", "description": "DTMFトーンを送信する", "category": "通話制御"},
             {"name": "transfer", "description": "通話を転送する", "category": "通話制御"},
-            {"name": "get_call_status", "description": "通話状態を確認する", "category": "通話制御"},
-            {"name": "list_active_calls", "description": "アクティブな通話一覧", "category": "通話制御"},
+            {
+                "name": "get_call_status",
+                "description": "通話状態を確認する",
+                "category": "通話制御",
+            },
+            {
+                "name": "list_active_calls",
+                "description": "アクティブな通話一覧",
+                "category": "通話制御",
+            },
             {"name": "list_contacts", "description": "電話帳を検索する", "category": "電話帳"},
             {"name": "add_contact", "description": "連絡先を追加する", "category": "電話帳"},
             {"name": "delete_contact", "description": "連絡先を削除する", "category": "電話帳"},
@@ -109,10 +131,16 @@ async def mcp_config(session: AsyncSession = Depends(get_session)):
         ],
         "current_extensions": [
             {"number": e.number, "name": e.display_name, "type": e.type}
-            for e in extensions if e.enabled
+            for e in extensions
+            if e.enabled
         ],
         "current_trunks": [
-            {"name": t.name, "display_name": t.display_name, "did": t.did_number, "prefixes": t.outbound_prefixes}
+            {
+                "name": t.name,
+                "display_name": t.display_name,
+                "did": t.did_number,
+                "prefixes": t.outbound_prefixes,
+            }
             for t in trunks
         ],
         "conversation_examples": [
@@ -121,19 +149,19 @@ async def mcp_config(session: AsyncSession = Depends(get_session)):
                 "steps": [
                     'channel = dial("09012345678")',
                     'say(channel, "お忙しいところ失礼いたします")',
-                    'response = listen(channel)',
+                    "response = listen(channel)",
                     'say(channel, "ありがとうございます")',
-                    'hangup(channel)',
+                    "hangup(channel)",
                 ],
             },
             {
                 "title": "電話帳から発信",
                 "steps": [
                     'contacts = list_contacts("田中")',
-                    'channel = dial(contacts[0].phone_number)',
+                    "channel = dial(contacts[0].phone_number)",
                     'say(channel, "田中様、明日の会議の件でご連絡しました")',
-                    'listen(channel)',
-                    'hangup(channel)',
+                    "listen(channel)",
+                    "hangup(channel)",
                 ],
             },
         ],

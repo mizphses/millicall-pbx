@@ -5,6 +5,7 @@ via the Model Context Protocol (stdio transport for Claude Desktop).
 """
 
 import asyncio
+import contextlib
 import json
 import logging
 import os
@@ -201,17 +202,19 @@ class MillicallOAuthProvider:
 
     # -- Revocation --
 
-    async def revoke_token(
-        self, token: StoredToken
-    ) -> None:
+    async def revoke_token(self, token: StoredToken) -> None:
         self._access_tokens.pop(token.token, None)
         self._refresh_tokens.pop(token.token, None)
 
     # -- Helper: create auth code after user login --
 
     def create_auth_code(
-        self, client_id: str, username: str, code_challenge: str,
-        redirect_uri: str, scopes: list[str],
+        self,
+        client_id: str,
+        username: str,
+        code_challenge: str,
+        redirect_uri: str,
+        scopes: list[str],
         redirect_uri_provided_explicitly: bool = True,
     ) -> str:
         code = secrets.token_urlsafe(32)
@@ -286,9 +289,7 @@ dial, say, say_and_listen, listen, hangup はユーザーが明示的に手動�
 # ---------------------------------------------------------------------------
 # ARI helpers
 # ---------------------------------------------------------------------------
-async def _ari_request(
-    method: str, path: str, **kwargs
-) -> dict | list | bytes | None:
+async def _ari_request(method: str, path: str, **kwargs) -> dict | list | bytes | None:
     """Make an ARI REST API request."""
     url = f"{ARI_URL}/ari{path}"
     params = kwargs.pop("params", {})
@@ -361,8 +362,7 @@ async def _llm_respond(
             headers={"Authorization": f"Bearer {api_key}"},
             json={
                 "model": model,
-                "messages": [{"role": "system", "content": system_prompt}]
-                + conversation_history,
+                "messages": [{"role": "system", "content": system_prompt}] + conversation_history,
                 "max_tokens": 200,
                 "temperature": 0.7,
             },
@@ -374,15 +374,22 @@ async def _llm_respond(
 # ---------------------------------------------------------------------------
 # Call Management Tools
 # ---------------------------------------------------------------------------
-async def _resolve_endpoint(phone_number: str, trunk: str = "", caller_id: str = "") -> tuple[str, str]:
+async def _resolve_endpoint(
+    phone_number: str, trunk: str = "", caller_id: str = ""
+) -> tuple[str, str]:
     """Resolve phone_number to a PJSIP endpoint and caller_id."""
     if trunk:
         return f"PJSIP/{phone_number}@{trunk}", caller_id
-    elif phone_number.startswith("0") or phone_number.startswith("184") or phone_number.startswith("186"):
+    elif (
+        phone_number.startswith("0")
+        or phone_number.startswith("184")
+        or phone_number.startswith("186")
+    ):
         session_factory, engine = await _get_db_session()
         try:
             async with session_factory() as session:
                 from millicall.infrastructure.repositories.trunk_repo import TrunkRepository
+
                 repo = TrunkRepository(session)
                 trunks = await repo.get_all()
                 enabled_trunks = [t for t in trunks if t.enabled]
@@ -399,6 +406,7 @@ async def _resolve_endpoint(phone_number: str, trunk: str = "", caller_id: str =
         try:
             async with session_factory() as session:
                 from sqlalchemy import text as sa_text
+
                 row = await session.execute(
                     sa_text(
                         "SELECT p.username FROM extensions e "
@@ -418,6 +426,7 @@ async def _tts_play(channel_id: str, text: str, voice: str = "ja-JP-Chirp3-HD-Ao
     """Synthesize text and play on channel. Returns duration in seconds."""
     api_key = await _get_api_key("google")
     from millicall.phase2.tts_google import synthesize
+
     audio_wav = await synthesize(text, api_key, voice_name=voice)
 
     safe_id = _sanitize_id(channel_id)
@@ -433,10 +442,8 @@ async def _tts_play(channel_id: str, text: str, voice: str = "ja-JP-Chirp3-HD-Ao
     duration = len(audio_wav) / (8000 * 2)
     await asyncio.sleep(duration + 0.5)
 
-    try:
+    with contextlib.suppress(OSError):
         os.remove(f"/usr/share/asterisk/sounds/en/{sound_name}.wav")
-    except OSError:
-        pass
     return duration
 
 
@@ -462,9 +469,7 @@ async def _record_and_transcribe(channel_id: str, max_seconds: int = 15) -> str:
     for _ in range(max_seconds + 5):
         await asyncio.sleep(1)
         try:
-            result = await _ari_request(
-                "GET", f"/recordings/stored/{recording_name}/file"
-            )
+            result = await _ari_request("GET", f"/recordings/stored/{recording_name}/file")
             if result and isinstance(result, bytes) and len(result) > 100:
                 audio_data = result
                 break
@@ -475,20 +480,17 @@ async def _record_and_transcribe(channel_id: str, max_seconds: int = 15) -> str:
         return ""
 
     from millicall.phase2.stt import transcribe
+
     stt_key = await _get_api_key("openai")
     text = await transcribe(audio_data, stt_key)
 
-    try:
+    with contextlib.suppress(Exception):
         await _ari_request("DELETE", f"/recordings/stored/{recording_name}")
-    except Exception:
-        pass
     return text
 
 
 @mcp.tool()
-async def dial(
-    phone_number: str, caller_id: str = "", trunk: str = ""
-) -> str:
+async def dial(phone_number: str, caller_id: str = "", trunk: str = "") -> str:
     """電話を発信し、相手が応答するまで待ちます。応答したらchannel_idを返します。
 
     Args:
@@ -574,7 +576,7 @@ async def say_and_listen(
     """
     try:
         # Step 1: Speak
-        duration = await _tts_play(channel_id, text, voice)
+        await _tts_play(channel_id, text, voice)
 
         # Step 2: Listen for response
         response_text = await _record_and_transcribe(channel_id, max_listen_seconds)
@@ -583,7 +585,9 @@ async def say_and_listen(
             {
                 "you_said": text[:100],
                 "they_said": response_text,
-                "message": response_text if response_text else "（相手の発話が検出されませんでした）",
+                "message": response_text
+                if response_text
+                else "（相手の発話が検出されませんでした）",
             },
             ensure_ascii=False,
         )
@@ -592,9 +596,7 @@ async def say_and_listen(
 
 
 @mcp.tool()
-async def say(
-    channel_id: str, text: str, voice: str = "ja-JP-Chirp3-HD-Aoede"
-) -> str:
+async def say(channel_id: str, text: str, voice: str = "ja-JP-Chirp3-HD-Aoede") -> str:
     """相手にテキストを話します（返答は聞きません）。
     通話の最後の挨拶やお礼など、返答を待たない場面で使います。
 
@@ -609,7 +611,11 @@ async def say(
     try:
         duration = await _tts_play(channel_id, text, voice)
         return json.dumps(
-            {"status": "ok", "message": f"「{text[:50]}」を再生しました", "duration_sec": round(duration, 1)},
+            {
+                "status": "ok",
+                "message": f"「{text[:50]}」を再生しました",
+                "duration_sec": round(duration, 1),
+            },
             ensure_ascii=False,
         )
     except Exception as e:
@@ -653,7 +659,9 @@ async def hangup(channel_id: str) -> str:
         return json.dumps({"status": "ok", "message": "通話を終了しました"}, ensure_ascii=False)
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 404:
-            return json.dumps({"status": "ok", "message": "通話は既に終了しています"}, ensure_ascii=False)
+            return json.dumps(
+                {"status": "ok", "message": "通話は既に終了しています"}, ensure_ascii=False
+            )
         return json.dumps({"error": f"通話終了に失敗: {e}"}, ensure_ascii=False)
     except Exception as e:
         return json.dumps({"error": f"通話終了エラー: {e}"}, ensure_ascii=False)
@@ -748,10 +756,8 @@ async def converse(
                 )
 
     if not answered:
-        try:
+        with contextlib.suppress(Exception):
             await _ari_request("DELETE", f"/channels/{channel_id}", params={"reason_code": "16"})
-        except Exception:
-            pass
         return json.dumps(
             {"error": "30秒以内に応答がありませんでした", "transcript": transcript},
             ensure_ascii=False,
@@ -782,17 +788,19 @@ async def converse(
                 await _tts_play(channel_id, ai_text, voice)
                 their_text = await _record_and_transcribe(channel_id, 15)
 
-                transcript.append({"turn": turn + 1, "speaker": "human", "text": their_text or "（無言）"})
-                conversation_history.append({"role": "user", "content": their_text or "（相手は無言でした）"})
+                transcript.append(
+                    {"turn": turn + 1, "speaker": "human", "text": their_text or "（無言）"}
+                )
+                conversation_history.append(
+                    {"role": "user", "content": their_text or "（相手は無言でした）"}
+                )
 
     except Exception as e:
         transcript.append({"speaker": "system", "text": f"エラー: {e}"})
 
     # Step 3: Hang up
-    try:
+    with contextlib.suppress(Exception):
         await _ari_request("DELETE", f"/channels/{channel_id}", params={"reason_code": "16"})
-    except Exception:
-        pass
 
     # Generate summary
     try:
@@ -895,7 +903,10 @@ async def get_call_status(channel_id: str) -> str:
         return json.dumps({"error": "チャネル情報を取得できませんでした"}, ensure_ascii=False)
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 404:
-            return json.dumps({"error": "チャネルが見つかりません（通話が終了している可能性があります）"}, ensure_ascii=False)
+            return json.dumps(
+                {"error": "チャネルが見つかりません（通話が終了している可能性があります）"},
+                ensure_ascii=False,
+            )
         return json.dumps({"error": f"ステータス取得に失敗: {e}"}, ensure_ascii=False)
     except Exception as e:
         return json.dumps({"error": f"ステータス取得エラー: {e}"}, ensure_ascii=False)
@@ -1180,6 +1191,7 @@ hangup(channel_id)
 # Entry point
 # ---------------------------------------------------------------------------
 
+
 def get_streamable_http_app():
     """Return a Starlette/ASGI app for Streamable HTTP transport."""
     return mcp.streamable_http_app()
@@ -1187,9 +1199,11 @@ def get_streamable_http_app():
 
 if __name__ == "__main__":
     import sys
+
     mode = sys.argv[1] if len(sys.argv) > 1 else "stdio"
     if mode == "http":
         import uvicorn
+
         port = int(os.environ.get("MCP_PORT", "3001"))
         app = get_streamable_http_app()
         uvicorn.run(app, host="0.0.0.0", port=port)

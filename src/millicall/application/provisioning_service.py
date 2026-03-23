@@ -158,9 +158,9 @@ class ProvisioningService:
             "lang.wui = Japanese",
             "",
             "## Tone - Japanese",
-            'voice.tone.dial = 400/0',
-            'voice.tone.busy = 400/500,0/500',
-            'voice.tone.ring = 400+15/1000,0/2000',
+            "voice.tone.dial = 400/0",
+            "voice.tone.busy = 400/500,0/500",
+            "voice.tone.ring = 400+15/1000,0/2000",
             "",
         ]
         return "\n".join(lines) + "\n"

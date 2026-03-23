@@ -31,7 +31,7 @@ class TrunkRepository:
 
     async def get_all_enabled(self) -> list[Trunk]:
         result = await self.session.execute(
-            select(trunks_table).where(trunks_table.c.enabled == True).order_by(trunks_table.c.name)
+            select(trunks_table).where(trunks_table.c.enabled).order_by(trunks_table.c.name)
         )
         return [self._row_to_model(row) for row in result]
 

@@ -63,9 +63,7 @@ async def yealink_common_config(session: AsyncSession = Depends(get_session)):
 
 
 @router.get("/Yealink/{mac_address}.cfg")
-async def yealink_device_config(
-    mac_address: str, session: AsyncSession = Depends(get_session)
-):
+async def yealink_device_config(mac_address: str, session: AsyncSession = Depends(get_session)):
     """Per-device config — MAC address without separators (e.g. 805ec0a1b2c3.cfg)."""
     logger.info("Yealink provisioning request for MAC: %s", mac_address)
     service = ProvisioningService(session)

@@ -10,7 +10,8 @@ from millicall.application.asterisk_service import AsteriskService
 from millicall.application.workflow_service import WorkflowService
 from millicall.domain.node_types import get_node_types_for_workflow_type
 from millicall.infrastructure.database import get_session
-from millicall.presentation.auth import get_current_user
+from millicall.domain.models import User
+from millicall.presentation.auth import get_current_user, require_admin
 from millicall.presentation.schemas import (
     TTSConfig,
     WorkflowCreate,
@@ -93,10 +94,21 @@ async def generate_workflow(data: GenerateRequest):
 
     node_types = get_node_types_for_workflow_type(data.workflow_type)
     node_schema = json.dumps(
-        {k: {"label": v["label"], "category": v["category"], "config_schema": {
-            ck: {"type": cv.get("type"), "label": cv.get("label"), "default": cv.get("default")}
-            for ck, cv in v.get("config_schema", {}).items()
-        }} for k, v in node_types.items()},
+        {
+            k: {
+                "label": v["label"],
+                "category": v["category"],
+                "config_schema": {
+                    ck: {
+                        "type": cv.get("type"),
+                        "label": cv.get("label"),
+                        "default": cv.get("default"),
+                    }
+                    for ck, cv in v.get("config_schema", {}).items()
+                },
+            }
+            for k, v in node_types.items()
+        },
         ensure_ascii=False,
         indent=2,
     )
@@ -167,6 +179,7 @@ async def get_workflow(workflow_id: int, session: AsyncSession = Depends(get_ses
 async def create_workflow(
     data: WorkflowCreate,
     session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_admin),
 ):
     service = WorkflowService(session)
     w = await service.create_workflow(
@@ -188,6 +201,7 @@ async def update_workflow(
     workflow_id: int,
     data: WorkflowUpdate,
     session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_admin),
 ):
     service = WorkflowService(session)
     existing = await service.get_workflow(workflow_id)
@@ -216,6 +230,7 @@ async def update_workflow(
 async def delete_workflow(
     workflow_id: int,
     session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_admin),
 ):
     service = WorkflowService(session)
     await service.delete_workflow(workflow_id)

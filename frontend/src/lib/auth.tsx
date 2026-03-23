@@ -58,8 +58,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     api.clearToken();
-    setToken(null);
-    setUser(null);
+    localStorage.removeItem("millicall_user");
+    window.location.reload();
   }, []);
 
   return (

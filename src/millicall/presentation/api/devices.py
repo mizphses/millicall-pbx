@@ -1,3 +1,4 @@
+import contextlib
 import secrets
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -10,7 +11,8 @@ from millicall.application.extension_service import ExtensionService
 from millicall.application.peer_service import PeerService
 from millicall.infrastructure.database import get_session
 from millicall.infrastructure.repositories.extension_repo import ExtensionRepository
-from millicall.presentation.auth import get_current_user
+from millicall.domain.models import User
+from millicall.presentation.auth import get_current_user, require_admin
 
 router = APIRouter(
     prefix="/api/devices",
@@ -41,7 +43,7 @@ async def list_devices(session: AsyncSession = Depends(get_session)):
 
 
 @router.post("/scan")
-async def scan_devices(session: AsyncSession = Depends(get_session)):
+async def scan_devices(session: AsyncSession = Depends(get_session), _admin: User = Depends(require_admin)):
     service = DeviceService(session)
     devices = await service.scan_dhcp_leases()
     return {"scanned": len(devices)}
@@ -61,6 +63,7 @@ async def quick_provision(
     device_id: int,
     data: QuickProvisionRequest,
     session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_admin),
 ):
     """1アクションでPeer作成→Extension作成→デバイス紐付けを完了する。"""
     device_service = DeviceService(session)
@@ -108,6 +111,7 @@ async def assign_extension_to_device(
     device_id: int,
     data: AssignExtensionRequest,
     session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_admin),
 ):
     """既存の内線をデバイスに割り当てる。"""
     ext_repo = ExtensionRepository(session)
@@ -132,6 +136,7 @@ async def assign_extension_to_device(
 async def resync_device(
     device_id: int,
     session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_admin),
 ):
     """デバイスにHTTPリシンクを送信してプロビジョニング設定を再取得させる。"""
     from millicall.infrastructure.asterisk.reloader import AsteriskReloader
@@ -150,9 +155,7 @@ async def resync_device(
 
         peer_repo = PeerRepository(session)
         peer = await peer_repo.get_by_id(device.peer_id)
-        try:
+        with contextlib.suppress(Exception):
             reloader.send_check_sync(peer.username)
-        except Exception:
-            pass
 
     return {"status": "sent", "http_resync": success}

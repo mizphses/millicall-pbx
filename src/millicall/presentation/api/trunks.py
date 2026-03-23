@@ -4,7 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from millicall.application.asterisk_service import AsteriskService
 from millicall.application.trunk_service import TrunkService
 from millicall.infrastructure.database import get_session
-from millicall.presentation.auth import get_current_user
+from millicall.domain.models import User
+from millicall.presentation.auth import get_current_user, require_admin
 from millicall.presentation.schemas import TrunkCreate, TrunkResponse, TrunkUpdate
 
 router = APIRouter(
@@ -59,6 +60,7 @@ async def get_trunk(trunk_id: int, session: AsyncSession = Depends(get_session))
 async def create_trunk(
     data: TrunkCreate,
     session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_admin),
 ):
     service = TrunkService(session)
     t = await service.create_trunk(
@@ -95,6 +97,7 @@ async def update_trunk(
     trunk_id: int,
     data: TrunkUpdate,
     session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_admin),
 ):
     service = TrunkService(session)
     t = await service.update_trunk(
@@ -131,6 +134,7 @@ async def update_trunk(
 async def delete_trunk(
     trunk_id: int,
     session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_admin),
 ):
     service = TrunkService(session)
     await service.delete_trunk(trunk_id)

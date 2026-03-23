@@ -9,6 +9,7 @@ Flow:
 """
 
 import asyncio
+import contextlib
 import json
 import logging
 import os
@@ -194,7 +195,7 @@ async def _handle_call(channel_id: str, extension: str) -> None:
 
             # Wait for recording to complete (poll until file exists)
             audio_data = None
-            for poll in range(18):  # Wait up to 18 seconds
+            for _poll in range(18):  # Wait up to 18 seconds
                 await asyncio.sleep(1)
                 try:
                     result = await _ari_request(
@@ -284,19 +285,15 @@ async def _handle_call(channel_id: str, extension: str) -> None:
             if should_hangup:
                 logger.info("AI ending call (natural conclusion)")
                 await asyncio.sleep(0.5)
-                try:
+                with contextlib.suppress(Exception):
                     await _ari_request(
                         "DELETE", f"/channels/{channel_id}", params={"reason_code": "16"}
                     )
-                except Exception:
-                    pass
                 break
 
             # Clean up recording
-            try:
+            with contextlib.suppress(Exception):
                 await _ari_request("DELETE", f"/recordings/stored/{recording_name}")
-            except Exception:
-                pass
 
     except Exception as e:
         logger.error("AI call error: %s", e)
@@ -314,10 +311,8 @@ async def _handle_call(channel_id: str, extension: str) -> None:
         import glob
 
         for f in glob.glob(f"/usr/share/asterisk/sounds/en/millicall/*{safe_id}*"):
-            try:
+            with contextlib.suppress(OSError):
                 os.remove(f)
-            except OSError:
-                pass
         logger.info("AI call ended: channel=%s", channel_id)
 
 
@@ -325,7 +320,7 @@ async def _handle_workflow_call(channel_id: str, extension: str) -> None:
     """Handle an incoming workflow call."""
     from millicall.infrastructure.database import async_session
     from millicall.infrastructure.repositories.workflow_repo import WorkflowRepository
-    from millicall.phase2.workflow_executor import WorkflowExecutor, channel_gone
+    from millicall.phase2.workflow_executor import WorkflowExecutor
 
     # Look up the workflow for this extension number
     async with async_session() as session:
@@ -355,10 +350,8 @@ async def _handle_workflow_call(channel_id: str, extension: str) -> None:
         await executor.execute()
     except Exception as exc:
         logger.error("Workflow call error on channel %s: %s", channel_id, exc, exc_info=True)
-        try:
+        with contextlib.suppress(Exception):
             await _ari_request("DELETE", f"/channels/{channel_id}", params={"reason_code": "16"})
-        except Exception:
-            pass
     finally:
         logger.info("Workflow call ended: channel=%s", channel_id)
 
@@ -422,10 +415,8 @@ async def run_ari_listener() -> None:
                         channel_id = event["channel"]["id"]
                         logger.info("Hangup request: channel=%s", channel_id)
                         channel_gone[channel_id] = True
-                        try:
+                        with contextlib.suppress(Exception):
                             await _ari_request("DELETE", f"/channels/{channel_id}")
-                        except Exception:
-                            pass
 
                     elif event_type == "ChannelDtmfReceived":
                         channel_id = event["channel"]["id"]

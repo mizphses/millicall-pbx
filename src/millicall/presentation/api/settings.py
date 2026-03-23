@@ -3,7 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from millicall.application.settings_service import SettingsService
 from millicall.infrastructure.database import get_session
-from millicall.presentation.auth import get_current_user
+from millicall.domain.models import User
+from millicall.presentation.auth import get_current_user, require_admin
 from millicall.presentation.schemas import SettingItem
 
 router = APIRouter(
@@ -27,6 +28,7 @@ async def list_settings(session: AsyncSession = Depends(get_session)):
 async def update_settings(
     items: list[SettingItem],
     session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_admin),
 ):
     service = SettingsService(session)
     for item in items:

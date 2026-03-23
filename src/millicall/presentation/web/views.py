@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -788,8 +788,6 @@ async def cdr_manual_import(session: AsyncSession = Depends(get_session)):
 
 
 # --- Call History JSON API ---
-
-from fastapi.responses import JSONResponse
 
 
 @router.get("/api/call-history")

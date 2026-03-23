@@ -44,8 +44,19 @@ const section = css({
 });
 
 const heading2 = css({ fontSize: "17px", fontWeight: 700, color: "#1b1b1f", marginBottom: "12px" });
-const heading3 = css({ fontSize: "14px", fontWeight: 600, color: "#4a4a52", marginTop: "20px", marginBottom: "8px" });
-const paragraph = css({ fontSize: "14px", lineHeight: "1.7", color: "#4a4a52", marginBottom: "12px" });
+const heading3 = css({
+  fontSize: "14px",
+  fontWeight: 600,
+  color: "#4a4a52",
+  marginTop: "20px",
+  marginBottom: "8px",
+});
+const paragraph = css({
+  fontSize: "14px",
+  lineHeight: "1.7",
+  color: "#4a4a52",
+  marginBottom: "12px",
+});
 
 const codeBlock = css({
   background: "#262630",
@@ -97,7 +108,12 @@ const tableWrap = css({
 });
 
 const tableStyle = css({ width: "100%", borderCollapse: "collapse", fontSize: "13px" });
-const toolName = css({ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px", fontWeight: 600, color: "#c45d2c" });
+const toolName = css({
+  fontFamily: "'JetBrains Mono', monospace",
+  fontSize: "12px",
+  fontWeight: 600,
+  color: "#c45d2c",
+});
 
 const noteBox = css({
   background: "#fef3c7",
@@ -132,7 +148,8 @@ function McpGuidePage() {
       <div className={section}>
         <h2 className={heading2}>概要</h2>
         <p className={paragraph}>
-          MCP（Model Context Protocol）を使うと、Claude DesktopなどのAIアシスタントからMillicall PBXを直接操作できます。
+          MCP（Model Context Protocol）を使うと、Claude DesktopなどのAIアシスタントからMillicall
+          PBXを直接操作できます。
           電話の発信・通話・電話帳管理・通話転送などをテキストベースの会話で行えます。
         </p>
       </div>
@@ -143,23 +160,18 @@ function McpGuidePage() {
 
         <h3 className={heading3}>リモート接続（推奨）</h3>
         <p className={paragraph}>
-          Streamable HTTP で接続します。<code className={inlineCode}>claude_desktop_config.json</code> に以下を追加してください。
+          Streamable HTTP で接続します。
+          <code className={inlineCode}>claude_desktop_config.json</code> に以下を追加してください。
           URLのIPアドレスはMillicallサーバーのアドレスに置き換えてください。
         </p>
         {mcpConfig && (
-          <pre className={codeBlock}>
-            {JSON.stringify(mcpConfig.remote_config, null, 2)}
-          </pre>
+          <pre className={codeBlock}>{JSON.stringify(mcpConfig.remote_config, null, 2)}</pre>
         )}
 
         <h3 className={heading3}>stdio接続（Docker exec）</h3>
-        <p className={paragraph}>
-          サーバーと同じマシンで実行する場合は stdio 接続も使えます。
-        </p>
+        <p className={paragraph}>サーバーと同じマシンで実行する場合は stdio 接続も使えます。</p>
         {mcpConfig && (
-          <pre className={codeBlock}>
-            {JSON.stringify(mcpConfig.stdio_config, null, 2)}
-          </pre>
+          <pre className={codeBlock}>{JSON.stringify(mcpConfig.stdio_config, null, 2)}</pre>
         )}
       </div>
 
@@ -201,9 +213,22 @@ function McpGuidePage() {
 
         <h3 className={heading3}>有効な内線</h3>
         {mcpConfig?.current_extensions?.length ? (
-          <div className={css({ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "16px" })}>
+          <div
+            className={css({ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "16px" })}
+          >
             {mcpConfig.current_extensions.map((ext) => (
-              <Tag key={ext.number} variant={ext.type === "phone" ? "phone" : ext.type === "ivr" ? "ivr" : ext.type === "ai_workflow" ? "workflow" : "ai"}>
+              <Tag
+                key={ext.number}
+                variant={
+                  ext.type === "phone"
+                    ? "phone"
+                    : ext.type === "ivr"
+                      ? "ivr"
+                      : ext.type === "ai_workflow"
+                        ? "workflow"
+                        : "ai"
+                }
+              >
                 {ext.number} - {ext.name}
               </Tag>
             ))}
@@ -227,7 +252,9 @@ function McpGuidePage() {
                 {mcpConfig.current_trunks.map((t) => (
                   <tr key={t.name}>
                     <td className={tdStyle}>{t.display_name}</td>
-                    <td className={tdStyle}><code className={inlineCode}>{t.did || "-"}</code></td>
+                    <td className={tdStyle}>
+                      <code className={inlineCode}>{t.did || "-"}</code>
+                    </td>
                     <td className={tdStyle}>{t.prefixes || "0発信"}</td>
                   </tr>
                 ))}
@@ -256,7 +283,9 @@ function McpGuidePage() {
               <tbody>
                 {Object.entries(outbound.dialing_rules).map(([key, desc]) => (
                   <tr key={key}>
-                    <td className={tdStyle}><code className={inlineCode}>{key}</code></td>
+                    <td className={tdStyle}>
+                      <code className={inlineCode}>{key}</code>
+                    </td>
                     <td className={tdStyle}>{desc}</td>
                   </tr>
                 ))}
@@ -270,7 +299,12 @@ function McpGuidePage() {
           <div key={trunk.name} className={css({ marginBottom: "16px" })}>
             <div className={css({ fontWeight: 600, fontSize: "13px", marginBottom: "6px" })}>
               {trunk.display_name}
-              {trunk.did_number && <span className={css({ color: "#8e8e96", fontWeight: 400 })}> ({trunk.did_number})</span>}
+              {trunk.did_number && (
+                <span className={css({ color: "#8e8e96", fontWeight: 400 })}>
+                  {" "}
+                  ({trunk.did_number})
+                </span>
+              )}
             </div>
             {trunk.prefix_rules.length > 0 ? (
               <div className={tableWrap}>
@@ -285,22 +319,29 @@ function McpGuidePage() {
                   <tbody>
                     {trunk.prefix_rules.map((rule, i) => (
                       <tr key={`${trunk.name}-${i}`}>
-                        <td className={tdStyle}><code className={inlineCode}>{rule.prefix}</code></td>
+                        <td className={tdStyle}>
+                          <code className={inlineCode}>{rule.prefix}</code>
+                        </td>
                         <td className={tdStyle}>{rule.prepend || "-"}</td>
-                        <td className={tdStyle}><code className={inlineCode}>{rule.example}</code></td>
+                        <td className={tdStyle}>
+                          <code className={inlineCode}>{rule.example}</code>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             ) : (
-              <p className={css({ fontSize: "13px", color: "#4a4a52" })}>プレフィックスなし（0発信 / 184 / 186）</p>
+              <p className={css({ fontSize: "13px", color: "#4a4a52" })}>
+                プレフィックスなし（0発信 / 184 / 186）
+              </p>
             )}
           </div>
         ))}
 
         <div className={noteBox}>
-          <strong>注意:</strong> MCP経由の発信では、<code className={inlineCode}>dial</code> ツールが番号形式を自動判定します。
+          <strong>注意:</strong> MCP経由の発信では、<code className={inlineCode}>dial</code>{" "}
+          ツールが番号形式を自動判定します。
           内線番号はそのまま、外線番号にはデフォルトトランクのプレフィックスが付与されます。
         </div>
       </div>

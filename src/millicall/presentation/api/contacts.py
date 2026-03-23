@@ -4,7 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from millicall.domain.models import Contact
 from millicall.infrastructure.database import get_session
 from millicall.infrastructure.repositories.contact_repo import ContactRepository
-from millicall.presentation.auth import get_current_user
+from millicall.domain.models import User
+from millicall.presentation.auth import get_current_user, require_admin
 from millicall.presentation.schemas import ContactCreate, ContactResponse, ContactUpdate
 
 router = APIRouter(
@@ -49,6 +50,7 @@ async def get_contact(contact_id: int, session: AsyncSession = Depends(get_sessi
 async def create_contact(
     data: ContactCreate,
     session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_admin),
 ):
     repo = ContactRepository(session)
     c = await repo.create(
@@ -68,6 +70,7 @@ async def update_contact(
     contact_id: int,
     data: ContactUpdate,
     session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_admin),
 ):
     repo = ContactRepository(session)
     c = await repo.update(
@@ -87,6 +90,7 @@ async def update_contact(
 async def delete_contact(
     contact_id: int,
     session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_admin),
 ):
     repo = ContactRepository(session)
     await repo.delete(contact_id)

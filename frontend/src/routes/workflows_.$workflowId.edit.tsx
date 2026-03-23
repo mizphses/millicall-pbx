@@ -469,7 +469,9 @@ function WorkflowEditorPage() {
 
       {/* AI Generation Modal */}
       {showAiModal && (
+        // biome-ignore lint/a11y/noStaticElementInteractions: modal backdrop overlay
         <div
+          role="presentation"
           className={css({
             position: "fixed",
             inset: 0,
@@ -479,7 +481,12 @@ function WorkflowEditorPage() {
             justifyContent: "center",
             zIndex: 200,
           })}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowAiModal(false); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowAiModal(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setShowAiModal(false);
+          }}
         >
           <div
             className={css({
@@ -491,14 +498,28 @@ function WorkflowEditorPage() {
               padding: "24px",
             })}
           >
-            <div className={css({ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" })}>
+            <div
+              className={css({
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "16px",
+              })}
+            >
               <h2 className={css({ fontSize: "16px", fontWeight: 700, color: "#1b1b1f" })}>
                 ✦ AIでワークフローを生成
               </h2>
               <button
                 type="button"
                 onClick={() => setShowAiModal(false)}
-                className={css({ background: "transparent", border: "none", fontSize: "20px", cursor: "pointer", color: "#8e8e96", _hover: { color: "#1b1b1f" } })}
+                className={css({
+                  background: "transparent",
+                  border: "none",
+                  fontSize: "20px",
+                  cursor: "pointer",
+                  color: "#8e8e96",
+                  _hover: { color: "#1b1b1f" },
+                })}
               >
                 &times;
               </button>
@@ -523,7 +544,14 @@ function WorkflowEditorPage() {
               onChange={(e) => setAiPrompt(e.target.value)}
               placeholder="例: 営業時間内（平日9-18時）はAIが受付応対し、名前と用件を聞いてから内線4001に転送。時間外は留守番電話にする。"
             />
-            <div className={css({ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "16px" })}>
+            <div
+              className={css({
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "8px",
+                marginTop: "16px",
+              })}
+            >
               <button
                 type="button"
                 onClick={() => setShowAiModal(false)}
@@ -543,7 +571,9 @@ function WorkflowEditorPage() {
               </button>
               <button
                 type="button"
-                onClick={() => { if (aiPrompt.trim()) aiMutation.mutate(aiPrompt.trim()); }}
+                onClick={() => {
+                  if (aiPrompt.trim()) aiMutation.mutate(aiPrompt.trim());
+                }}
                 disabled={aiMutation.isPending || !aiPrompt.trim()}
                 className={css({
                   padding: "8px 16px",
@@ -562,7 +592,14 @@ function WorkflowEditorPage() {
               </button>
             </div>
             {aiMutation.isPending && (
-              <p className={css({ fontSize: "12px", color: "#8e8e96", marginTop: "8px", textAlign: "center" })}>
+              <p
+                className={css({
+                  fontSize: "12px",
+                  color: "#8e8e96",
+                  marginTop: "8px",
+                  textAlign: "center",
+                })}
+              >
                 Gemini 2.5 Flashでワークフローを生成しています...
               </p>
             )}

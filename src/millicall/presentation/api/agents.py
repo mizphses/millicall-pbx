@@ -3,7 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from millicall.application.ai_agent_service import AIAgentService
 from millicall.infrastructure.database import get_session
-from millicall.presentation.auth import get_current_user
+from millicall.domain.models import User
+from millicall.presentation.auth import get_current_user, require_admin
 from millicall.presentation.schemas import AgentCreate, AgentResponse, AgentUpdate
 
 router = APIRouter(
@@ -62,6 +63,7 @@ async def get_agent(agent_id: int, session: AsyncSession = Depends(get_session))
 async def create_agent(
     data: AgentCreate,
     session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_admin),
 ):
     service = AIAgentService(session)
     a = await service.create_agent(
@@ -98,6 +100,7 @@ async def update_agent(
     agent_id: int,
     data: AgentUpdate,
     session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_admin),
 ):
     service = AIAgentService(session)
     a = await service.update_agent(
@@ -134,6 +137,7 @@ async def update_agent(
 async def delete_agent(
     agent_id: int,
     session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_admin),
 ):
     service = AIAgentService(session)
     await service.delete_agent(agent_id)

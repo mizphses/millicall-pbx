@@ -324,9 +324,7 @@ function DevicesPage() {
                       <p className={css({ fontSize: "13px", marginBottom: "4px" })}>
                         内線番号: <code className={codeStyle}>{currentExt.number}</code>
                       </p>
-                      <p className={css({ fontSize: "13px" })}>
-                        表示名: {currentExt.display_name}
-                      </p>
+                      <p className={css({ fontSize: "13px" })}>表示名: {currentExt.display_name}</p>
                     </>
                   ) : (
                     <p className={css({ fontSize: "13px", color: "#8e8e96" })}>

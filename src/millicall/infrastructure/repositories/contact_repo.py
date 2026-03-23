@@ -21,9 +21,7 @@ class ContactRepository:
         )
 
     async def get_all(self) -> list[Contact]:
-        result = await self.session.execute(
-            select(contacts_table).order_by(contacts_table.c.name)
-        )
+        result = await self.session.execute(select(contacts_table).order_by(contacts_table.c.name))
         return [self._row_to_model(row) for row in result]
 
     async def get_by_id(self, contact_id: int) -> Contact:

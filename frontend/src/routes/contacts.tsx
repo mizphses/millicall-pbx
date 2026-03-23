@@ -104,9 +104,9 @@ function ContactsPage() {
       (c) =>
         c.name.toLowerCase().includes(q) ||
         c.phone_number.toLowerCase().includes(q) ||
-        (c.company && c.company.toLowerCase().includes(q)) ||
-        (c.department && c.department.toLowerCase().includes(q)) ||
-        (c.notes && c.notes.toLowerCase().includes(q)),
+        c.company?.toLowerCase().includes(q) ||
+        c.department?.toLowerCase().includes(q) ||
+        c.notes?.toLowerCase().includes(q),
     );
   }, [contacts, search]);
 

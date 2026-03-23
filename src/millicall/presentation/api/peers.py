@@ -4,7 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from millicall.application.asterisk_service import AsteriskService
 from millicall.application.peer_service import PeerService
 from millicall.infrastructure.database import get_session
-from millicall.presentation.auth import get_current_user
+from millicall.domain.models import User
+from millicall.presentation.auth import get_current_user, require_admin
 from millicall.presentation.schemas import PeerCreate, PeerResponse, PeerUpdate
 
 router = APIRouter(
@@ -51,6 +52,7 @@ async def get_peer(peer_id: int, session: AsyncSession = Depends(get_session)):
 async def create_peer(
     data: PeerCreate,
     session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_admin),
 ):
     service = PeerService(session)
     p = await service.create_peer(
@@ -79,6 +81,7 @@ async def update_peer(
     peer_id: int,
     data: PeerUpdate,
     session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_admin),
 ):
     service = PeerService(session)
     p = await service.update_peer(
@@ -107,6 +110,7 @@ async def update_peer(
 async def delete_peer(
     peer_id: int,
     session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_admin),
 ):
     service = PeerService(session)
     await service.delete_peer(peer_id)

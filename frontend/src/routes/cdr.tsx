@@ -140,12 +140,12 @@ function CdrPage() {
           {
             header: "発信元",
             sortValue: (cdr) => cdr.src,
-            accessor: (cdr) => cdr.src ? <code className={codeStyle}>{cdr.src}</code> : "-",
+            accessor: (cdr) => (cdr.src ? <code className={codeStyle}>{cdr.src}</code> : "-"),
           },
           {
             header: "宛先",
             sortValue: (cdr) => cdr.dst,
-            accessor: (cdr) => cdr.dst ? <code className={codeStyle}>{cdr.dst}</code> : "-",
+            accessor: (cdr) => (cdr.dst ? <code className={codeStyle}>{cdr.dst}</code> : "-"),
           },
           {
             header: "コンテキスト",
@@ -156,7 +156,9 @@ function CdrPage() {
             header: "呼出秒",
             sortValue: (cdr) => cdr.duration,
             accessor: (cdr) => (
-              <span className={css({ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" })}>
+              <span
+                className={css({ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" })}
+              >
                 {cdr.duration}
               </span>
             ),
@@ -165,7 +167,9 @@ function CdrPage() {
             header: "通話秒",
             sortValue: (cdr) => cdr.billsec,
             accessor: (cdr) => (
-              <span className={css({ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" })}>
+              <span
+                className={css({ fontFamily: "'JetBrains Mono', monospace", fontSize: "12px" })}
+              >
                 {cdr.billsec}
               </span>
             ),

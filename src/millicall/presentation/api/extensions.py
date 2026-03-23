@@ -4,7 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from millicall.application.asterisk_service import AsteriskService
 from millicall.application.extension_service import ExtensionService
 from millicall.infrastructure.database import get_session
-from millicall.presentation.auth import get_current_user
+from millicall.domain.models import User
+from millicall.presentation.auth import get_current_user, require_admin
 from millicall.presentation.schemas import ExtensionCreate, ExtensionResponse, ExtensionUpdate
 
 router = APIRouter(
@@ -51,6 +52,7 @@ async def get_extension(extension_id: int, session: AsyncSession = Depends(get_s
 async def create_extension(
     data: ExtensionCreate,
     session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_admin),
 ):
     service = ExtensionService(session)
     e = await service.create_extension(
@@ -77,6 +79,7 @@ async def update_extension(
     extension_id: int,
     data: ExtensionUpdate,
     session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_admin),
 ):
     service = ExtensionService(session)
     e = await service.update_extension(
@@ -103,6 +106,7 @@ async def update_extension(
 async def delete_extension(
     extension_id: int,
     session: AsyncSession = Depends(get_session),
+    _admin: User = Depends(require_admin),
 ):
     service = ExtensionService(session)
     await service.delete_extension(extension_id)

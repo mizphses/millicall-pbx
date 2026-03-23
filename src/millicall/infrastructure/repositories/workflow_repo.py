@@ -54,7 +54,7 @@ class WorkflowRepository:
         result = await self.session.execute(
             select(workflows_table)
             .where(workflows_table.c.number == number)
-            .where(workflows_table.c.enabled == True)
+            .where(workflows_table.c.enabled)
         )
         row = result.first()
         if not row:

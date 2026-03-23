@@ -301,8 +301,8 @@ class WorkflowEdge(BaseModel):
     id: str
     source: str
     target: str
-    sourceHandle: str | None = None
-    targetHandle: str | None = None
+    source_handle: str | None = Field(None, alias="sourceHandle")
+    target_handle: str | None = Field(None, alias="targetHandle")
     label: str | None = None
 
 

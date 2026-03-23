@@ -3,7 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from millicall.application.cdr_service import CDRService
 from millicall.infrastructure.database import get_session
-from millicall.presentation.auth import get_current_user
+from millicall.domain.models import User
+from millicall.presentation.auth import get_current_user, require_admin
 from millicall.presentation.schemas import CDRResponse
 
 router = APIRouter(
@@ -46,7 +47,7 @@ async def list_cdr(
 
 
 @router.post("/import")
-async def import_cdr(session: AsyncSession = Depends(get_session)):
+async def import_cdr(session: AsyncSession = Depends(get_session), _admin: User = Depends(require_admin)):
     service = CDRService(session)
     service.flush_cdr()
     csv_exists = service.CDR_CSV_PATH.exists()

@@ -237,9 +237,7 @@ function SettingsPage() {
           marginTop: "20px",
         })}
       >
-        <h2 className={css({ fontSize: "15px", fontWeight: 600, marginBottom: "8px" })}>
-          MCP連携
-        </h2>
+        <h2 className={css({ fontSize: "15px", fontWeight: 600, marginBottom: "8px" })}>MCP連携</h2>
         <p className={css({ fontSize: "13px", color: "#4a4a52", marginBottom: "12px" })}>
           Claude DesktopなどのAIアシスタントからMillicallを操作するためのMCP設定ガイドです。
         </p>

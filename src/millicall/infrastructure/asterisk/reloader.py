@@ -94,5 +94,5 @@ class AsteriskReloader:
             logger.info("Asterisk command OK: %s", command)
         except FileNotFoundError:
             logger.warning("Asterisk binary not found, skipping reload")
-        except subprocess.TimeoutExpired:
-            raise AsteriskReloadError(f"Timeout running: {command}")
+        except subprocess.TimeoutExpired as err:
+            raise AsteriskReloadError(f"Timeout running: {command}") from err

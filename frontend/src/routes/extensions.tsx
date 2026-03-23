@@ -174,7 +174,9 @@ function ExtensionsPage() {
             header: "番号",
             sortValue: (ext) => ext.number,
             accessor: (ext) => (
-              <strong className={css({ fontFamily: "'JetBrains Mono', monospace", fontSize: "13px" })}>
+              <strong
+                className={css({ fontFamily: "'JetBrains Mono', monospace", fontSize: "13px" })}
+              >
                 {ext.number}
               </strong>
             ),
@@ -208,7 +210,11 @@ function ExtensionsPage() {
               }
               if (ext.type === "ai_agent" && ext.ai_agent_id && agentMap[ext.ai_agent_id]) {
                 const a = agentMap[ext.ai_agent_id];
-                return <Tag variant="ai">{a.llm_provider}/{a.llm_model}</Tag>;
+                return (
+                  <Tag variant="ai">
+                    {a.llm_provider}/{a.llm_model}
+                  </Tag>
+                );
               }
               const wf = wfByExtId[ext.id];
               if (wf) {
@@ -241,7 +247,11 @@ function ExtensionsPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          if (confirm(`ワークフロー「${wf.name}」と内線 ${ext.number} を削除しますか？`))
+                          if (
+                            confirm(
+                              `ワークフロー「${wf.name}」と内線 ${ext.number} を削除しますか？`,
+                            )
+                          )
                             deleteWfMutation.mutate(wf.id);
                         }}
                         className={btnDelete}

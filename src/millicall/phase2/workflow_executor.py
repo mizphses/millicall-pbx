@@ -8,14 +8,14 @@ conditions, or simple sequential edges.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import os
 import re
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from millicall.domain.models import Workflow
 from millicall.phase2 import llm_chat, stt
 from millicall.phase2.ari_handler import (
     _ari_request,
@@ -23,6 +23,9 @@ from millicall.phase2.ari_handler import (
     _sanitize_id,
     _save_wav_to_asterisk,
 )
+
+if TYPE_CHECKING:
+    from millicall.domain.models import Workflow
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +40,7 @@ class ChannelHungUpError(Exception):
     """Raised when the channel has been hung up mid-execution."""
 
 
-class _GotoExecuted(Exception):
+class _GotoExecutedError(Exception):
     """Internal sentinel: goto already dispatched to the target node."""
 
 
@@ -122,7 +125,7 @@ class WorkflowExecutor:
         else:
             try:
                 result = await handler(node, config)
-            except (ChannelHungUpError, _GotoExecuted):
+            except (ChannelHungUpError, _GotoExecutedError):
                 raise
             except Exception as exc:
                 logger.error("Node %s error: %s", node["id"], exc, exc_info=True)
@@ -141,12 +144,10 @@ class WorkflowExecutor:
             raise ChannelHungUpError(self.channel_id)
 
     async def _hangup(self) -> None:
-        try:
+        with contextlib.suppress(Exception):
             await _ari_request(
                 "DELETE", f"/channels/{self.channel_id}", params={"reason_code": "16"}
             )
-        except Exception:
-            pass
 
     def _cleanup(self) -> None:
         dtmf_queues.pop(self.channel_id, None)
@@ -154,10 +155,8 @@ class WorkflowExecutor:
         import glob as _glob
 
         for f in _glob.glob(f"/usr/share/asterisk/sounds/en/millicall/*{self.safe_id}*"):
-            try:
+            with contextlib.suppress(OSError):
                 os.remove(f)
-            except OSError:
-                pass
 
     async def _play_tts(
         self,
@@ -220,7 +219,7 @@ class WorkflowExecutor:
                 collected += digit
                 if digit == "#":
                     break
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 break
         return collected
 
@@ -384,7 +383,7 @@ class WorkflowExecutor:
         target_node = self._find_node_by_id(target_id)
         if target_node:
             await self._execute_node(target_node)
-            raise _GotoExecuted()
+            raise _GotoExecutedError()
         logger.error("goto target '%s' not found", target_id)
         return None
 
@@ -581,10 +580,8 @@ class WorkflowExecutor:
             if should_hangup:
                 break
 
-            try:
+            with contextlib.suppress(Exception):
                 await _ari_request("DELETE", f"/recordings/stored/{recording_name}")
-            except Exception:
-                pass
 
         # Finalize call log
         if call_log_id:
@@ -650,8 +647,8 @@ class WorkflowExecutor:
     async def _exec_collect_info(self, node: dict, config: dict) -> str | None:
         """Conversationally collect information fields from the caller."""
         fields = config.get("fields", [])
-        provider = config.get("llm_provider", "google")
-        llm_model = config.get("llm_model", "gemini-2.5-flash")
+        config.get("llm_provider", "google")
+        config.get("llm_model", "gemini-2.5-flash")
         tts_params = self._get_tts_params(config)
 
         if not isinstance(fields, list):
@@ -711,10 +708,8 @@ class WorkflowExecutor:
             except Exception as exc:
                 logger.error("STT failed for collect_info: %s", exc)
 
-            try:
+            with contextlib.suppress(Exception):
                 await _ari_request("DELETE", f"/recordings/stored/{rec_name}")
-            except Exception:
-                pass
 
         return None
 

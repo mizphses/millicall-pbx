@@ -5,15 +5,15 @@ Revises: 011_workflow_default_tts
 Create Date: 2026-03-23
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
 
 revision: str = "012_add_contacts"
-down_revision: Union[str, None] = "011_workflow_default_tts"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "011_workflow_default_tts"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

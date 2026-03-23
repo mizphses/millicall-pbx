@@ -26,16 +26,16 @@ from millicall.presentation.api.agents import router as agents_api_router
 from millicall.presentation.api.auth import router as auth_api_router
 from millicall.presentation.api.call_history import router as call_history_api_router
 from millicall.presentation.api.cdr import router as cdr_api_router
+from millicall.presentation.api.contacts import router as contacts_api_router
 from millicall.presentation.api.dashboard import router as dashboard_api_router
 from millicall.presentation.api.devices import router as devices_api_router
 from millicall.presentation.api.extensions import router as extensions_api_router
+from millicall.presentation.api.guide import router as guide_api_router
 from millicall.presentation.api.peers import router as peers_api_router
 from millicall.presentation.api.settings import router as settings_api_router
 from millicall.presentation.api.trunks import router as trunks_api_router
 from millicall.presentation.api.users import router as users_api_router
-from millicall.presentation.api.contacts import router as contacts_api_router
 from millicall.presentation.api.workflows import router as workflows_api_router
-from millicall.presentation.api.guide import router as guide_api_router
 from millicall.presentation.web.provisioning import router as provisioning_router
 from millicall.presentation.web.views import router as web_router
 
@@ -145,6 +145,7 @@ app.include_router(workflows_api_router)
 app.include_router(users_api_router)
 app.include_router(contacts_api_router)
 app.include_router(guide_api_router)
+
 
 # ---------------------------------------------------------------------------
 # MCP OAuth login page
