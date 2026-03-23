@@ -96,6 +96,7 @@ const tabBtn = (active: boolean) =>
 function DevicesPage() {
   const queryClient = useQueryClient();
   const [provisionTarget, setProvisionTarget] = useState<Device | null>(null);
+  const [showReassign, setShowReassign] = useState(false);
   const [mode, setMode] = useState<"assign" | "create">("create");
   const [selectedExtId, setSelectedExtId] = useState("");
   const [newNumber, setNewNumber] = useState("");
@@ -153,8 +154,13 @@ function DevicesPage() {
     },
   });
 
+  const resyncMutation = useMutation({
+    mutationFn: (deviceId: number) => api.post(`/devices/${deviceId}/resync`),
+  });
+
   function closeModal() {
     setProvisionTarget(null);
+    setShowReassign(false);
     setSelectedExtId("");
     setNewNumber("");
     setNewName("");
@@ -288,6 +294,68 @@ function DevicesPage() {
               </button>
             </div>
           </div>
+        ) : provisionTarget?.provisioned && !showReassign ? (
+          /* 設定済みデバイス: 現在の割当情報を表示 */
+          (() => {
+            const currentExt = extensions.find((e) => e.id === provisionTarget.extension_id);
+            return (
+              <div>
+                <div
+                  className={css({
+                    background: "#f5f4f2",
+                    border: "1px solid #d4d2cd",
+                    borderRadius: "5px",
+                    padding: "16px",
+                    marginBottom: "16px",
+                  })}
+                >
+                  <p
+                    className={css({
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      color: "#4a4a52",
+                      marginBottom: "8px",
+                    })}
+                  >
+                    現在の設定
+                  </p>
+                  {currentExt ? (
+                    <>
+                      <p className={css({ fontSize: "13px", marginBottom: "4px" })}>
+                        内線番号: <code className={codeStyle}>{currentExt.number}</code>
+                      </p>
+                      <p className={css({ fontSize: "13px" })}>
+                        表示名: {currentExt.display_name}
+                      </p>
+                    </>
+                  ) : (
+                    <p className={css({ fontSize: "13px", color: "#8e8e96" })}>
+                      割当済み（内線ID: {provisionTarget.extension_id}）
+                    </p>
+                  )}
+                </div>
+                <div className={css({ display: "flex", gap: "8px", justifyContent: "flex-end" })}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      resyncMutation.mutate(provisionTarget.id);
+                    }}
+                    disabled={resyncMutation.isPending}
+                    className={btnSecondary}
+                  >
+                    {resyncMutation.isPending ? "送信中..." : "再同期"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowReassign(true)}
+                    className={btnPrimary}
+                  >
+                    再割当
+                  </button>
+                </div>
+              </div>
+            );
+          })()
         ) : (
           <>
             <div className={css({ display: "flex", gap: "8px", marginBottom: "16px" })}>
