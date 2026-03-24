@@ -377,7 +377,7 @@ function WorkflowEditorPage() {
 
       setNodes((nds) => [...nds, newNode]);
     },
-    [rfInstance, setNodes, workflow.default_tts_config],
+    [rfInstance, setNodes, workflow?.default_tts_config],
   );
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {

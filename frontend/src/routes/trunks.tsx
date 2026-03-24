@@ -1,4 +1,3 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { css } from "../../styled-system/css";
@@ -87,13 +86,12 @@ const codeStyle = css({
 });
 
 function TrunksPage() {
-  const queryClient = useQueryClient();
   const [guideOpen, setGuideOpen] = useState(false);
 
   const { data: trunks, isLoading } = $api.useQuery("get", "/api/trunks");
 
   const deleteMutation = $api.useMutation("delete", "/api/trunks/{trunk_id}", {
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["get", "/api/trunks"] }),
+    onSuccess: () => window.location.reload(),
   });
 
   const trunkList = trunks ?? [];

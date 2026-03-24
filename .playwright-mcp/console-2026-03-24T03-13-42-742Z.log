@@ -1,0 +1,33 @@
+[     222ms] [ERROR] Failed to load resource: the server responded with a status of 502 () @ https://millicall.miz.cab/api/extensions:0
+[     225ms] [ERROR] Failed to load resource: the server responded with a status of 502 () @ https://millicall.miz.cab/api/peers:0
+[     226ms] [ERROR] Failed to load resource: the server responded with a status of 502 () @ https://millicall.miz.cab/api/workflows:0
+[    1256ms] [ERROR] Failed to load resource: the server responded with a status of 502 () @ https://millicall.miz.cab/api/workflows:0
+[    1256ms] [ERROR] Failed to load resource: the server responded with a status of 502 () @ https://millicall.miz.cab/api/extensions:0
+[    1261ms] [ERROR] Failed to load resource: the server responded with a status of 502 () @ https://millicall.miz.cab/api/peers:0
+[    2890ms] [ERROR] Failed to load resource: the server responded with a status of 502 () @ https://millicall.miz.cab/extensions:0
+[    3911ms] [ERROR] Failed to load resource: the server responded with a status of 502 () @ https://millicall.miz.cab/extensions:0
+[    4926ms] [ERROR] Failed to load resource: the server responded with a status of 502 () @ https://millicall.miz.cab/extensions:0
+[  248775ms] [ERROR] Failed to load resource: the server responded with a status of 530 () @ https://millicall.miz.cab/extensions:0
+[  249056ms] [ERROR] Failed to load resource: net::ERR_CERT_DATE_INVALID @ https://essl-cdxs.edgekey.net/img/r20-100KB.png?r=93587245:0
+[  249371ms] [ERROR] Failed to load resource: the server responded with a status of 530 () @ https://millicall.miz.cab/extensions:0
+[  249962ms] [ERROR] Failed to load resource: the server responded with a status of 530 () @ https://millicall.miz.cab/extensions:0
+[  250197ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://ipv6-check-perf.radar.cloudflare.com/api/info?r=45377681:0
+[  250199ms] Uncaught (in promise) TypeError: Failed to fetch
+    at <anonymous> (https://performance.radar.cloudflare.com/beacon.js:0:1435)
+    at c (https://performance.radar.cloudflare.com/beacon.js:0:1355)
+    at m (https://performance.radar.cloudflare.com/beacon.js:0:2831)
+[  252535ms] [ERROR] Failed to load resource: net::ERR_CERT_DATE_INVALID @ https://essl-cdxs.edgekey.net/img/r20-100KB.png?r=62902711:0
+[  399422ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_TIMED_OUT @ https://invalid.rpki.cloudflare.com/?r=99385322:0
+[  399457ms] Uncaught (in promise) TypeError: Failed to fetch
+    at <anonymous> (https://performance.radar.cloudflare.com/beacon.js:0:1209)
+    at i (https://performance.radar.cloudflare.com/beacon.js:0:1129)
+    at m (https://performance.radar.cloudflare.com/beacon.js:0:2831)
+[  444873ms] [ERROR] Failed to load resource: the server responded with a status of 530 () @ https://millicall.miz.cab/extensions:0
+[  445382ms] [ERROR] Failed to load resource: the server responded with a status of 530 () @ https://millicall.miz.cab/extensions:0
+[  445706ms] [ERROR] Failed to load resource: the server responded with a status of 530 () @ https://millicall.miz.cab/extensions:0
+[  463710ms] [ERROR] Failed to load resource: the server responded with a status of 530 () @ https://millicall.miz.cab/extensions:0
+[  464105ms] [ERROR] Failed to load resource: the server responded with a status of 530 () @ https://millicall.miz.cab/extensions:0
+[  545386ms] [ERROR] Failed to load resource: the server responded with a status of 530 () @ https://millicall.miz.cab/extensions:0
+[  545792ms] [ERROR] Failed to load resource: the server responded with a status of 530 () @ https://millicall.miz.cab/extensions:0
+[  546030ms] [ERROR] Failed to load resource: the server responded with a status of 530 () @ https://millicall.miz.cab/extensions:0
+[  999015ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://millicall.miz.cab/api/workflows/6:0

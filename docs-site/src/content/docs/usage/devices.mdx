@@ -1,0 +1,51 @@
+---
+title: デバイス管理
+description: IP 電話機のプロビジョニングと管理
+---
+
+import { Image } from 'astro:assets';
+import devices from '../../../assets/screenshots/devices.webp';
+
+デバイス管理画面では、IP 電話機の登録とプロビジョニング設定を行います。
+
+<Image src={devices} alt="デバイス管理画面" />
+
+## デバイスの登録
+
+1. **デバイス追加** をクリック
+2. 以下を設定:
+   - **MACアドレス** — 電話機のMACアドレス
+   - **メーカー** — Panasonic または Yealink
+   - **SIPピア** — 紐づけるSIPピア
+3. 保存
+
+## プロビジョニング
+
+デバイスを登録すると、電話機固有の設定ファイルが自動生成されます。電話機に以下のURLを設定してください:
+
+### Panasonic KX-HDV シリーズ
+
+プロビジョニングサーバーに以下を設定:
+
+```
+http://<PBX IP>:8000/provisioning/Panasonic/Config{MAC}.cfg
+```
+
+`{MAC}` は電話機が自身のMACアドレスに自動置換します。デバイス固有の SIP 認証情報が配信されます。
+
+### Yealink T シリーズ
+
+オートプロビジョニングサーバーに以下を設定:
+
+```
+http://<PBX IP>:8000/provisioning/Yealink/{mac}.cfg
+```
+
+## 再プロビジョニング
+
+ピアのパスワード変更や設定変更後、電話機に新しい設定を配信するには:
+
+- **再同期** ボタンをクリック — HTTP 経由で電話機に設定再読み込みを指示
+- または電話機を再起動
+
+SIP NOTIFY (`check-sync`) による再同期も自動的に送信されます。

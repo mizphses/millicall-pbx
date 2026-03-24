@@ -1,4 +1,3 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { css } from "../../styled-system/css";
@@ -75,13 +74,12 @@ const searchInput = css({
 });
 
 function ContactsPage() {
-  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
 
   const { data: contacts, isLoading } = $api.useQuery("get", "/api/contacts");
 
   const deleteMutation = $api.useMutation("delete", "/api/contacts/{contact_id}", {
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["get", "/api/contacts"] }),
+    onSuccess: () => window.location.reload(),
   });
 
   const filtered = useMemo(() => {

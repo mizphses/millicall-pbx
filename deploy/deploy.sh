@@ -27,10 +27,10 @@ rsync -avz --delete \
 echo "[2/3] Checking .env..."
 $SSH_CMD "test -f $REMOTE_DIR/.env || cp $REMOTE_DIR/.env.example $REMOTE_DIR/.env"
 
-# 3. Build and start
+# 3. Build and start (with tunnel if CLOUDFLARE_TUNNEL_TOKEN is set)
 echo "[3/3] Building and starting containers..."
-$SSH_CMD "cd $REMOTE_DIR && docker compose up -d --build"
+$SSH_CMD "cd $REMOTE_DIR && docker compose --profile tunnel up -d --build"
 
 echo ""
 echo "=== Deployment complete ==="
-echo "Web UI: http://$SERVER:8000"
+echo "Web UI: http://$SERVER"

@@ -1,0 +1,61 @@
+---
+title: クイックスタート
+description: 3ステップで Millicall PBX を起動する
+---
+
+import { Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+## ワンライナーインストール
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mizphses/millicall-pbx/main/install.sh | bash
+```
+
+対話形式でセットアップが完了し、自動で起動します。
+
+## 手動セットアップ
+
+<Steps>
+
+1. **リポジトリをクローン**
+
+   ```bash
+   git clone https://github.com/mizphses/millicall.git
+   cd millicall
+   ```
+
+2. **起動**
+
+   <Tabs>
+     <TabItem label="そのまま起動">
+       ```bash
+       docker compose up -d
+       ```
+       `.env` がなくても起動します。シークレットは自動生成されます。
+     </TabItem>
+     <TabItem label="CLI で設定してから起動">
+       ```bash
+       pip install -e .
+       millicall setup
+       ```
+       対話式で管理者パスワードや API キーを設定できます。
+     </TabItem>
+   </Tabs>
+
+3. **ログイン**
+
+   ブラウザで `http://localhost` を開きます。
+
+   初回の管理者パスワードは以下で確認:
+
+   ```bash
+   docker compose logs millicall 2>&1 | grep "ADMIN_PASSWORD"
+   ```
+
+</Steps>
+
+## 次のステップ
+
+- [環境変数の設定](/millicall-pbx/setup/env/) — API キーやシークレットの設定
+- [Cloudflare Tunnel](/millicall-pbx/setup/tunnel/) — 外部からのアクセス
+- [内線アカウント](/millicall-pbx/usage/extensions/) — 電話機と内線の設定

@@ -1,4 +1,3 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { css } from "../../styled-system/css";
 import { DataTable } from "../components/DataTable";
@@ -77,23 +76,19 @@ const btnDelete = css({
 });
 
 function ExtensionsPage() {
-  const queryClient = useQueryClient();
-
   const { data: extensions, isLoading } = $api.useQuery("get", "/api/extensions");
   const { data: peers } = $api.useQuery("get", "/api/peers");
   const { data: workflows } = $api.useQuery("get", "/api/workflows");
 
   const deleteMutation = $api.useMutation("delete", "/api/extensions/{extension_id}", {
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["extensions"] });
-      queryClient.invalidateQueries({ queryKey: ["workflows"] });
+      window.location.reload();
     },
   });
 
   const deleteWfMutation = $api.useMutation("delete", "/api/workflows/{workflow_id}", {
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["extensions"] });
-      queryClient.invalidateQueries({ queryKey: ["workflows"] });
+      window.location.reload();
     },
   });
 

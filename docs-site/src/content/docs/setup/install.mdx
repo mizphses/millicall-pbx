@@ -1,0 +1,85 @@
+---
+title: インストール
+description: Docker のインストールと Millicall PBX の初期設定
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+## 前提条件
+
+- Docker Engine 24.0 以上
+- Docker Compose v2
+- git
+
+## Docker のインストール
+
+<Steps>
+
+1. **Ubuntu の場合**
+
+   リポジトリに含まれるスクリプトを使用:
+
+   ```bash
+   bash deploy/install-docker.sh
+   ```
+
+   または [公式ドキュメント](https://docs.docker.com/engine/install/ubuntu/) を参照。
+
+2. **インストール後の確認**
+
+   ```bash
+   # 再ログインして docker グループを反映
+   newgrp docker
+   docker version
+   docker compose version
+   ```
+
+</Steps>
+
+## Millicall のインストール
+
+### ワンライナー（推奨）
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mizphses/millicall-pbx/main/install.sh | bash
+```
+
+Docker の存在確認 → クローン → 対話式セットアップ → ビルド・起動まで全自動で行います。
+
+### 手動インストール
+
+```bash
+git clone https://github.com/mizphses/millicall.git
+cd millicall
+docker compose up -d
+```
+
+<Aside>
+`.env` ファイルがなくても起動可能です。JWT シークレットや管理者パスワードは自動生成され、ログに出力されます。本番環境では `millicall setup` または `scripts/generate-env.sh` で `.env` を作成してください。
+</Aside>
+
+## CLI ツール
+
+Python 環境がある場合、CLI ツールも利用できます:
+
+```bash
+pip install -e .
+millicall setup     # 対話式セットアップ
+millicall start     # 起動
+millicall stop      # 停止
+millicall logs      # ログ
+millicall status    # 状態確認
+```
+
+## 起動確認
+
+```bash
+# コンテナの状態
+docker compose ps
+
+# ヘルスチェック
+# millicall: healthy になれば API が起動完了
+# frontend: healthy になれば Web UI が利用可能
+```
+
+ブラウザで `http://localhost` を開き、ログイン画面が表示されれば成功です。

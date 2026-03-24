@@ -18,7 +18,7 @@ services:
       - path: .env
         required: false
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8000/api/auth/me"]
+      test: ["CMD-SHELL", "curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/api/auth/me | grep -q 401"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -44,7 +44,7 @@ services:
   # Optional: Cloudflare Tunnel for remote access
   # Start with: docker compose --profile tunnel up -d
   cloudflared:
-    image: cloudflare/cloudflare:latest
+    image: cloudflare/cloudflared:latest
     container_name: millicall-tunnel
     restart: unless-stopped
     profiles: ["tunnel"]

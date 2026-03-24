@@ -140,7 +140,11 @@ async def generate_workflow(data: GenerateRequest):
     payload = {
         "contents": [{"role": "user", "parts": [{"text": data.prompt}]}],
         "systemInstruction": {"parts": [{"text": system_prompt}]},
-        "generationConfig": {"temperature": 0.3, "maxOutputTokens": 4000},
+        "generationConfig": {
+            "temperature": 0.3,
+            "maxOutputTokens": 4000,
+            "responseMimeType": "application/json",
+        },
     }
 
     try:
@@ -150,18 +154,25 @@ async def generate_workflow(data: GenerateRequest):
             result = resp.json()
 
         text = result["candidates"][0]["content"]["parts"][0]["text"]
-        # Strip markdown code block if present
+        # Strip markdown code block wrappers (```json ... ``` or ``` ... ```)
         text = text.strip()
-        if text.startswith("```"):
-            text = text.split("\n", 1)[1] if "\n" in text else text[3:]
-        if text.endswith("```"):
-            text = text[:-3]
-        text = text.strip()
+        import re
+
+        code_block = re.search(r"```(?:json)?\s*\n(.*?)```", text, re.DOTALL)
+        if code_block:
+            text = code_block.group(1).strip()
+        else:
+            # Fallback: try removing ``` prefix/suffix
+            if text.startswith("```"):
+                text = text.split("\n", 1)[1] if "\n" in text else text[3:]
+            if text.endswith("```"):
+                text = text[:-3]
+            text = text.strip()
 
         definition = json.loads(text)
         return {"definition": definition}
     except json.JSONDecodeError as e:
-        logger.error("AI generated invalid JSON: %s", e)
+        logger.error("AI generated invalid JSON: %s\nRaw text:\n%s", e, text)
         return {"error": "AIが有効なJSONを生成できませんでした", "raw": text}
     except Exception as e:
         logger.error("Workflow generation failed: %s", e)

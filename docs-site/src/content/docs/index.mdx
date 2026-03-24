@@ -1,0 +1,32 @@
+---
+title: Millicall PBX
+description: Docker で動く IP-PBX。SIP 電話機の管理、AI 電話応対ワークフロー、WebRTC ブラウザフォンに対応。
+template: splash
+hero:
+  tagline: Docker で動く、シンプルな IP-PBX
+  actions:
+    - text: クイックスタート
+      link: /millicall-pbx/guides/quickstart/
+      icon: right-arrow
+    - text: GitHub
+      link: https://github.com/mizphses/millicall
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <Card title="SIP電話機管理" icon="setting">
+    Panasonic KX-HDV / Yealink T シリーズの自動プロビジョニングに対応。
+  </Card>
+  <Card title="AIワークフロー" icon="rocket">
+    ビジュアルエディタで電話応対フローを構築。Gemini で自動生成も可能。
+  </Card>
+  <Card title="WebRTC電話" icon="laptop">
+    ブラウザからSIP通話。専用アプリ不要。
+  </Card>
+  <Card title="Docker一発起動" icon="seti:docker">
+    `docker compose up` で全コンポーネントが起動。
+  </Card>
+</CardGrid>

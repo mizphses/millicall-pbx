@@ -84,7 +84,7 @@ function UsersPage() {
   const { data: users, isLoading } = $api.useQuery("get", "/api/users");
 
   const deleteMutation = $api.useMutation("delete", "/api/users/{user_id}", {
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["users"] }),
+    onSuccess: () => window.location.reload(),
     onError: (err) => alert(typeof err?.detail === "string" ? err.detail : "Error"),
   });
 

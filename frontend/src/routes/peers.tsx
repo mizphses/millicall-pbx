@@ -1,4 +1,3 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { css } from "../../styled-system/css";
 import { DataTable } from "../components/DataTable";
@@ -59,11 +58,10 @@ const btnDelete = css({
 });
 
 function PeersPage() {
-  const queryClient = useQueryClient();
   const { data: peers, isLoading } = $api.useQuery("get", "/api/peers");
 
   const deleteMutation = $api.useMutation("delete", "/api/peers/{peer_id}", {
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["get", "/api/peers"] }),
+    onSuccess: () => window.location.reload(),
   });
 
   const peerList = peers ?? [];

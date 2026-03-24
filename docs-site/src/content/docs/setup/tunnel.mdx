@@ -1,0 +1,76 @@
+---
+title: Cloudflare Tunnel
+description: 外部からの安全なアクセスを設定する
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+Cloudflare Tunnel を使えば、ポート開放やVPN不要で外部からMillicall PBX にアクセスできます。
+
+## セットアップ
+
+<Steps>
+
+1. **Tunnel の作成**
+
+   [Cloudflare Zero Trust ダッシュボード](https://one.dash.cloudflare.com/) にログインし、**Networks** → **Tunnels** → **Create a tunnel** を選択。
+
+   Cloudflared を選択して名前を入力し、トークンをコピーします。
+
+2. **トークンの設定**
+
+   `.env` に追加:
+
+   ```
+   CLOUDFLARE_TUNNEL_TOKEN=eyJ...
+   ```
+
+3. **Public Hostname の設定**
+
+   Tunnel 設定画面で Public Hostname を追加:
+
+   | 項目 | 値 |
+   |------|-----|
+   | Subdomain | 任意 (例: `pbx`) |
+   | Domain | お使いのドメイン |
+   | Type | HTTP |
+   | URL | `host.docker.internal:80` |
+
+   <Aside type="caution">
+   URL は必ず `host.docker.internal:80` を指定してください。`localhost:80` では frontend コンテナに到達できません（frontend はブリッジネットワークで動作するため）。
+   </Aside>
+
+4. **起動**
+
+   ```bash
+   # CLI
+   millicall start  # .env に TUNNEL_TOKEN があれば自動検出
+
+   # または直接
+   docker compose --profile tunnel up -d
+   ```
+
+</Steps>
+
+## Access Policy（推奨）
+
+Cloudflare Access でログイン前に追加の認証を設定できます:
+
+1. **Access** → **Applications** → **Add an application**
+2. **Self-hosted** を選択
+3. Application domain に Tunnel で設定したドメインを入力
+4. Policy でメール認証やIP制限を設定
+
+これにより Millicall のログイン画面より手前で Cloudflare の認証が挟まり、二重の保護になります。
+
+## トラブルシューティング
+
+```bash
+# Tunnel のログを確認
+docker logs millicall-tunnel --tail 20
+
+# "Registered tunnel connection" が表示されていれば接続成功
+# "Updated to new configuration" でルーティング設定が反映済み
+```
+
+Tunnel 設定で Service URL が正しいか確認してください。`localhost:80` ではなく `host.docker.internal:80` である必要があります。
