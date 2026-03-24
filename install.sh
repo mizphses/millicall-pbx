@@ -2,7 +2,7 @@
 # Millicall PBX — One-line installer
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/mizphses/millicall/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/mizphses/millicall-pbx/main/install.sh | bash
 #
 set -euo pipefail
 
