@@ -24,7 +24,6 @@ cp .env.example .env
 |------|------|-----------|
 | `JWT_SECRET` | JWT トークンの署名キー。64文字以上推奨 | 自動生成 (警告あり) |
 | `ADMIN_PASSWORD` | 初期管理者 (`admin`) のパスワード | 自動生成 (ログ出力) |
-| `WEBRTC_PASSWORD` | WebRTC SIP 登録用パスワード | 自動生成 |
 | `ARI_PASSWORD` | Asterisk REST Interface のパスワード | 自動生成 |
 | `ARI_USER` | ARI のユーザー名 | `millicall` |
 

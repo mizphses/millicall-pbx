@@ -1,6 +1,6 @@
 # Millicall PBX
 
-Docker で動く IP-PBX。SIP 電話機の管理、AI 電話応対ワークフロー、WebRTC ブラウザフォンに対応。
+Docker で動く IP-PBX。SIP 電話機の管理、AI 電話応対ワークフローに対応。
 
 ## Install
 
