@@ -7,9 +7,7 @@
   "paths": {
     "/api/auth/login": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Login",
         "operationId": "login_api_auth_login_post",
         "requestBody": {
@@ -48,9 +46,7 @@
     },
     "/api/auth/me": {
       "get": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Get Me",
         "operationId": "get_me_api_auth_me_get",
         "responses": {
@@ -74,9 +70,7 @@
     },
     "/api/auth/logout": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Logout",
         "description": "Clear the HttpOnly auth cookie.",
         "operationId": "logout_api_auth_logout_post",
@@ -94,9 +88,7 @@
     },
     "/api/extensions": {
       "get": {
-        "tags": [
-          "extensions"
-        ],
+        "tags": ["extensions"],
         "summary": "List Extensions",
         "operationId": "list_extensions_api_extensions_get",
         "responses": {
@@ -122,9 +114,7 @@
         ]
       },
       "post": {
-        "tags": [
-          "extensions"
-        ],
+        "tags": ["extensions"],
         "summary": "Create Extension",
         "operationId": "create_extension_api_extensions_post",
         "requestBody": {
@@ -168,9 +158,7 @@
     },
     "/api/extensions/{extension_id}": {
       "get": {
-        "tags": [
-          "extensions"
-        ],
+        "tags": ["extensions"],
         "summary": "Get Extension",
         "operationId": "get_extension_api_extensions__extension_id__get",
         "security": [
@@ -213,9 +201,7 @@
         }
       },
       "put": {
-        "tags": [
-          "extensions"
-        ],
+        "tags": ["extensions"],
         "summary": "Update Extension",
         "operationId": "update_extension_api_extensions__extension_id__put",
         "security": [
@@ -268,9 +254,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "extensions"
-        ],
+        "tags": ["extensions"],
         "summary": "Delete Extension",
         "operationId": "delete_extension_api_extensions__extension_id__delete",
         "security": [
@@ -308,9 +292,7 @@
     },
     "/api/peers": {
       "get": {
-        "tags": [
-          "peers"
-        ],
+        "tags": ["peers"],
         "summary": "List Peers",
         "operationId": "list_peers_api_peers_get",
         "responses": {
@@ -336,9 +318,7 @@
         ]
       },
       "post": {
-        "tags": [
-          "peers"
-        ],
+        "tags": ["peers"],
         "summary": "Create Peer",
         "operationId": "create_peer_api_peers_post",
         "requestBody": {
@@ -382,9 +362,7 @@
     },
     "/api/peers/{peer_id}": {
       "get": {
-        "tags": [
-          "peers"
-        ],
+        "tags": ["peers"],
         "summary": "Get Peer",
         "operationId": "get_peer_api_peers__peer_id__get",
         "security": [
@@ -427,9 +405,7 @@
         }
       },
       "put": {
-        "tags": [
-          "peers"
-        ],
+        "tags": ["peers"],
         "summary": "Update Peer",
         "operationId": "update_peer_api_peers__peer_id__put",
         "security": [
@@ -482,9 +458,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "peers"
-        ],
+        "tags": ["peers"],
         "summary": "Delete Peer",
         "operationId": "delete_peer_api_peers__peer_id__delete",
         "security": [
@@ -522,9 +496,7 @@
     },
     "/api/devices": {
       "get": {
-        "tags": [
-          "devices"
-        ],
+        "tags": ["devices"],
         "summary": "List Devices",
         "operationId": "list_devices_api_devices_get",
         "responses": {
@@ -546,9 +518,7 @@
     },
     "/api/devices/scan": {
       "post": {
-        "tags": [
-          "devices"
-        ],
+        "tags": ["devices"],
         "summary": "Scan Devices",
         "operationId": "scan_devices_api_devices_scan_post",
         "responses": {
@@ -570,9 +540,7 @@
     },
     "/api/devices/{device_id}/quick-provision": {
       "post": {
-        "tags": [
-          "devices"
-        ],
+        "tags": ["devices"],
         "summary": "Quick Provision",
         "description": "1アクションでPeer作成→Extension作成→デバイス紐付けを完了する。",
         "operationId": "quick_provision_api_devices__device_id__quick_provision_post",
@@ -626,9 +594,7 @@
     },
     "/api/devices/{device_id}/assign-extension": {
       "post": {
-        "tags": [
-          "devices"
-        ],
+        "tags": ["devices"],
         "summary": "Assign Extension To Device",
         "description": "既存の内線をデバイスに割り当てる。",
         "operationId": "assign_extension_to_device_api_devices__device_id__assign_extension_post",
@@ -682,9 +648,7 @@
     },
     "/api/devices/{device_id}/resync": {
       "post": {
-        "tags": [
-          "devices"
-        ],
+        "tags": ["devices"],
         "summary": "Resync Device",
         "description": "デバイスにHTTPリシンクを送信してプロビジョニング設定を再取得させる。",
         "operationId": "resync_device_api_devices__device_id__resync_post",
@@ -728,9 +692,7 @@
     },
     "/api/trunks": {
       "get": {
-        "tags": [
-          "trunks"
-        ],
+        "tags": ["trunks"],
         "summary": "List Trunks",
         "operationId": "list_trunks_api_trunks_get",
         "responses": {
@@ -756,9 +718,7 @@
         ]
       },
       "post": {
-        "tags": [
-          "trunks"
-        ],
+        "tags": ["trunks"],
         "summary": "Create Trunk",
         "operationId": "create_trunk_api_trunks_post",
         "requestBody": {
@@ -802,9 +762,7 @@
     },
     "/api/trunks/{trunk_id}": {
       "get": {
-        "tags": [
-          "trunks"
-        ],
+        "tags": ["trunks"],
         "summary": "Get Trunk",
         "operationId": "get_trunk_api_trunks__trunk_id__get",
         "security": [
@@ -847,9 +805,7 @@
         }
       },
       "put": {
-        "tags": [
-          "trunks"
-        ],
+        "tags": ["trunks"],
         "summary": "Update Trunk",
         "operationId": "update_trunk_api_trunks__trunk_id__put",
         "security": [
@@ -902,9 +858,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "trunks"
-        ],
+        "tags": ["trunks"],
         "summary": "Delete Trunk",
         "operationId": "delete_trunk_api_trunks__trunk_id__delete",
         "security": [
@@ -942,9 +896,7 @@
     },
     "/api/agents": {
       "get": {
-        "tags": [
-          "agents"
-        ],
+        "tags": ["agents"],
         "summary": "List Agents",
         "operationId": "list_agents_api_agents_get",
         "responses": {
@@ -970,9 +922,7 @@
         ]
       },
       "post": {
-        "tags": [
-          "agents"
-        ],
+        "tags": ["agents"],
         "summary": "Create Agent",
         "operationId": "create_agent_api_agents_post",
         "requestBody": {
@@ -1016,9 +966,7 @@
     },
     "/api/agents/{agent_id}": {
       "get": {
-        "tags": [
-          "agents"
-        ],
+        "tags": ["agents"],
         "summary": "Get Agent",
         "operationId": "get_agent_api_agents__agent_id__get",
         "security": [
@@ -1061,9 +1009,7 @@
         }
       },
       "put": {
-        "tags": [
-          "agents"
-        ],
+        "tags": ["agents"],
         "summary": "Update Agent",
         "operationId": "update_agent_api_agents__agent_id__put",
         "security": [
@@ -1116,9 +1062,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "agents"
-        ],
+        "tags": ["agents"],
         "summary": "Delete Agent",
         "operationId": "delete_agent_api_agents__agent_id__delete",
         "security": [
@@ -1156,9 +1100,7 @@
     },
     "/api/settings": {
       "get": {
-        "tags": [
-          "settings"
-        ],
+        "tags": ["settings"],
         "summary": "List Settings",
         "operationId": "list_settings_api_settings_get",
         "responses": {
@@ -1184,9 +1126,7 @@
         ]
       },
       "put": {
-        "tags": [
-          "settings"
-        ],
+        "tags": ["settings"],
         "summary": "Update Settings",
         "operationId": "update_settings_api_settings_put",
         "requestBody": {
@@ -1232,9 +1172,7 @@
     },
     "/api/call-history": {
       "get": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Api Call History",
         "operationId": "api_call_history_api_call_history_get",
         "responses": {
@@ -1251,9 +1189,7 @@
     },
     "/api/call-history/{log_id}": {
       "get": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Api Call History Detail",
         "operationId": "api_call_history_detail_api_call_history__log_id__get",
         "parameters": [
@@ -1289,9 +1225,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "call-history"
-        ],
+        "tags": ["call-history"],
         "summary": "Delete Call Log",
         "operationId": "delete_call_log_api_call_history__log_id__delete",
         "security": [
@@ -1329,9 +1263,7 @@
     },
     "/api/cdr": {
       "get": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Api Cdr List",
         "operationId": "api_cdr_list_api_cdr_get",
         "responses": {
@@ -1348,9 +1280,7 @@
     },
     "/api/cdr/import": {
       "post": {
-        "tags": [
-          "cdr"
-        ],
+        "tags": ["cdr"],
         "summary": "Import Cdr",
         "operationId": "import_cdr_api_cdr_import_post",
         "responses": {
@@ -1372,9 +1302,7 @@
     },
     "/api/dashboard": {
       "get": {
-        "tags": [
-          "dashboard"
-        ],
+        "tags": ["dashboard"],
         "summary": "Get Dashboard",
         "operationId": "get_dashboard_api_dashboard_get",
         "responses": {
@@ -1396,9 +1324,7 @@
     },
     "/api/workflows": {
       "get": {
-        "tags": [
-          "workflows"
-        ],
+        "tags": ["workflows"],
         "summary": "List Workflows",
         "operationId": "list_workflows_api_workflows_get",
         "responses": {
@@ -1424,9 +1350,7 @@
         ]
       },
       "post": {
-        "tags": [
-          "workflows"
-        ],
+        "tags": ["workflows"],
         "summary": "Create Workflow",
         "operationId": "create_workflow_api_workflows_post",
         "requestBody": {
@@ -1470,9 +1394,7 @@
     },
     "/api/workflows/node-types": {
       "get": {
-        "tags": [
-          "workflows"
-        ],
+        "tags": ["workflows"],
         "summary": "Get Node Types",
         "operationId": "get_node_types_api_workflows_node_types_get",
         "security": [
@@ -1517,9 +1439,7 @@
     },
     "/api/workflows/generate": {
       "post": {
-        "tags": [
-          "workflows"
-        ],
+        "tags": ["workflows"],
         "summary": "Generate Workflow",
         "description": "Use Gemini to generate a workflow definition from natural language.",
         "operationId": "generate_workflow_api_workflows_generate_post",
@@ -1562,9 +1482,7 @@
     },
     "/api/workflows/{workflow_id}": {
       "get": {
-        "tags": [
-          "workflows"
-        ],
+        "tags": ["workflows"],
         "summary": "Get Workflow",
         "operationId": "get_workflow_api_workflows__workflow_id__get",
         "security": [
@@ -1607,9 +1525,7 @@
         }
       },
       "put": {
-        "tags": [
-          "workflows"
-        ],
+        "tags": ["workflows"],
         "summary": "Update Workflow",
         "operationId": "update_workflow_api_workflows__workflow_id__put",
         "security": [
@@ -1662,9 +1578,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "workflows"
-        ],
+        "tags": ["workflows"],
         "summary": "Delete Workflow",
         "operationId": "delete_workflow_api_workflows__workflow_id__delete",
         "security": [
@@ -1702,9 +1616,7 @@
     },
     "/api/users": {
       "get": {
-        "tags": [
-          "users"
-        ],
+        "tags": ["users"],
         "summary": "List Users",
         "operationId": "list_users_api_users_get",
         "responses": {
@@ -1730,9 +1642,7 @@
         ]
       },
       "post": {
-        "tags": [
-          "users"
-        ],
+        "tags": ["users"],
         "summary": "Create User",
         "operationId": "create_user_api_users_post",
         "requestBody": {
@@ -1776,9 +1686,7 @@
     },
     "/api/users/{user_id}": {
       "put": {
-        "tags": [
-          "users"
-        ],
+        "tags": ["users"],
         "summary": "Update User",
         "operationId": "update_user_api_users__user_id__put",
         "security": [
@@ -1831,9 +1739,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "users"
-        ],
+        "tags": ["users"],
         "summary": "Delete User",
         "operationId": "delete_user_api_users__user_id__delete",
         "security": [
@@ -1871,9 +1777,7 @@
     },
     "/api/users/{user_id}/password": {
       "put": {
-        "tags": [
-          "users"
-        ],
+        "tags": ["users"],
         "summary": "Reset Password",
         "description": "Admin resets another user's password, or user changes own password.",
         "operationId": "reset_password_api_users__user_id__password_put",
@@ -1922,9 +1826,7 @@
     },
     "/api/contacts": {
       "get": {
-        "tags": [
-          "contacts"
-        ],
+        "tags": ["contacts"],
         "summary": "List Contacts",
         "operationId": "list_contacts_api_contacts_get",
         "security": [
@@ -1974,9 +1876,7 @@
         }
       },
       "post": {
-        "tags": [
-          "contacts"
-        ],
+        "tags": ["contacts"],
         "summary": "Create Contact",
         "operationId": "create_contact_api_contacts_post",
         "security": [
@@ -2020,9 +1920,7 @@
     },
     "/api/contacts/{contact_id}": {
       "get": {
-        "tags": [
-          "contacts"
-        ],
+        "tags": ["contacts"],
         "summary": "Get Contact",
         "operationId": "get_contact_api_contacts__contact_id__get",
         "security": [
@@ -2065,9 +1963,7 @@
         }
       },
       "put": {
-        "tags": [
-          "contacts"
-        ],
+        "tags": ["contacts"],
         "summary": "Update Contact",
         "operationId": "update_contact_api_contacts__contact_id__put",
         "security": [
@@ -2120,9 +2016,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "contacts"
-        ],
+        "tags": ["contacts"],
         "summary": "Delete Contact",
         "operationId": "delete_contact_api_contacts__contact_id__delete",
         "security": [
@@ -2160,9 +2054,7 @@
     },
     "/api/guide/outbound": {
       "get": {
-        "tags": [
-          "guide"
-        ],
+        "tags": ["guide"],
         "summary": "Outbound Guide",
         "description": "外線発信ガイド — トランク・プレフィックス設定を反映して動的生成.",
         "operationId": "outbound_guide_api_guide_outbound_get",
@@ -2185,9 +2077,7 @@
     },
     "/api/guide/mcp-config": {
       "get": {
-        "tags": [
-          "guide"
-        ],
+        "tags": ["guide"],
         "summary": "Mcp Config",
         "description": "MCP設定ガイド — 現在のシステム構成を反映.",
         "operationId": "mcp_config_api_guide_mcp_config_get",
@@ -2369,9 +2259,7 @@
     },
     "/provisioning/Panasonic/ConfigCommon.cfg": {
       "get": {
-        "tags": [
-          "provisioning"
-        ],
+        "tags": ["provisioning"],
         "summary": "Common Config",
         "operationId": "common_config_provisioning_Panasonic_ConfigCommon_cfg_get",
         "responses": {
@@ -2388,9 +2276,7 @@
     },
     "/provisioning/Panasonic/Config{mac_address}.cfg": {
       "get": {
-        "tags": [
-          "provisioning"
-        ],
+        "tags": ["provisioning"],
         "summary": "Device Config",
         "operationId": "device_config_provisioning_Panasonic_Config_mac_address__cfg_get",
         "parameters": [
@@ -2428,9 +2314,7 @@
     },
     "/provisioning/Yealink/y000000000000.boot": {
       "get": {
-        "tags": [
-          "provisioning"
-        ],
+        "tags": ["provisioning"],
         "summary": "Yealink Boot",
         "description": "Boot file — all Yealink models request this on startup.",
         "operationId": "yealink_boot_provisioning_Yealink_y000000000000_boot_get",
@@ -2448,9 +2332,7 @@
     },
     "/provisioning/Yealink/{boot_file}.boot": {
       "get": {
-        "tags": [
-          "provisioning"
-        ],
+        "tags": ["provisioning"],
         "summary": "Yealink Model Boot",
         "description": "Model-specific boot file (e.g. y000000000042 for T43U) — same content.",
         "operationId": "yealink_model_boot_provisioning_Yealink__boot_file__boot_get",
@@ -2489,9 +2371,7 @@
     },
     "/provisioning/Yealink/common.cfg": {
       "get": {
-        "tags": [
-          "provisioning"
-        ],
+        "tags": ["provisioning"],
         "summary": "Yealink Common Config",
         "description": "Common configuration shared by all Yealink phones.",
         "operationId": "yealink_common_config_provisioning_Yealink_common_cfg_get",
@@ -2509,9 +2389,7 @@
     },
     "/provisioning/Yealink/{mac_address}.cfg": {
       "get": {
-        "tags": [
-          "provisioning"
-        ],
+        "tags": ["provisioning"],
         "summary": "Yealink Device Config",
         "description": "Per-device config — MAC address without separators (e.g. 805ec0a1b2c3.cfg).",
         "operationId": "yealink_device_config_provisioning_Yealink__mac_address__cfg_get",
@@ -2550,9 +2428,7 @@
     },
     "/": {
       "get": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Dashboard",
         "operationId": "dashboard__get",
         "responses": {
@@ -2571,9 +2447,7 @@
     },
     "/extensions": {
       "get": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Extensions List",
         "operationId": "extensions_list_extensions_get",
         "responses": {
@@ -2590,9 +2464,7 @@
         }
       },
       "post": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Extension Create",
         "operationId": "extension_create_extensions_post",
         "responses": {
@@ -2611,9 +2483,7 @@
     },
     "/extensions/new": {
       "get": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Extension New Form",
         "operationId": "extension_new_form_extensions_new_get",
         "responses": {
@@ -2632,9 +2502,7 @@
     },
     "/extensions/{extension_id}/edit": {
       "get": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Extension Edit Form",
         "operationId": "extension_edit_form_extensions__extension_id__edit_get",
         "parameters": [
@@ -2674,9 +2542,7 @@
     },
     "/extensions/{extension_id}": {
       "post": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Extension Update",
         "operationId": "extension_update_extensions__extension_id__post",
         "parameters": [
@@ -2716,9 +2582,7 @@
     },
     "/extensions/{extension_id}/delete": {
       "post": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Extension Delete",
         "operationId": "extension_delete_extensions__extension_id__delete_post",
         "parameters": [
@@ -2758,9 +2622,7 @@
     },
     "/peers": {
       "get": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Peers List",
         "operationId": "peers_list_peers_get",
         "responses": {
@@ -2777,9 +2639,7 @@
         }
       },
       "post": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Peer Create",
         "operationId": "peer_create_peers_post",
         "requestBody": {
@@ -2818,9 +2678,7 @@
     },
     "/peers/new": {
       "get": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Peer New Form",
         "operationId": "peer_new_form_peers_new_get",
         "responses": {
@@ -2839,9 +2697,7 @@
     },
     "/peers/{peer_id}/edit": {
       "get": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Peer Edit Form",
         "operationId": "peer_edit_form_peers__peer_id__edit_get",
         "parameters": [
@@ -2881,9 +2737,7 @@
     },
     "/peers/{peer_id}": {
       "post": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Peer Update",
         "operationId": "peer_update_peers__peer_id__post",
         "parameters": [
@@ -2933,9 +2787,7 @@
     },
     "/peers/{peer_id}/delete": {
       "post": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Peer Delete",
         "operationId": "peer_delete_peers__peer_id__delete_post",
         "parameters": [
@@ -2975,9 +2827,7 @@
     },
     "/devices": {
       "get": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Devices List",
         "operationId": "devices_list_devices_get",
         "responses": {
@@ -2996,9 +2846,7 @@
     },
     "/devices/scan": {
       "post": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Devices Scan",
         "operationId": "devices_scan_devices_scan_post",
         "responses": {
@@ -3017,9 +2865,7 @@
     },
     "/devices/{device_id}/provision": {
       "get": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Device Provision Form",
         "operationId": "device_provision_form_devices__device_id__provision_get",
         "parameters": [
@@ -3059,9 +2905,7 @@
     },
     "/devices/{device_id}/auto-provision": {
       "post": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Device Auto Provision",
         "operationId": "device_auto_provision_devices__device_id__auto_provision_post",
         "parameters": [
@@ -3111,9 +2955,7 @@
     },
     "/devices/{device_id}/assign": {
       "post": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Device Assign",
         "operationId": "device_assign_devices__device_id__assign_post",
         "parameters": [
@@ -3162,9 +3004,7 @@
     },
     "/devices/{device_id}/delete": {
       "post": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Device Delete",
         "operationId": "device_delete_devices__device_id__delete_post",
         "parameters": [
@@ -3204,9 +3044,7 @@
     },
     "/agents": {
       "get": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Agents List",
         "operationId": "agents_list_agents_get",
         "responses": {
@@ -3223,9 +3061,7 @@
         }
       },
       "post": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Agent Create",
         "operationId": "agent_create_agents_post",
         "requestBody": {
@@ -3264,9 +3100,7 @@
     },
     "/agents/new": {
       "get": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Agent New Form",
         "operationId": "agent_new_form_agents_new_get",
         "responses": {
@@ -3285,9 +3119,7 @@
     },
     "/agents/{agent_id}/edit": {
       "get": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Agent Edit Form",
         "operationId": "agent_edit_form_agents__agent_id__edit_get",
         "parameters": [
@@ -3327,9 +3159,7 @@
     },
     "/agents/{agent_id}": {
       "post": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Agent Update",
         "operationId": "agent_update_agents__agent_id__post",
         "parameters": [
@@ -3379,9 +3209,7 @@
     },
     "/agents/{agent_id}/delete": {
       "post": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Agent Delete",
         "operationId": "agent_delete_agents__agent_id__delete_post",
         "parameters": [
@@ -3421,9 +3249,7 @@
     },
     "/trunks": {
       "get": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Trunks List",
         "operationId": "trunks_list_trunks_get",
         "responses": {
@@ -3440,9 +3266,7 @@
         }
       },
       "post": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Trunk Create",
         "operationId": "trunk_create_trunks_post",
         "responses": {
@@ -3461,9 +3285,7 @@
     },
     "/trunks/new": {
       "get": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Trunk New Form",
         "operationId": "trunk_new_form_trunks_new_get",
         "responses": {
@@ -3482,9 +3304,7 @@
     },
     "/trunks/{trunk_id}/edit": {
       "get": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Trunk Edit Form",
         "operationId": "trunk_edit_form_trunks__trunk_id__edit_get",
         "parameters": [
@@ -3524,9 +3344,7 @@
     },
     "/trunks/{trunk_id}": {
       "post": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Trunk Update",
         "operationId": "trunk_update_trunks__trunk_id__post",
         "parameters": [
@@ -3566,9 +3384,7 @@
     },
     "/trunks/{trunk_id}/delete": {
       "post": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Trunk Delete",
         "operationId": "trunk_delete_trunks__trunk_id__delete_post",
         "parameters": [
@@ -3608,9 +3424,7 @@
     },
     "/settings": {
       "get": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Settings Page",
         "operationId": "settings_page_settings_get",
         "responses": {
@@ -3627,9 +3441,7 @@
         }
       },
       "post": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Settings Save",
         "operationId": "settings_save_settings_post",
         "responses": {
@@ -3648,9 +3460,7 @@
     },
     "/call-history": {
       "get": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Call History List",
         "operationId": "call_history_list_call_history_get",
         "responses": {
@@ -3669,9 +3479,7 @@
     },
     "/call-history/{log_id}": {
       "get": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Call History Detail",
         "operationId": "call_history_detail_call_history__log_id__get",
         "parameters": [
@@ -3711,9 +3519,7 @@
     },
     "/call-history/{log_id}/delete": {
       "post": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Call History Delete",
         "operationId": "call_history_delete_call_history__log_id__delete_post",
         "parameters": [
@@ -3753,9 +3559,7 @@
     },
     "/cdr": {
       "get": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Cdr List",
         "operationId": "cdr_list_cdr_get",
         "responses": {
@@ -3774,9 +3578,7 @@
     },
     "/cdr/import": {
       "post": {
-        "tags": [
-          "web"
-        ],
+        "tags": ["web"],
         "summary": "Cdr Manual Import",
         "operationId": "cdr_manual_import_cdr_import_post",
         "responses": {
@@ -3857,11 +3659,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "name",
-          "extension_number",
-          "system_prompt"
-        ],
+        "required": ["name", "extension_number", "system_prompt"],
         "title": "AgentCreate"
       },
       "AgentResponse": {
@@ -3993,11 +3791,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "name",
-          "extension_number",
-          "system_prompt"
-        ],
+        "required": ["name", "extension_number", "system_prompt"],
         "title": "AgentUpdate"
       },
       "AssignExtensionRequest": {
@@ -4008,9 +3802,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "extension_id"
-        ],
+        "required": ["extension_id"],
         "title": "AssignExtensionRequest"
       },
       "Body_agent_create_agents_post": {
@@ -4068,12 +3860,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "name",
-          "extension_number",
-          "system_prompt",
-          "greeting_text"
-        ],
+        "required": ["name", "extension_number", "system_prompt", "greeting_text"],
         "title": "Body_agent_create_agents_post"
       },
       "Body_agent_update_agents__agent_id__post": {
@@ -4131,12 +3918,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "name",
-          "extension_number",
-          "system_prompt",
-          "greeting_text"
-        ],
+        "required": ["name", "extension_number", "system_prompt", "greeting_text"],
         "title": "Body_agent_update_agents__agent_id__post"
       },
       "Body_device_assign_devices__device_id__assign_post": {
@@ -4179,10 +3961,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "extension_number",
-          "display_name"
-        ],
+        "required": ["extension_number", "display_name"],
         "title": "Body_device_auto_provision_devices__device_id__auto_provision_post"
       },
       "Body_mcp_login_callback_mcp_login_callback_post": {
@@ -4219,13 +3998,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "client_id",
-          "redirect_uri",
-          "code_challenge",
-          "username",
-          "password"
-        ],
+        "required": ["client_id", "redirect_uri", "code_challenge", "username", "password"],
         "title": "Body_mcp_login_callback_mcp_login_callback_post"
       },
       "Body_peer_create_peers_post": {
@@ -4255,10 +4028,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "username",
-          "password"
-        ],
+        "required": ["username", "password"],
         "title": "Body_peer_create_peers_post"
       },
       "Body_peer_update_peers__peer_id__post": {
@@ -4288,10 +4058,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "username",
-          "password"
-        ],
+        "required": ["username", "password"],
         "title": "Body_peer_update_peers__peer_id__post"
       },
       "CallLogDetailResponse": {
@@ -4402,14 +4169,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "call_log_id",
-          "role",
-          "content",
-          "turn",
-          "created_at"
-        ],
+        "required": ["id", "call_log_id", "role", "content", "turn", "created_at"],
         "title": "CallMessageResponse"
       },
       "ChangePasswordRequest": {
@@ -4427,10 +4187,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "current_password",
-          "new_password"
-        ],
+        "required": ["current_password", "new_password"],
         "title": "ChangePasswordRequest"
       },
       "ContactCreate": {
@@ -4466,10 +4223,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "name",
-          "phone_number"
-        ],
+        "required": ["name", "phone_number"],
         "title": "ContactCreate"
       },
       "ContactResponse": {
@@ -4500,14 +4254,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "name",
-          "phone_number",
-          "company",
-          "department",
-          "notes"
-        ],
+        "required": ["id", "name", "phone_number", "company", "department", "notes"],
         "title": "ContactResponse"
       },
       "ContactUpdate": {
@@ -4543,10 +4290,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "name",
-          "phone_number"
-        ],
+        "required": ["name", "phone_number"],
         "title": "ContactUpdate"
       },
       "ExtensionCreate": {
@@ -4598,10 +4342,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "number",
-          "display_name"
-        ],
+        "required": ["number", "display_name"],
         "title": "ExtensionCreate"
       },
       "ExtensionResponse": {
@@ -4651,13 +4392,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "number",
-          "display_name",
-          "enabled",
-          "peer_id"
-        ],
+        "required": ["id", "number", "display_name", "enabled", "peer_id"],
         "title": "ExtensionResponse"
       },
       "ExtensionUpdate": {
@@ -4709,10 +4444,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "number",
-          "display_name"
-        ],
+        "required": ["number", "display_name"],
         "title": "ExtensionUpdate"
       },
       "GenerateRequest": {
@@ -4728,9 +4460,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "prompt"
-        ],
+        "required": ["prompt"],
         "title": "GenerateRequest"
       },
       "HTTPValidationError": {
@@ -4758,10 +4488,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "username",
-          "password"
-        ],
+        "required": ["username", "password"],
         "title": "LoginRequest"
       },
       "NodePosition": {
@@ -4776,10 +4503,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "x",
-          "y"
-        ],
+        "required": ["x", "y"],
         "title": "NodePosition"
       },
       "PeerCreate": {
@@ -4809,10 +4533,7 @@
             },
             "type": "array",
             "title": "Codecs",
-            "default": [
-              "ulaw",
-              "alaw"
-            ]
+            "default": ["ulaw", "alaw"]
           },
           "ip_address": {
             "anyOf": [
@@ -4838,10 +4559,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "username",
-          "password"
-        ],
+        "required": ["username", "password"],
         "title": "PeerCreate"
       },
       "PeerResponse": {
@@ -4931,10 +4649,7 @@
             },
             "type": "array",
             "title": "Codecs",
-            "default": [
-              "ulaw",
-              "alaw"
-            ]
+            "default": ["ulaw", "alaw"]
           },
           "ip_address": {
             "anyOf": [
@@ -4960,10 +4675,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "username",
-          "password"
-        ],
+        "required": ["username", "password"],
         "title": "PeerUpdate"
       },
       "QuickProvisionRequest": {
@@ -4978,10 +4690,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "extension_number",
-          "display_name"
-        ],
+        "required": ["extension_number", "display_name"],
         "title": "QuickProvisionRequest"
       },
       "SettingItem": {
@@ -5007,10 +4716,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "key",
-          "value"
-        ],
+        "required": ["key", "value"],
         "title": "SettingItem"
       },
       "TTSConfig": {
@@ -5046,10 +4752,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "access_token",
-          "token_type"
-        ],
+        "required": ["access_token", "token_type"],
         "title": "TokenResponse"
       },
       "TrunkCreate": {
@@ -5111,13 +4814,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "name",
-          "display_name",
-          "host",
-          "username",
-          "password"
-        ],
+        "required": ["name", "display_name", "host", "username", "password"],
         "title": "TrunkCreate"
       },
       "TrunkResponse": {
@@ -5242,13 +4939,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "name",
-          "display_name",
-          "host",
-          "username",
-          "password"
-        ],
+        "required": ["name", "display_name", "host", "username", "password"],
         "title": "TrunkUpdate"
       },
       "UserCreate": {
@@ -5284,11 +4975,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "username",
-          "password",
-          "display_name"
-        ],
+        "required": ["username", "password", "display_name"],
         "title": "UserCreate"
       },
       "UserResponse": {
@@ -5316,12 +5003,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "username",
-          "display_name",
-          "is_admin"
-        ],
+        "required": ["id", "username", "display_name", "is_admin"],
         "title": "UserResponse"
       },
       "UserUpdate": {
@@ -5345,9 +5027,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "display_name"
-        ],
+        "required": ["display_name"],
         "title": "UserUpdate"
       },
       "ValidationError": {
@@ -5383,11 +5063,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
+        "required": ["loc", "msg", "type"],
         "title": "ValidationError"
       },
       "WorkflowCreate": {
@@ -5438,10 +5114,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "name",
-          "number"
-        ],
+        "required": ["name", "number"],
         "title": "WorkflowCreate"
       },
       "WorkflowDefinition-Input": {
@@ -5537,11 +5210,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "source",
-          "target"
-        ],
+        "required": ["id", "source", "target"],
         "title": "WorkflowEdge"
       },
       "WorkflowListResponse": {
@@ -5657,11 +5326,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "type",
-          "position"
-        ],
+        "required": ["id", "type", "position"],
         "title": "WorkflowNode"
       },
       "WorkflowResponse": {

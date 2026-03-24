@@ -6,8 +6,8 @@ import { DataTable } from "../components/DataTable";
 import { FormGroup, inputClass, selectClass } from "../components/FormCard";
 import { PageHead } from "../components/PageHead";
 import { Tag } from "../components/Tag";
-import { $api } from "../lib/client";
 import type { components } from "../lib/api-types";
+import { $api } from "../lib/client";
 
 type User = components["schemas"]["UserResponse"];
 
@@ -158,7 +158,8 @@ function UsersPage() {
                   type="button"
                   className={btnDanger}
                   onClick={() => {
-                    if (confirm(`${u.username} を削除しますか？`)) deleteMutation.mutate({ params: { path: { user_id: u.id } } });
+                    if (confirm(`${u.username} を削除しますか？`))
+                      deleteMutation.mutate({ params: { path: { user_id: u.id } } });
                   }}
                 >
                   削除

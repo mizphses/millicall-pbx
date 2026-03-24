@@ -23,8 +23,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const stored = localStorage.getItem("millicall_user");
     return stored ? JSON.parse(stored) : null;
   });
-  const [token, setTokenState] = useState<string | null>(
-    () => localStorage.getItem("millicall_token"),
+  const [token, setTokenState] = useState<string | null>(() =>
+    localStorage.getItem("millicall_token"),
   );
 
   const isAuthenticated = !!token && !!user;

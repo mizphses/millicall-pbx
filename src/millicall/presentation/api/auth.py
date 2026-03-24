@@ -30,9 +30,7 @@ def _check_rate_limit(client_ip: str) -> None:
     """Raise 429 if client has exceeded login attempt limit."""
     now = time.monotonic()
     # Prune old entries
-    _login_attempts[client_ip] = [
-        t for t in _login_attempts[client_ip] if now - t < _LOGIN_WINDOW
-    ]
+    _login_attempts[client_ip] = [t for t in _login_attempts[client_ip] if now - t < _LOGIN_WINDOW]
     if len(_login_attempts[client_ip]) >= _LOGIN_MAX_ATTEMPTS:
         logger.warning("Rate limit exceeded for login from %s", client_ip)
         raise HTTPException(

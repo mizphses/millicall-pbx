@@ -212,10 +212,7 @@ function McpGuidePage() {
             className={css({ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "16px" })}
           >
             {mcpConfig.current_extensions.map((ext) => (
-              <Tag
-                key={ext.number}
-                variant={ext.type === "phone" ? "phone" : "ivr"}
-              >
+              <Tag key={ext.number} variant={ext.type === "phone" ? "phone" : "ivr"}>
                 {ext.number} - {ext.name}
               </Tag>
             ))}

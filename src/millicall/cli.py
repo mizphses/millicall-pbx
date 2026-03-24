@@ -28,11 +28,13 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _find_compose() -> list[str]:
     if shutil.which("docker"):
         result = subprocess.run(
             ["docker", "compose", "version"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         if result.returncode == 0:
             return ["docker", "compose"]
@@ -80,15 +82,16 @@ def _print_step(n: int, total: int, msg: str) -> None:
 # Setup wizard
 # ---------------------------------------------------------------------------
 
+
 def cmd_setup() -> None:
     """Interactive setup wizard."""
     _print_banner()
 
     env_path = PROJECT_ROOT / ".env"
     if env_path.exists() and not _ask_yn("  .env が既に存在します。上書きしますか?", default=False):
-            print("  既存の .env を使用します。")
-            _maybe_start()
-            return
+        print("  既存の .env を使用します。")
+        _maybe_start()
+        return
 
     total_steps = 4
     env_lines: list[str] = [
@@ -225,6 +228,7 @@ def _maybe_start(use_tunnel: bool = False) -> None:
 # ---------------------------------------------------------------------------
 # Management commands
 # ---------------------------------------------------------------------------
+
 
 def cmd_start() -> None:
     compose = _find_compose()

@@ -34,8 +34,11 @@ async def list_users(
     users = await repo.get_all()
     return [
         UserResponse(
-            id=u.id, username=u.username, display_name=u.display_name,
-            is_admin=u.is_admin, role=u.role,
+            id=u.id,
+            username=u.username,
+            display_name=u.display_name,
+            is_admin=u.is_admin,
+            role=u.role,
         )
         for u in users
     ]
@@ -70,8 +73,11 @@ async def create_user(
         client_ip=request.client.host if request.client else "",
     )
     return UserResponse(
-        id=user.id, username=user.username, display_name=user.display_name,
-        is_admin=user.is_admin, role=user.role,
+        id=user.id,
+        username=user.username,
+        display_name=user.display_name,
+        is_admin=user.is_admin,
+        role=user.role,
     )
 
 
@@ -90,8 +96,11 @@ async def update_user(
     await repo.update(user_id, display_name=data.display_name, is_admin=is_admin, role=data.role)
     user = await repo.get_by_id(user_id)
     return UserResponse(
-        id=user.id, username=user.username, display_name=user.display_name,
-        is_admin=user.is_admin, role=user.role,
+        id=user.id,
+        username=user.username,
+        display_name=user.display_name,
+        is_admin=user.is_admin,
+        role=user.role,
     )
 
 

@@ -377,7 +377,7 @@ function WorkflowEditorPage() {
 
       setNodes((nds) => [...nds, newNode]);
     },
-    [rfInstance, setNodes],
+    [rfInstance, setNodes, workflow.default_tts_config],
   );
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
@@ -625,7 +625,10 @@ function WorkflowEditorPage() {
               <button
                 type="button"
                 onClick={() => {
-                  if (aiPrompt.trim()) aiMutation.mutate({ body: { prompt: aiPrompt.trim(), workflow_type: "workflow" } });
+                  if (aiPrompt.trim())
+                    aiMutation.mutate({
+                      body: { prompt: aiPrompt.trim(), workflow_type: "workflow" },
+                    });
                 }}
                 disabled={aiMutation.isPending || !aiPrompt.trim()}
                 className={css({

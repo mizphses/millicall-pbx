@@ -126,14 +126,18 @@ function DevicesPage() {
     },
   });
 
-  const quickProvisionMutation = $api.useMutation("post", "/api/devices/{device_id}/quick-provision", {
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["devices"] });
-      queryClient.invalidateQueries({ queryKey: ["extensions"] });
-      queryClient.invalidateQueries({ queryKey: ["peers"] });
-      setResult(data as { sip_username: string; sip_password: string });
+  const quickProvisionMutation = $api.useMutation(
+    "post",
+    "/api/devices/{device_id}/quick-provision",
+    {
+      onSuccess: (data) => {
+        queryClient.invalidateQueries({ queryKey: ["devices"] });
+        queryClient.invalidateQueries({ queryKey: ["extensions"] });
+        queryClient.invalidateQueries({ queryKey: ["peers"] });
+        setResult(data as { sip_username: string; sip_password: string });
+      },
     },
-  });
+  );
 
   const resyncMutation = $api.useMutation("post", "/api/devices/{device_id}/resync");
 
@@ -317,7 +321,9 @@ function DevicesPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      resyncMutation.mutate({ params: { path: { device_id: provisionTarget.id } } });
+                      resyncMutation.mutate({
+                        params: { path: { device_id: provisionTarget.id } },
+                      });
                     }}
                     disabled={resyncMutation.isPending}
                     className={btnSecondary}
