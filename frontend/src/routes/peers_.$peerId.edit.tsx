@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { css } from "../../styled-system/css";
@@ -11,7 +11,7 @@ import {
   selectClass,
 } from "../components/FormCard";
 import { PageHead } from "../components/PageHead";
-import { api } from "../lib/api";
+import { $api } from "../lib/client";
 
 export const Route = createFileRoute("/peers_/$peerId/edit")({
   beforeLoad: ({ context }) => {
@@ -20,23 +20,13 @@ export const Route = createFileRoute("/peers_/$peerId/edit")({
   component: PeerEditPage,
 });
 
-interface Peer {
-  id: number;
-  username: string;
-  password: string;
-  transport: string;
-  codecs: string[];
-  ip_address: string | null;
-}
-
 function PeerEditPage() {
   const { peerId } = Route.useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: peer } = useQuery({
-    queryKey: ["peer", peerId],
-    queryFn: () => api.get<Peer>(`/peers/${peerId}`),
+  const { data: peer } = $api.useQuery("get", "/api/peers/{peer_id}", {
+    params: { path: { peer_id: Number(peerId) } },
   });
 
   const [username, setUsername] = useState("");
@@ -55,11 +45,10 @@ function PeerEditPage() {
     }
   }, [peer]);
 
-  const mutation = useMutation({
-    mutationFn: (body: Record<string, unknown>) => api.put(`/peers/${peerId}`, body),
+  const mutation = $api.useMutation("put", "/api/peers/{peer_id}", {
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["peers"] });
-      queryClient.invalidateQueries({ queryKey: ["peer", peerId] });
+      queryClient.invalidateQueries({ queryKey: ["get", "/api/peers"] });
+      queryClient.invalidateQueries({ queryKey: ["get", "/api/peers/{peer_id}"] });
       navigate({ to: "/peers" });
     },
   });
@@ -69,14 +58,17 @@ function PeerEditPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     mutation.mutate({
-      username,
-      password,
-      transport,
-      codecs: codecs
-        .split(",")
-        .map((c) => c.trim())
-        .filter(Boolean),
-      ip_address: ipAddress || null,
+      params: { path: { peer_id: Number(peerId) } },
+      body: {
+        username,
+        password,
+        transport,
+        codecs: codecs
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean),
+        ip_address: ipAddress || null,
+      },
     });
   }
 

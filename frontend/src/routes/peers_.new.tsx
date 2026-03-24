@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
@@ -10,7 +10,7 @@ import {
   selectClass,
 } from "../components/FormCard";
 import { PageHead } from "../components/PageHead";
-import { api } from "../lib/api";
+import { $api } from "../lib/client";
 
 export const Route = createFileRoute("/peers_/new")({
   beforeLoad: ({ context }) => {
@@ -28,10 +28,9 @@ function PeerNewPage() {
   const [codecs, setCodecs] = useState("ulaw, alaw");
   const [ipAddress, setIpAddress] = useState("");
 
-  const mutation = useMutation({
-    mutationFn: (body: Record<string, unknown>) => api.post("/peers", body),
+  const mutation = $api.useMutation("post", "/api/peers", {
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["peers"] });
+      queryClient.invalidateQueries({ queryKey: ["get", "/api/peers"] });
       navigate({ to: "/peers" });
     },
   });
@@ -39,14 +38,16 @@ function PeerNewPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     mutation.mutate({
-      username,
-      password,
-      transport,
-      codecs: codecs
-        .split(",")
-        .map((c) => c.trim())
-        .filter(Boolean),
-      ip_address: ipAddress || null,
+      body: {
+        username,
+        password,
+        transport,
+        codecs: codecs
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean),
+        ip_address: ipAddress || null,
+      },
     });
   }
 

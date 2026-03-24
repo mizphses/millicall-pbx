@@ -7,7 +7,6 @@ services:
     volumes:
       - millicall-data:/app/data
       - ./asterisk_templates:/app/asterisk_templates:ro
-      - /var/lib/misc/dnsmasq.leases:/var/lib/misc/dnsmasq.leases:ro
     environment:
       - DATABASE_URL=sqlite+aiosqlite:///./data/millicall.db
       - ASTERISK_CONFIG_DIR=/etc/asterisk
@@ -16,26 +15,52 @@ services:
       - WEB_HOST=0.0.0.0
       - WEB_PORT=8000
     env_file:
-      - .env
+      - path: .env
+        required: false
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/api/auth/me"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
 
   frontend:
     build: ./frontend
     container_name: millicall-frontend
-    network_mode: host
     restart: unless-stopped
+    ports:
+      - "80:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
-      - millicall
+      millicall:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:80/"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
 
+  # Optional: Cloudflare Tunnel for remote access
+  # Start with: docker compose --profile tunnel up -d
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    image: cloudflare/cloudflare:latest
     container_name: millicall-tunnel
-    network_mode: host
     restart: unless-stopped
+    profiles: ["tunnel"]
     command: tunnel run
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
-      - frontend
+      frontend:
+        condition: service_healthy
+
+  # Optional: dnsmasq lease file access for device auto-discovery
+  # Uncomment and adjust if using dnsmasq for phone DHCP
+  # millicall volumes can include:
+  #   - /var/lib/misc/dnsmasq.leases:/var/lib/misc/dnsmasq.leases:ro
 
 volumes:
   millicall-data:

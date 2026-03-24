@@ -1,10 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { css } from "../../styled-system/css";
 import { FormCard, FormGroup, FormRow, FormSection, inputClass } from "../components/FormCard";
 import { PageHead } from "../components/PageHead";
-import { api } from "../lib/api";
+import { $api } from "../lib/client";
 
 export const Route = createFileRoute("/trunks_/$trunkId/edit")({
   beforeLoad: ({ context }) => {
@@ -12,19 +12,6 @@ export const Route = createFileRoute("/trunks_/$trunkId/edit")({
   },
   component: TrunkEditPage,
 });
-
-interface Trunk {
-  id: number;
-  name: string;
-  display_name: string;
-  host: string;
-  username: string;
-  password: string;
-  did_number: string;
-  incoming_dest: string;
-  outbound_prefixes: string;
-  enabled: boolean;
-}
 
 const checkboxLabel = css({
   display: "inline-flex",
@@ -46,9 +33,8 @@ function TrunkEditPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: trunk } = useQuery({
-    queryKey: ["trunk", trunkId],
-    queryFn: () => api.get<Trunk>(`/trunks/${trunkId}`),
+  const { data: trunk } = $api.useQuery("get", "/api/trunks/{trunk_id}", {
+    params: { path: { trunk_id: Number(trunkId) } },
   });
 
   const [name, setName] = useState("");
@@ -75,11 +61,10 @@ function TrunkEditPage() {
     }
   }, [trunk]);
 
-  const mutation = useMutation({
-    mutationFn: (body: Record<string, unknown>) => api.put(`/trunks/${trunkId}`, body),
+  const mutation = $api.useMutation("put", "/api/trunks/{trunk_id}", {
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["trunks"] });
-      queryClient.invalidateQueries({ queryKey: ["trunk", trunkId] });
+      queryClient.invalidateQueries({ queryKey: ["get", "/api/trunks"] });
+      queryClient.invalidateQueries({ queryKey: ["get", "/api/trunks/{trunk_id}"] });
       navigate({ to: "/trunks" });
     },
   });
@@ -89,15 +74,19 @@ function TrunkEditPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     mutation.mutate({
-      name,
-      display_name: displayName,
-      host,
-      username,
-      password,
-      did_number: didNumber,
-      incoming_dest: incomingDest,
-      outbound_prefixes: outboundPrefixes,
-      enabled,
+      params: { path: { trunk_id: Number(trunkId) } },
+      body: {
+        name,
+        display_name: displayName,
+        host,
+        username,
+        password,
+        did_number: didNumber,
+        caller_id: "",
+        incoming_dest: incomingDest,
+        outbound_prefixes: outboundPrefixes,
+        enabled,
+      },
     });
   }
 

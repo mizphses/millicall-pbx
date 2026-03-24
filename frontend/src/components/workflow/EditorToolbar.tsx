@@ -7,6 +7,7 @@ interface EditorToolbarProps {
   isSaving: boolean;
   onAiGenerate?: () => void;
   isGenerating?: boolean;
+  onEditInfo?: () => void;
 }
 
 const btnStyle = css({
@@ -29,6 +30,7 @@ export function EditorToolbar({
   isSaving,
   onAiGenerate,
   isGenerating,
+  onEditInfo,
 }: EditorToolbarProps) {
   return (
     <div
@@ -74,6 +76,20 @@ export function EditorToolbar({
       </span>
 
       <div className={css({ display: "flex", gap: "8px" })}>
+        {onEditInfo && (
+          <button
+            type="button"
+            onClick={onEditInfo}
+            className={`${btnStyle} ${css({
+              background: "#ffffff",
+              color: "#4a4a52",
+              border: "1px solid #d4d2cd",
+              _hover: { background: "#e6e4e0" },
+            })}`}
+          >
+            設定
+          </button>
+        )}
         {onAiGenerate && (
           <button
             type="button"

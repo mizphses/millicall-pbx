@@ -4,7 +4,30 @@ set -e
 export PATH="/app/venv/bin:$PATH"
 cd /app
 
-# Run migrations
+# Fix permissions — data dir may be owned by root from Docker volume
+chown -R millicall:millicall /app/data
+chown -R millicall:asterisk /usr/share/asterisk/sounds/en/millicall
+chown -R millicall:asterisk /var/spool/asterisk/recording
+
+# Show startup banner with admin password
+echo ""
+echo "============================================"
+echo "  Millicall PBX"
+echo "============================================"
+if [ -z "$ADMIN_PASSWORD" ]; then
+    echo "  ADMIN_PASSWORD not set."
+    echo "  A random password will be generated."
+    echo "  Check the log below for the password."
+    echo ""
+    echo "  To set a persistent password:"
+    echo "    echo 'ADMIN_PASSWORD=yourpass' >> .env"
+else
+    echo "  Admin password: (set via .env)"
+fi
+echo "============================================"
+echo ""
+
+# Run migrations (root — needs write to both /app/data and /etc/asterisk)
 alembic upgrade head
 
 # Generate Asterisk config BEFORE starting Asterisk (uses DB for trunk/peer data)
@@ -34,9 +57,11 @@ async def init():
         writer = AsteriskConfigWriter()
         writer.write_pjsip_config(peers, trunks=trunks)
         writer.write_extensions_config(extensions, peer_map, trunks=trunks)
+        writer.write_ari_config()
     print(f'Config generated with {len(trunks)} trunk(s)')
 asyncio.run(init())
 "
+
 # Create directories BEFORE copying config and starting Asterisk
 mkdir -p /usr/share/asterisk/sounds/en/millicall
 mkdir -p /var/spool/asterisk/recording
@@ -45,7 +70,7 @@ chown -R asterisk:asterisk /var/log/asterisk/cdr-custom
 
 cp /app/asterisk_templates/indications.conf /etc/asterisk/indications.conf
 cp /app/asterisk_templates/pjsip_notify.conf /etc/asterisk/pjsip_notify.conf
-cp /app/asterisk_templates/ari.conf /etc/asterisk/ari.conf
+# ari.conf is generated from template by the init script above
 cp /app/asterisk_templates/http.conf /etc/asterisk/http.conf
 cp /app/asterisk_templates/cdr.conf /etc/asterisk/cdr.conf
 cp /app/asterisk_templates/cdr_custom.conf /etc/asterisk/cdr_custom.conf
@@ -54,8 +79,15 @@ cp /app/asterisk_templates/cdr_custom.conf /etc/asterisk/cdr_custom.conf
 asterisk -f &
 ASTERISK_PID=$!
 
-# Wait for Asterisk to be ready
-sleep 3
+# Wait for Asterisk to be ready (poll instead of fixed sleep)
+echo "Waiting for Asterisk..."
+for i in $(seq 1 30); do
+    if asterisk -rx 'core show version' >/dev/null 2>&1; then
+        echo "Asterisk is ready."
+        break
+    fi
+    sleep 1
+done
 
 # Enable verbose logging and SIP logger
 asterisk -rx 'core set verbose 5'
@@ -65,14 +97,14 @@ asterisk -rx 'logger add channel /var/log/asterisk/verbose.log verbose notice wa
 # Verify CDR custom backend is active
 asterisk -rx 'cdr show status'
 
-# Start ARI listener for AI agent calls
-python -m millicall.phase2.ari_runner &
+# Start ARI listener for AI agent calls (as millicall user)
+su -s /bin/bash millicall -c 'PATH="/app/venv/bin:$PATH" python -m millicall.phase2.ari_runner' &
 ARI_PID=$!
 
-# Start the web application
-uvicorn millicall.main:app \
-    --host "${WEB_HOST:-0.0.0.0}" \
-    --port "${WEB_PORT:-8000}" &
+# Start the web application (as millicall user)
+su -s /bin/bash millicall -c "PATH=\"/app/venv/bin:\$PATH\" uvicorn millicall.main:app \
+    --host \"${WEB_HOST:-0.0.0.0}\" \
+    --port \"${WEB_PORT:-8000}\"" &
 WEB_PID=$!
 
 # Handle shutdown

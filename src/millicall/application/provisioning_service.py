@@ -12,8 +12,15 @@ from millicall.infrastructure.repositories.peer_repo import PeerRepository
 logger = logging.getLogger(__name__)
 
 PBX_ADDR = settings.pbx_bind_address
-if PBX_ADDR == "0.0.0.0":
-    PBX_ADDR = "172.20.0.1"
+if PBX_ADDR in ("0.0.0.0", ""):
+    import socket
+
+    # Auto-detect: use the hostname's primary IP
+    try:
+        PBX_ADDR = socket.gethostbyname(socket.gethostname())
+    except socket.gaierror:
+        PBX_ADDR = "127.0.0.1"
+    logger.info("PBX_BIND_ADDRESS is 0.0.0.0, using detected IP: %s", PBX_ADDR)
 
 
 class ProvisioningService:

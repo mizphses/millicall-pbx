@@ -9,10 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WorkflowsRouteImport } from './routes/workflows'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as TrunksRouteImport } from './routes/trunks'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as PhoneRouteImport } from './routes/phone'
 import { Route as PeersRouteImport } from './routes/peers'
 import { Route as McpGuideRouteImport } from './routes/mcp-guide'
 import { Route as LoginRouteImport } from './routes/login'
@@ -34,11 +34,6 @@ import { Route as PeersPeerIdEditRouteImport } from './routes/peers_.$peerId.edi
 import { Route as ExtensionsExtensionIdEditRouteImport } from './routes/extensions_.$extensionId.edit'
 import { Route as ContactsContactIdEditRouteImport } from './routes/contacts_.$contactId.edit'
 
-const WorkflowsRoute = WorkflowsRouteImport.update({
-  id: '/workflows',
-  path: '/workflows',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -52,6 +47,11 @@ const TrunksRoute = TrunksRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PhoneRoute = PhoneRouteImport.update({
+  id: '/phone',
+  path: '/phone',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PeersRoute = PeersRouteImport.update({
@@ -166,10 +166,10 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/mcp-guide': typeof McpGuideRoute
   '/peers': typeof PeersRoute
+  '/phone': typeof PhoneRoute
   '/settings': typeof SettingsRoute
   '/trunks': typeof TrunksRoute
   '/users': typeof UsersRoute
-  '/workflows': typeof WorkflowsRoute
   '/call-history/$logId': typeof CallHistoryLogIdRoute
   '/contacts/new': typeof ContactsNewRoute
   '/extensions/new': typeof ExtensionsNewRoute
@@ -192,10 +192,10 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/mcp-guide': typeof McpGuideRoute
   '/peers': typeof PeersRoute
+  '/phone': typeof PhoneRoute
   '/settings': typeof SettingsRoute
   '/trunks': typeof TrunksRoute
   '/users': typeof UsersRoute
-  '/workflows': typeof WorkflowsRoute
   '/call-history/$logId': typeof CallHistoryLogIdRoute
   '/contacts/new': typeof ContactsNewRoute
   '/extensions/new': typeof ExtensionsNewRoute
@@ -219,10 +219,10 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/mcp-guide': typeof McpGuideRoute
   '/peers': typeof PeersRoute
+  '/phone': typeof PhoneRoute
   '/settings': typeof SettingsRoute
   '/trunks': typeof TrunksRoute
   '/users': typeof UsersRoute
-  '/workflows': typeof WorkflowsRoute
   '/call-history_/$logId': typeof CallHistoryLogIdRoute
   '/contacts_/new': typeof ContactsNewRoute
   '/extensions_/new': typeof ExtensionsNewRoute
@@ -247,10 +247,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/mcp-guide'
     | '/peers'
+    | '/phone'
     | '/settings'
     | '/trunks'
     | '/users'
-    | '/workflows'
     | '/call-history/$logId'
     | '/contacts/new'
     | '/extensions/new'
@@ -273,10 +273,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/mcp-guide'
     | '/peers'
+    | '/phone'
     | '/settings'
     | '/trunks'
     | '/users'
-    | '/workflows'
     | '/call-history/$logId'
     | '/contacts/new'
     | '/extensions/new'
@@ -299,10 +299,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/mcp-guide'
     | '/peers'
+    | '/phone'
     | '/settings'
     | '/trunks'
     | '/users'
-    | '/workflows'
     | '/call-history_/$logId'
     | '/contacts_/new'
     | '/extensions_/new'
@@ -326,10 +326,10 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   McpGuideRoute: typeof McpGuideRoute
   PeersRoute: typeof PeersRoute
+  PhoneRoute: typeof PhoneRoute
   SettingsRoute: typeof SettingsRoute
   TrunksRoute: typeof TrunksRoute
   UsersRoute: typeof UsersRoute
-  WorkflowsRoute: typeof WorkflowsRoute
   CallHistoryLogIdRoute: typeof CallHistoryLogIdRoute
   ContactsNewRoute: typeof ContactsNewRoute
   ExtensionsNewRoute: typeof ExtensionsNewRoute
@@ -345,13 +345,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/workflows': {
-      id: '/workflows'
-      path: '/workflows'
-      fullPath: '/workflows'
-      preLoaderRoute: typeof WorkflowsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/users': {
       id: '/users'
       path: '/users'
@@ -371,6 +364,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/phone': {
+      id: '/phone'
+      path: '/phone'
+      fullPath: '/phone'
+      preLoaderRoute: typeof PhoneRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/peers': {
@@ -526,10 +526,10 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   McpGuideRoute: McpGuideRoute,
   PeersRoute: PeersRoute,
+  PhoneRoute: PhoneRoute,
   SettingsRoute: SettingsRoute,
   TrunksRoute: TrunksRoute,
   UsersRoute: UsersRoute,
-  WorkflowsRoute: WorkflowsRoute,
   CallHistoryLogIdRoute: CallHistoryLogIdRoute,
   ContactsNewRoute: ContactsNewRoute,
   ExtensionsNewRoute: ExtensionsNewRoute,

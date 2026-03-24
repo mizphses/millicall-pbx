@@ -1,10 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { css } from "../../styled-system/css";
 import { inputClass } from "../components/FormCard";
 import { PageHead } from "../components/PageHead";
-import { api } from "../lib/api";
+import { $api } from "../lib/client";
 
 export const Route = createFileRoute("/settings")({
   beforeLoad: ({ context }) => {
@@ -13,19 +13,10 @@ export const Route = createFileRoute("/settings")({
   component: SettingsPage,
 });
 
-interface SettingItem {
-  key: string;
-  value: string;
-  description: string | null;
-}
-
 function SettingsPage() {
   const queryClient = useQueryClient();
 
-  const { data: settings, isLoading } = useQuery({
-    queryKey: ["settings"],
-    queryFn: () => api.get<SettingItem[]>("/settings"),
-  });
+  const { data: settings, isLoading } = $api.useQuery("get", "/api/settings");
 
   const [entries, setEntries] = useState<{ key: string; value: string }[]>([]);
   const [saved, setSaved] = useState(false);
@@ -43,14 +34,9 @@ function SettingsPage() {
     }
   }, [settings]);
 
-  const mutation = useMutation({
-    mutationFn: (items: { key: string; value: string }[]) =>
-      api.put(
-        "/settings",
-        items.filter((e) => e.key.trim()),
-      ),
+  const mutation = $api.useMutation("put", "/api/settings", {
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      queryClient.invalidateQueries({ queryKey: ["get", "/api/settings"] });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     },
@@ -71,7 +57,9 @@ function SettingsPage() {
   }
 
   function handleSave() {
-    mutation.mutate(entries);
+    mutation.mutate({
+      body: entries.filter((e) => e.key.trim()),
+    });
   }
 
   return (

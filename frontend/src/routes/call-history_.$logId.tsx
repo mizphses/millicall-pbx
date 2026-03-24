@@ -1,8 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { css } from "../../styled-system/css";
 import { PageHead } from "../components/PageHead";
-import { api } from "../lib/api";
+import { $api } from "../lib/client";
 
 export const Route = createFileRoute("/call-history_/$logId")({
   beforeLoad: ({ context }) => {
@@ -64,10 +63,10 @@ const codeStyle = css({
 function CallHistoryDetailPage() {
   const { logId } = Route.useParams();
 
-  const { data } = useQuery({
-    queryKey: ["call-log", logId],
-    queryFn: () => api.get<CallLogDetail>(`/call-history/${logId}`),
+  const { data: raw } = $api.useQuery("get", "/api/call-history/{log_id}", {
+    params: { path: { log_id: Number(logId) } },
   });
+  const data = raw as CallLogDetail | undefined;
 
   if (!data) return <p className={css({ color: "#4a4a52" })}>読み込み中...</p>;
 

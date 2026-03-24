@@ -1,4 +1,3 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import {
   addEdge,
@@ -16,11 +15,19 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "@xyflow/react/dist/style.css";
 import { css } from "../../styled-system/css";
+import {
+  FormGroup,
+  FormRow,
+  FormSection,
+  inputClass,
+  selectClass,
+  textareaClass,
+} from "../components/FormCard";
 import { CustomNode, type CustomNodeData } from "../components/workflow/CustomNode";
 import { EditorToolbar } from "../components/workflow/EditorToolbar";
 import { NodeInspector } from "../components/workflow/NodeInspector";
 import { NodePalette, type NodeTypeDefinition } from "../components/workflow/NodePalette";
-import { api } from "../lib/api";
+import { $api } from "../lib/client";
 
 export const Route = createFileRoute("/workflows_/$workflowId/edit")({
   beforeLoad: ({ context }) => {
@@ -29,26 +36,14 @@ export const Route = createFileRoute("/workflows_/$workflowId/edit")({
   component: WorkflowEditorPage,
 });
 
-interface WorkflowData {
-  id: number;
-  name: string;
-  number: string;
-  description: string;
-  workflow_type: string;
-  extension_id: number | null;
-  enabled: boolean;
-  definition: {
-    nodes: WorkflowNode[];
-    edges: WorkflowEdge[];
-  };
-}
-
+// Keep local interfaces for untyped API responses (node-types, generate)
 interface WorkflowNode {
   id: string;
   type: string;
   label: string;
   position: { x: number; y: number };
   config: Record<string, unknown>;
+  data: Record<string, unknown>;
 }
 
 interface WorkflowEdge {
@@ -140,23 +135,21 @@ function WorkflowEditorPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [undo, redo]);
 
-  const { data: workflow, isLoading: wfLoading } = useQuery({
-    queryKey: ["workflow", workflowId],
-    queryFn: () => api.get<WorkflowData>(`/workflows/${workflowId}`),
-  });
+  const { data: workflow, isLoading: wfLoading } = $api.useQuery(
+    "get",
+    "/api/workflows/{workflow_id}",
+    { params: { path: { workflow_id: Number(workflowId) } } },
+  );
 
-  const { data: rawNodeTypes } = useQuery({
-    queryKey: ["node-types", workflow?.workflow_type],
-    queryFn: () =>
-      api.get<Record<string, Omit<NodeTypeDefinition, "type">>>(
-        `/workflows/node-types?workflow_type=${workflow?.workflow_type}`,
-      ),
+  const { data: rawNodeTypes } = $api.useQuery("get", "/api/workflows/node-types", {
+    params: { query: { workflow_type: workflow?.workflow_type ?? "workflow" } },
     enabled: !!workflow?.workflow_type,
   });
 
   const nodeTypeDefs = useMemo(() => {
     if (!rawNodeTypes) return [];
-    return Object.entries(rawNodeTypes).map(([key, val]) => ({
+    const raw = rawNodeTypes as Record<string, Omit<NodeTypeDefinition, "type">>;
+    return Object.entries(raw).map(([key, val]) => ({
       type: key,
       ...val,
       config_schema: val.config_schema
@@ -229,20 +222,66 @@ function WorkflowEditorPage() {
     setEdges(rfEdges);
   }
 
-  const saveMutation = useMutation({
-    mutationFn: (body: Record<string, unknown>) => api.put(`/workflows/${workflowId}`, body),
+  const saveMutation = $api.useMutation("put", "/api/workflows/{workflow_id}");
+
+  // Basic info editing
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editNumber, setEditNumber] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editEnabled, setEditEnabled] = useState(true);
+  const [editTtsProvider, setEditTtsProvider] = useState("google");
+  const [editGoogleVoice, setEditGoogleVoice] = useState("ja-JP-Chirp3-HD-Aoede");
+  const [editCoefontId, setEditCoefontId] = useState("");
+
+  function openInfoModal() {
+    if (workflow) {
+      setEditName(workflow.name);
+      setEditNumber(workflow.number);
+      setEditDescription(workflow.description);
+      setEditEnabled(workflow.enabled);
+      const tts = workflow.default_tts_config;
+      setEditTtsProvider(tts?.tts_provider || "google");
+      setEditGoogleVoice(tts?.google_tts_voice || "ja-JP-Chirp3-HD-Aoede");
+      setEditCoefontId(tts?.coefont_voice_id || "");
+    }
+    setShowInfoModal(true);
+  }
+
+  const infoMutation = $api.useMutation("put", "/api/workflows/{workflow_id}", {
+    onSuccess: () => {
+      setShowInfoModal(false);
+      // Refetch workflow data
+      window.location.reload();
+    },
   });
+
+  function handleInfoSave() {
+    infoMutation.mutate({
+      params: { path: { workflow_id: Number(workflowId) } },
+      body: {
+        name: editName,
+        number: editNumber,
+        description: editDescription,
+        enabled: editEnabled,
+        default_tts_config: {
+          tts_provider: editTtsProvider,
+          google_tts_voice: editGoogleVoice,
+          coefont_voice_id: editCoefontId,
+        },
+      },
+    });
+  }
 
   // AI Generation
   const [showAiModal, setShowAiModal] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
-  const aiMutation = useMutation({
-    mutationFn: (prompt: string) =>
-      api.post<{ definition?: { nodes: WorkflowNode[]; edges: WorkflowEdge[] }; error?: string }>(
-        "/workflows/generate",
-        { prompt, workflow_type: workflow?.workflow_type ?? "ivr" },
-      ),
-    onSuccess: (result) => {
+  const aiMutation = $api.useMutation("post", "/api/workflows/generate", {
+    onSuccess: (rawResult) => {
+      const result = rawResult as {
+        definition?: { nodes: WorkflowNode[]; edges: WorkflowEdge[] };
+        error?: string;
+      };
       if (result.error) {
         alert(`生成エラー: ${result.error}`);
         return;
@@ -313,6 +352,16 @@ function WorkflowEditorPage() {
       for (const f of nodeType.config_schema) {
         if (f.default !== undefined) defaults[f.name] = f.default;
       }
+      // Apply workflow-level default TTS config
+      if (workflow?.default_tts_config) {
+        const tts = workflow.default_tts_config;
+        const ttsFields = ["tts_provider", "google_tts_voice", "coefont_voice_id"] as const;
+        for (const key of ttsFields) {
+          if (key in defaults && tts[key]) {
+            defaults[key] = tts[key];
+          }
+        }
+      }
 
       const newNode: Node = {
         id: newId,
@@ -354,6 +403,7 @@ function WorkflowEditorPage() {
         label: d.label,
         position: n.position,
         config: d.config || {},
+        data: {},
       };
     });
     const defEdges: WorkflowEdge[] = edges.map((e) => ({
@@ -366,13 +416,15 @@ function WorkflowEditorPage() {
     }));
 
     saveMutation.mutate({
-      name: workflow?.name ?? "",
-      description: workflow?.description ?? "",
-      workflow_type: workflow?.workflow_type ?? "ivr",
-      number: workflow?.number ?? "",
-      extension_id: workflow?.extension_id ?? null,
-      enabled: workflow?.enabled ?? true,
-      definition: { nodes: defNodes, edges: defEdges },
+      params: { path: { workflow_id: Number(workflowId) } },
+      body: {
+        name: workflow?.name ?? "",
+        description: workflow?.description ?? "",
+        workflow_type: workflow?.workflow_type ?? "workflow",
+        number: workflow?.number ?? "",
+        enabled: workflow?.enabled ?? true,
+        definition: { nodes: defNodes, edges: defEdges },
+      },
     });
   }
 
@@ -417,6 +469,7 @@ function WorkflowEditorPage() {
         isSaving={saveMutation.isPending}
         onAiGenerate={() => setShowAiModal(true)}
         isGenerating={aiMutation.isPending}
+        onEditInfo={openInfoModal}
       />
 
       <div className={css({ display: "flex", flex: 1, overflow: "hidden" })}>
@@ -572,7 +625,7 @@ function WorkflowEditorPage() {
               <button
                 type="button"
                 onClick={() => {
-                  if (aiPrompt.trim()) aiMutation.mutate(aiPrompt.trim());
+                  if (aiPrompt.trim()) aiMutation.mutate({ body: { prompt: aiPrompt.trim(), workflow_type: "workflow" } });
                 }}
                 disabled={aiMutation.isPending || !aiPrompt.trim()}
                 className={css({
@@ -603,6 +656,208 @@ function WorkflowEditorPage() {
                 Gemini 2.5 Flashでワークフローを生成しています...
               </p>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Basic Info Modal */}
+      {showInfoModal && (
+        // biome-ignore lint/a11y/noStaticElementInteractions: modal backdrop overlay
+        <div
+          role="presentation"
+          className={css({
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 200,
+          })}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowInfoModal(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setShowInfoModal(false);
+          }}
+        >
+          <div
+            className={css({
+              background: "#ffffff",
+              borderRadius: "8px",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+              width: "90%",
+              maxWidth: "560px",
+              padding: "24px",
+              maxHeight: "80vh",
+              overflowY: "auto",
+            })}
+          >
+            <div
+              className={css({
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "16px",
+              })}
+            >
+              <h2 className={css({ fontSize: "16px", fontWeight: 700, color: "#1b1b1f" })}>
+                ワークフロー設定
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowInfoModal(false)}
+                className={css({
+                  background: "transparent",
+                  border: "none",
+                  fontSize: "20px",
+                  cursor: "pointer",
+                  color: "#8e8e96",
+                  _hover: { color: "#1b1b1f" },
+                })}
+              >
+                &times;
+              </button>
+            </div>
+
+            <FormSection title="基本情報" />
+            <FormRow>
+              <FormGroup label="名前">
+                <input
+                  type="text"
+                  className={inputClass}
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  required
+                />
+              </FormGroup>
+              <FormGroup label="内線番号">
+                <input
+                  type="text"
+                  className={inputClass}
+                  value={editNumber}
+                  onChange={(e) => setEditNumber(e.target.value)}
+                  required
+                  pattern="\d+"
+                />
+              </FormGroup>
+            </FormRow>
+            <FormGroup label="説明">
+              <textarea
+                className={textareaClass}
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                rows={3}
+              />
+            </FormGroup>
+
+            <FormSection title="デフォルトTTS設定" />
+            <FormRow>
+              <FormGroup label="TTSプロバイダ">
+                <select
+                  className={selectClass}
+                  value={editTtsProvider}
+                  onChange={(e) => setEditTtsProvider(e.target.value)}
+                >
+                  <option value="google">Google Chirp3 HD</option>
+                  <option value="coefont">CoeFont</option>
+                </select>
+              </FormGroup>
+              {editTtsProvider === "google" ? (
+                <FormGroup label="Google TTSボイス">
+                  <select
+                    className={selectClass}
+                    value={editGoogleVoice}
+                    onChange={(e) => setEditGoogleVoice(e.target.value)}
+                  >
+                    <option value="ja-JP-Chirp3-HD-Aoede">Aoede</option>
+                    <option value="ja-JP-Chirp3-HD-Kore">Kore</option>
+                    <option value="ja-JP-Chirp3-HD-Leda">Leda</option>
+                    <option value="ja-JP-Chirp3-HD-Zephyr">Zephyr</option>
+                    <option value="ja-JP-Chirp3-HD-Charon">Charon</option>
+                    <option value="ja-JP-Chirp3-HD-Fenrir">Fenrir</option>
+                    <option value="ja-JP-Chirp3-HD-Orus">Orus</option>
+                    <option value="ja-JP-Chirp3-HD-Puck">Puck</option>
+                  </select>
+                </FormGroup>
+              ) : (
+                <FormGroup label="CoeFont ボイスID">
+                  <input
+                    type="text"
+                    className={inputClass}
+                    value={editCoefontId}
+                    onChange={(e) => setEditCoefontId(e.target.value)}
+                    placeholder="ボイスID"
+                  />
+                </FormGroup>
+              )}
+            </FormRow>
+
+            <label
+              className={css({
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "14px",
+                cursor: "pointer",
+                paddingBlock: "4px",
+                marginTop: "12px",
+              })}
+            >
+              <input
+                type="checkbox"
+                className={css({ width: "16px", height: "16px", accentColor: "#c45d2c" })}
+                checked={editEnabled}
+                onChange={(e) => setEditEnabled(e.target.checked)}
+              />
+              このワークフローを有効にする
+            </label>
+
+            <div
+              className={css({
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "8px",
+                marginTop: "20px",
+              })}
+            >
+              <button
+                type="button"
+                onClick={() => setShowInfoModal(false)}
+                className={css({
+                  padding: "8px 16px",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  borderRadius: "5px",
+                  background: "#ffffff",
+                  color: "#1b1b1f",
+                  border: "1px solid #d4d2cd",
+                  cursor: "pointer",
+                  _hover: { background: "#e6e4e0" },
+                })}
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleInfoSave}
+                disabled={infoMutation.isPending}
+                className={css({
+                  padding: "8px 16px",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  borderRadius: "5px",
+                  background: "#c45d2c",
+                  color: "#ffffff",
+                  border: "none",
+                  cursor: "pointer",
+                  _hover: { background: "#a84e24" },
+                  _disabled: { opacity: 0.5 },
+                })}
+              >
+                {infoMutation.isPending ? "保存中..." : "保存"}
+              </button>
+            </div>
           </div>
         </div>
       )}

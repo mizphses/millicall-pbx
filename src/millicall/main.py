@@ -14,12 +14,14 @@ from millicall.domain.exceptions import (
     DuplicateExtensionError,
     DuplicatePeerError,
     DuplicateTrunkError,
+    DuplicateWorkflowNumberError,
     ExtensionNotFoundError,
     MillicallError,
     PeerNotFoundError,
     TrunkNotFoundError,
     WorkflowNotFoundError,
 )
+from millicall.domain.models import User
 from millicall.infrastructure.database import engine
 from millicall.infrastructure.orm import metadata
 from millicall.presentation.api.agents import router as agents_api_router
@@ -68,7 +70,6 @@ async def _cdr_import_loop() -> None:
 
 async def _ensure_admin_user() -> None:
     """Create the default admin user if no users exist."""
-    from millicall.domain.models import User
     from millicall.infrastructure.database import async_session
     from millicall.infrastructure.repositories.user_repo import UserRepository
     from millicall.presentation.auth import hash_password
@@ -390,5 +391,6 @@ async def not_found_handler(request: Request, exc: MillicallError):
 @app.exception_handler(DuplicateExtensionError)
 @app.exception_handler(DuplicatePeerError)
 @app.exception_handler(DuplicateTrunkError)
+@app.exception_handler(DuplicateWorkflowNumberError)
 async def conflict_handler(request: Request, exc: MillicallError):
     return JSONResponse(status_code=409, content={"detail": str(exc)})

@@ -1,5 +1,5 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
-import { api } from "./api";
+import { clearToken, fetchClient, setToken } from "./client";
 
 interface User {
   id: number;
@@ -23,41 +23,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const stored = localStorage.getItem("millicall_user");
     return stored ? JSON.parse(stored) : null;
   });
-  const [token, setToken] = useState<string | null>(() => api.getToken());
+  const [token, setTokenState] = useState<string | null>(
+    () => localStorage.getItem("millicall_token"),
+  );
 
   const isAuthenticated = !!token && !!user;
 
   useEffect(() => {
     if (token && !user) {
-      api
-        .get<User>("/auth/me")
-        .then((u) => {
-          setUser(u);
-          localStorage.setItem("millicall_user", JSON.stringify(u));
+      fetchClient
+        .GET("/api/auth/me")
+        .then(({ data }) => {
+          if (data) {
+            setUser(data as User);
+            localStorage.setItem("millicall_user", JSON.stringify(data));
+          }
         })
         .catch(() => {
-          api.clearToken();
-          setToken(null);
+          clearToken();
+          setTokenState(null);
           setUser(null);
         });
     }
   }, [token, user]);
 
   const login = useCallback(async (username: string, password: string) => {
-    const res = await api.post<{ access_token: string }>("/auth/login", {
-      username,
-      password,
+    const { data } = await fetchClient.POST("/api/auth/login", {
+      body: { username, password },
     });
-    api.setToken(res.access_token);
+    if (!data) throw new Error("Login failed");
+    const res = data as { access_token: string };
     setToken(res.access_token);
+    setTokenState(res.access_token);
 
-    const me = await api.get<User>("/auth/me");
-    setUser(me);
-    localStorage.setItem("millicall_user", JSON.stringify(me));
+    const { data: me } = await fetchClient.GET("/api/auth/me");
+    if (me) {
+      setUser(me as User);
+      localStorage.setItem("millicall_user", JSON.stringify(me));
+    }
   }, []);
 
-  const logout = useCallback(() => {
-    api.clearToken();
+  const logout = useCallback(async () => {
+    // Clear HttpOnly cookie via server
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // ignore network errors during logout
+    }
+    clearToken();
     localStorage.removeItem("millicall_user");
     window.location.reload();
   }, []);

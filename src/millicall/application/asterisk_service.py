@@ -32,6 +32,7 @@ class AsteriskService:
 
         self.config_writer.write_pjsip_config(peers, trunks=trunks)
         self.config_writer.write_extensions_config(extensions, peer_map, trunks=trunks)
+        self.config_writer.write_ari_config()
 
         logger.info("Asterisk config generated, reloading...")
         self.reloader.reload_all()

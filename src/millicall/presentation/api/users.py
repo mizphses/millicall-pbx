@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from millicall.domain.models import User
+from millicall.infrastructure.audit import audit_log
 from millicall.infrastructure.database import get_session
 from millicall.infrastructure.repositories.user_repo import UserRepository
 from millicall.presentation.auth import (
@@ -32,7 +33,10 @@ async def list_users(
     repo = UserRepository(session)
     users = await repo.get_all()
     return [
-        UserResponse(id=u.id, username=u.username, display_name=u.display_name, is_admin=u.is_admin)
+        UserResponse(
+            id=u.id, username=u.username, display_name=u.display_name,
+            is_admin=u.is_admin, role=u.role,
+        )
         for u in users
     ]
 
@@ -40,6 +44,7 @@ async def list_users(
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(
     data: UserCreate,
+    request: Request,
     session: AsyncSession = Depends(get_session),
     _admin: User = Depends(require_admin),
 ):
@@ -47,16 +52,26 @@ async def create_user(
     existing = await repo.get_by_username(data.username)
     if existing:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already exists")
+    is_admin = data.role == "admin"
     user = await repo.create(
         User(
             username=data.username,
             hashed_password=hash_password(data.password),
             display_name=data.display_name,
-            is_admin=data.is_admin,
+            is_admin=is_admin,
+            role=data.role,
         )
     )
+    audit_log(
+        action="user.create",
+        actor=_admin.username,
+        target=data.username,
+        detail=f"role={data.role}",
+        client_ip=request.client.host if request.client else "",
+    )
     return UserResponse(
-        id=user.id, username=user.username, display_name=user.display_name, is_admin=user.is_admin
+        id=user.id, username=user.username, display_name=user.display_name,
+        is_admin=user.is_admin, role=user.role,
     )
 
 
@@ -71,16 +86,19 @@ async def update_user(
     user = await repo.get_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    await repo.update(user_id, display_name=data.display_name, is_admin=data.is_admin)
+    is_admin = data.role == "admin"
+    await repo.update(user_id, display_name=data.display_name, is_admin=is_admin, role=data.role)
     user = await repo.get_by_id(user_id)
     return UserResponse(
-        id=user.id, username=user.username, display_name=user.display_name, is_admin=user.is_admin
+        id=user.id, username=user.username, display_name=user.display_name,
+        is_admin=user.is_admin, role=user.role,
     )
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
     user_id: int,
+    request: Request,
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(require_admin),
 ):
@@ -94,12 +112,19 @@ async def delete_user(
     if user.is_admin and admin_count <= 1:
         raise HTTPException(status_code=400, detail="Cannot delete the last admin")
     await repo.delete(user_id)
+    audit_log(
+        action="user.delete",
+        actor=current_user.username,
+        target=user.username,
+        client_ip=request.client.host if request.client else "",
+    )
 
 
 @router.put("/{user_id}/password", status_code=status.HTTP_204_NO_CONTENT)
 async def reset_password(
     user_id: int,
     data: ChangePasswordRequest,
+    request: Request,
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
@@ -118,3 +143,10 @@ async def reset_password(
         if not verify_password(data.current_password, current_user.hashed_password):
             raise HTTPException(status_code=400, detail="Admin password is incorrect")
     await repo.update(user_id, hashed_password=hash_password(data.new_password))
+    audit_log(
+        action="password.reset",
+        actor=current_user.username,
+        target=target.username,
+        detail="self" if current_user.id == user_id else "admin_reset",
+        client_ip=request.client.host if request.client else "",
+    )

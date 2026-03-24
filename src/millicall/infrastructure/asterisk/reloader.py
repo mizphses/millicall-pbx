@@ -20,6 +20,11 @@ class AsteriskReloader:
 
     def send_check_sync(self, endpoint: str) -> None:
         """Send SIP NOTIFY with check-sync event to trigger phone reprovisioning."""
+        import re
+
+        if not re.match(r"^[a-zA-Z0-9_\-]+$", endpoint):
+            logger.warning("Blocked unsafe endpoint name: %r", endpoint)
+            return
         self._run_command(f"pjsip send notify check-sync endpoint {endpoint}")
 
     def send_check_sync_all(self, endpoints: list[str]) -> None:
@@ -34,6 +39,17 @@ class AsteriskReloader:
 
         Tries Panasonic KX-HDV endpoints first, then Yealink Action URI.
         """
+        import ipaddress
+
+        try:
+            addr = ipaddress.ip_address(phone_ip)
+        except ValueError:
+            logger.warning("Invalid IP address for resync: %r", phone_ip)
+            return False
+        if not addr.is_private:
+            logger.warning("Blocked non-private IP for resync: %s", phone_ip)
+            return False
+
         try:
             import base64
 

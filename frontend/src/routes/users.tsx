@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { css } from "../../styled-system/css";
@@ -6,7 +6,10 @@ import { DataTable } from "../components/DataTable";
 import { FormGroup, inputClass, selectClass } from "../components/FormCard";
 import { PageHead } from "../components/PageHead";
 import { Tag } from "../components/Tag";
-import { api } from "../lib/api";
+import { $api } from "../lib/client";
+import type { components } from "../lib/api-types";
+
+type User = components["schemas"]["UserResponse"];
 
 export const Route = createFileRoute("/users")({
   beforeLoad: ({ context }) => {
@@ -14,13 +17,6 @@ export const Route = createFileRoute("/users")({
   },
   component: UsersPage,
 });
-
-interface User {
-  id: number;
-  username: string;
-  display_name: string;
-  is_admin: boolean;
-}
 
 const cardStyle = css({
   background: "#ffffff",
@@ -85,15 +81,11 @@ function UsersPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [passwordTarget, setPasswordTarget] = useState<User | null>(null);
 
-  const { data: users = [], isLoading } = useQuery({
-    queryKey: ["users"],
-    queryFn: () => api.get<User[]>("/users"),
-  });
+  const { data: users, isLoading } = $api.useQuery("get", "/api/users");
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/users/${id}`),
+  const deleteMutation = $api.useMutation("delete", "/api/users/{user_id}", {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["users"] }),
-    onError: (err: Error) => alert(err.message),
+    onError: (err) => alert(typeof err?.detail === "string" ? err.detail : "Error"),
   });
 
   if (isLoading) return <p className={css({ color: "#4a4a52" })}>...</p>;
@@ -142,8 +134,15 @@ function UsersPage() {
           { header: "表示名", accessor: (u) => u.display_name },
           {
             header: "権限",
-            accessor: (u) =>
-              u.is_admin ? <Tag variant="ok">管理者</Tag> : <Tag variant="muted">一般</Tag>,
+            accessor: (u) => {
+              const labels: Record<string, { label: string; variant: "ok" | "ng" | "muted" }> = {
+                admin: { label: "管理者", variant: "ok" },
+                user: { label: "一般", variant: "muted" },
+                mcp: { label: "MCP", variant: "ng" },
+              };
+              const info = labels[u.role] ?? labels.user;
+              return <Tag variant={info.variant}>{info.label}</Tag>;
+            },
           },
           {
             header: "",
@@ -159,7 +158,7 @@ function UsersPage() {
                   type="button"
                   className={btnDanger}
                   onClick={() => {
-                    if (confirm(`${u.username} を削除しますか？`)) deleteMutation.mutate(u.id);
+                    if (confirm(`${u.username} を削除しますか？`)) deleteMutation.mutate({ params: { path: { user_id: u.id } } });
                   }}
                 >
                   削除
@@ -168,7 +167,7 @@ function UsersPage() {
             ),
           },
         ]}
-        data={users}
+        data={users ?? []}
         emptyMessage="ユーザーがいません"
       />
     </>
@@ -179,25 +178,26 @@ function CreateUserForm({ onClose, onCreated }: { onClose: () => void; onCreated
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [role, setRole] = useState("user");
   const [error, setError] = useState("");
 
-  const mutation = useMutation({
-    mutationFn: () =>
-      api.post("/users", {
-        username,
-        password,
-        display_name: displayName,
-        is_admin: isAdmin,
-      }),
+  const mutation = $api.useMutation("post", "/api/users", {
     onSuccess: onCreated,
-    onError: (err: Error) => setError(err.message),
+    onError: (err) => setError(typeof err?.detail === "string" ? err.detail : "Error"),
   });
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
-    mutation.mutate();
+    mutation.mutate({
+      body: {
+        username,
+        password,
+        display_name: displayName,
+        is_admin: role === "admin",
+        role,
+      },
+    });
   }
 
   return (
@@ -239,11 +239,12 @@ function CreateUserForm({ onClose, onCreated }: { onClose: () => void; onCreated
           <FormGroup label="権限">
             <select
               className={selectClass}
-              value={isAdmin ? "admin" : "user"}
-              onChange={(e) => setIsAdmin(e.target.value === "admin")}
+              value={role}
+              onChange={(e) => setRole(e.target.value as "user" | "admin" | "mcp")}
             >
-              <option value="user">一般</option>
               <option value="admin">管理者</option>
+              <option value="user">一般</option>
+              <option value="mcp">MCP専用</option>
             </select>
           </FormGroup>
         </div>
@@ -270,20 +271,25 @@ function EditUserForm({
   onUpdated: () => void;
 }) {
   const [displayName, setDisplayName] = useState(user.display_name);
-  const [isAdmin, setIsAdmin] = useState(user.is_admin);
+  const [role, setRole] = useState(user.role);
   const [error, setError] = useState("");
 
-  const mutation = useMutation({
-    mutationFn: () =>
-      api.put(`/users/${user.id}`, { display_name: displayName, is_admin: isAdmin }),
+  const mutation = $api.useMutation("put", "/api/users/{user_id}", {
     onSuccess: onUpdated,
-    onError: (err: Error) => setError(err.message),
+    onError: (err) => setError(typeof err?.detail === "string" ? err.detail : "Error"),
   });
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
-    mutation.mutate();
+    mutation.mutate({
+      params: { path: { user_id: user.id } },
+      body: {
+        display_name: displayName,
+        is_admin: role === "admin",
+        role,
+      },
+    });
   }
 
   return (
@@ -307,11 +313,12 @@ function EditUserForm({
           <FormGroup label="権限">
             <select
               className={selectClass}
-              value={isAdmin ? "admin" : "user"}
-              onChange={(e) => setIsAdmin(e.target.value === "admin")}
+              value={role}
+              onChange={(e) => setRole(e.target.value as "user" | "admin" | "mcp")}
             >
-              <option value="user">一般</option>
               <option value="admin">管理者</option>
+              <option value="user">一般</option>
+              <option value="mcp">MCP専用</option>
             </select>
           </FormGroup>
         </div>
@@ -334,20 +341,21 @@ function ChangePasswordForm({ user, onClose }: { user: User; onClose: () => void
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
 
-  const mutation = useMutation({
-    mutationFn: () =>
-      api.put(`/users/${user.id}/password`, {
-        current_password: currentPassword,
-        new_password: newPassword,
-      }),
+  const mutation = $api.useMutation("put", "/api/users/{user_id}/password", {
     onSuccess: () => setDone(true),
-    onError: (err: Error) => setError(err.message),
+    onError: (err) => setError(typeof err?.detail === "string" ? err.detail : "Error"),
   });
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
-    mutation.mutate();
+    mutation.mutate({
+      params: { path: { user_id: user.id } },
+      body: {
+        current_password: currentPassword,
+        new_password: newPassword,
+      },
+    });
   }
 
   if (done) {

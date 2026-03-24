@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { css } from "../../styled-system/css";
@@ -6,7 +6,7 @@ import { DataTable } from "../components/DataTable";
 import { PageHead } from "../components/PageHead";
 import { Pagination } from "../components/Pagination";
 import { Tag } from "../components/Tag";
-import { api } from "../lib/api";
+import { $api, fetchClient } from "../lib/client";
 
 export const Route = createFileRoute("/cdr")({
   beforeLoad: ({ context }) => {
@@ -77,17 +77,22 @@ function CdrPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["cdr", offset],
-    queryFn: () => api.get<PagedResponse>(`/cdr?limit=${PAGE_SIZE}&offset=${offset}`),
+    queryFn: async () => {
+      const { data } = await fetchClient.GET("/api/cdr", {
+        params: { query: { limit: PAGE_SIZE, offset } } as never,
+      });
+      return data as PagedResponse | undefined;
+    },
   });
 
-  const importMutation = useMutation({
-    mutationFn: () => api.post<{ imported: number; csv_exists: boolean }>("/cdr/import"),
+  const importMutation = $api.useMutation("post", "/api/cdr/import", {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["cdr"] });
       setOffset(0);
-      if (!result.csv_exists) {
+      const r = result as { imported: number; csv_exists: boolean } | undefined;
+      if (r && !r.csv_exists) {
         alert("CDR CSVファイルが見つかりません。");
-      } else if (result.imported === 0) {
+      } else if (r && r.imported === 0) {
         alert("新しいCDRレコードはありませんでした。");
       }
     },
@@ -106,7 +111,7 @@ function CdrPage() {
         actions={
           <button
             type="button"
-            onClick={() => importMutation.mutate()}
+            onClick={() => importMutation.mutate({})}
             disabled={importMutation.isPending}
             className={css({
               display: "inline-flex",

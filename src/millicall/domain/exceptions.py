@@ -42,6 +42,11 @@ class WorkflowNotFoundError(MillicallError):
         super().__init__(f"Workflow {workflow_id} not found")
 
 
+class DuplicateWorkflowNumberError(MillicallError):
+    def __init__(self, number: str):
+        super().__init__(f"Workflow number {number} already exists")
+
+
 class ContactNotFoundError(MillicallError):
     def __init__(self, contact_id: int):
         super().__init__(f"Contact {contact_id} not found")

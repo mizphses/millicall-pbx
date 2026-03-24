@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { css } from "../../styled-system/css";
@@ -6,7 +6,7 @@ import { DataTable } from "../components/DataTable";
 import { Modal } from "../components/Modal";
 import { PageHead } from "../components/PageHead";
 import { Tag } from "../components/Tag";
-import { api } from "../lib/api";
+import { $api } from "../lib/client";
 
 export const Route = createFileRoute("/devices")({
   beforeLoad: ({ context }) => {
@@ -15,6 +15,7 @@ export const Route = createFileRoute("/devices")({
   component: DevicesPage,
 });
 
+// Keep local interfaces since the API returns untyped (unknown) responses for devices
 interface Device {
   id: number;
   mac_address: string;
@@ -106,57 +107,35 @@ function DevicesPage() {
     sip_password: string;
   } | null>(null);
 
-  const { data: devices = [], isLoading } = useQuery({
-    queryKey: ["devices"],
-    queryFn: () => api.get<Device[]>("/devices"),
-  });
+  const { data: rawDevices, isLoading } = $api.useQuery("get", "/api/devices");
+  const devices = (rawDevices ?? []) as Device[];
 
-  const { data: extensions = [] } = useQuery({
-    queryKey: ["extensions"],
-    queryFn: () => api.get<Extension[]>("/extensions"),
-  });
+  const { data: rawExtensions } = $api.useQuery("get", "/api/extensions");
+  const extensions = (rawExtensions ?? []) as Extension[];
 
   const phoneExtensions = extensions.filter((e) => e.type === "phone" && e.peer_id != null);
 
-  const scanMutation = useMutation({
-    mutationFn: () => api.post("/devices/scan"),
+  const scanMutation = $api.useMutation("post", "/api/devices/scan", {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["devices"] }),
   });
 
-  const assignMutation = useMutation({
-    mutationFn: ({ deviceId, extensionId }: { deviceId: number; extensionId: number }) =>
-      api.post(`/devices/${deviceId}/assign-extension`, { extension_id: extensionId }),
+  const assignMutation = $api.useMutation("post", "/api/devices/{device_id}/assign-extension", {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["devices"] });
       closeModal();
     },
   });
 
-  const quickProvisionMutation = useMutation({
-    mutationFn: ({
-      deviceId,
-      extension_number,
-      display_name,
-    }: {
-      deviceId: number;
-      extension_number: string;
-      display_name: string;
-    }) =>
-      api.post<{ sip_username: string; sip_password: string }>(
-        `/devices/${deviceId}/quick-provision`,
-        { extension_number, display_name },
-      ),
+  const quickProvisionMutation = $api.useMutation("post", "/api/devices/{device_id}/quick-provision", {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["devices"] });
       queryClient.invalidateQueries({ queryKey: ["extensions"] });
       queryClient.invalidateQueries({ queryKey: ["peers"] });
-      setResult(data);
+      setResult(data as { sip_username: string; sip_password: string });
     },
   });
 
-  const resyncMutation = useMutation({
-    mutationFn: (deviceId: number) => api.post(`/devices/${deviceId}/resync`),
-  });
+  const resyncMutation = $api.useMutation("post", "/api/devices/{device_id}/resync");
 
   function closeModal() {
     setProvisionTarget(null);
@@ -171,14 +150,16 @@ function DevicesPage() {
     if (!provisionTarget) return;
     if (mode === "assign" && selectedExtId) {
       assignMutation.mutate({
-        deviceId: provisionTarget.id,
-        extensionId: Number(selectedExtId),
+        params: { path: { device_id: provisionTarget.id } },
+        body: { extension_id: Number(selectedExtId) },
       });
     } else if (mode === "create" && newNumber) {
       quickProvisionMutation.mutate({
-        deviceId: provisionTarget.id,
-        extension_number: newNumber,
-        display_name: newName || newNumber,
+        params: { path: { device_id: provisionTarget.id } },
+        body: {
+          extension_number: newNumber,
+          display_name: newName || newNumber,
+        },
       });
     }
   }
@@ -195,7 +176,7 @@ function DevicesPage() {
         actions={
           <button
             type="button"
-            onClick={() => scanMutation.mutate()}
+            onClick={() => scanMutation.mutate({})}
             disabled={scanMutation.isPending}
             className={btnPrimary}
           >
@@ -336,7 +317,7 @@ function DevicesPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      resyncMutation.mutate(provisionTarget.id);
+                      resyncMutation.mutate({ params: { path: { device_id: provisionTarget.id } } });
                     }}
                     disabled={resyncMutation.isPending}
                     className={btnSecondary}

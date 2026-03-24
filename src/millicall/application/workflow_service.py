@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from millicall.domain.exceptions import DuplicateWorkflowNumberError
 from millicall.domain.models import Extension, Workflow
 from millicall.infrastructure.repositories.extension_repo import ExtensionRepository
 from millicall.infrastructure.repositories.workflow_repo import WorkflowRepository
@@ -26,6 +27,11 @@ class WorkflowService:
         description: str = "",
         enabled: bool = True,
     ) -> Workflow:
+        # Reject duplicate workflow numbers (including disabled ones)
+        existing = await self.repo.get_by_number(number, enabled_only=False)
+        if existing is not None:
+            raise DuplicateWorkflowNumberError(number)
+
         # Auto-create extension for this workflow
         ext = Extension(
             number=number,

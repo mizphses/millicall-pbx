@@ -1,10 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { css } from "../../styled-system/css";
 import { DataTable } from "../components/DataTable";
 import { PageHead } from "../components/PageHead";
-import { api } from "../lib/api";
+import { $api } from "../lib/client";
 
 export const Route = createFileRoute("/contacts")({
   beforeLoad: ({ context }) => {
@@ -12,15 +12,6 @@ export const Route = createFileRoute("/contacts")({
   },
   component: ContactsPage,
 });
-
-interface Contact {
-  id: number;
-  name: string;
-  phone_number: string;
-  company: string | null;
-  department: string | null;
-  notes: string | null;
-}
 
 const btnPrimary = css({
   display: "inline-flex",
@@ -87,20 +78,17 @@ function ContactsPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
 
-  const { data: contacts = [], isLoading } = useQuery({
-    queryKey: ["contacts"],
-    queryFn: () => api.get<Contact[]>("/contacts"),
-  });
+  const { data: contacts, isLoading } = $api.useQuery("get", "/api/contacts");
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/contacts/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["contacts"] }),
+  const deleteMutation = $api.useMutation("delete", "/api/contacts/{contact_id}", {
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["get", "/api/contacts"] }),
   });
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return contacts;
+    const list = contacts ?? [];
+    if (!search.trim()) return list;
     const q = search.toLowerCase();
-    return contacts.filter(
+    return list.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
         c.phone_number.toLowerCase().includes(q) ||
@@ -175,7 +163,8 @@ function ContactsPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (confirm(`${c.name} を削除しますか？`)) deleteMutation.mutate(c.id);
+                    if (confirm(`${c.name} を削除しますか？`))
+                      deleteMutation.mutate({ params: { path: { contact_id: c.id } } });
                   }}
                   className={btnDelete}
                 >

@@ -21,6 +21,8 @@ from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.server import TransportSecuritySettings
 from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 
+from millicall.config import settings as _settings
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -238,8 +240,8 @@ oauth_provider = MillicallOAuthProvider()
 # ARI configuration (same as ari_handler.py)
 # ---------------------------------------------------------------------------
 ARI_URL = os.environ.get("ARI_URL", "http://localhost:8088")
-ARI_USER = os.environ.get("ARI_USER", "millicall")
-ARI_PASSWORD = os.environ.get("ARI_PASSWORD", "millicall")
+ARI_USER = _settings.ari_user
+ARI_PASSWORD = _settings.ari_password
 STASIS_APP = "millicall-mcp"
 
 # Database URL (used for direct DB access for contacts/extensions)

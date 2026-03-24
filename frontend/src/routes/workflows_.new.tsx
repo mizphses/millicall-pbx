@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { css } from "../../styled-system/css";
@@ -12,7 +12,7 @@ import {
   textareaClass,
 } from "../components/FormCard";
 import { PageHead } from "../components/PageHead";
-import { api } from "../lib/api";
+import { $api } from "../lib/client";
 
 export const Route = createFileRoute("/workflows_/new")({
   beforeLoad: ({ context }) => {
@@ -42,14 +42,13 @@ function WorkflowNewPage() {
   const [name, setName] = useState("");
   const [number, setNumber] = useState("");
   const [description, setDescription] = useState("");
-  const [workflowType, setWorkflowType] = useState("ivr");
+  const workflowType = "workflow";
   const [enabled, setEnabled] = useState(true);
   const [ttsProvider, setTtsProvider] = useState("google");
   const [googleVoice, setGoogleVoice] = useState("ja-JP-Chirp3-HD-Aoede");
   const [coefontId, setCoefontId] = useState("");
 
-  const mutation = useMutation({
-    mutationFn: (body: Record<string, unknown>) => api.post<{ id: number }>("/workflows", body),
+  const mutation = $api.useMutation("post", "/api/workflows", {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["workflows"] });
       navigate({
@@ -62,16 +61,19 @@ function WorkflowNewPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     mutation.mutate({
-      name,
-      number,
-      description,
-      workflow_type: workflowType,
-      default_tts_config: {
-        tts_provider: ttsProvider,
-        google_tts_voice: googleVoice,
-        coefont_voice_id: coefontId,
+      body: {
+        name,
+        number,
+        description,
+        workflow_type: workflowType,
+        definition: { nodes: [], edges: [] },
+        default_tts_config: {
+          tts_provider: ttsProvider,
+          google_tts_voice: googleVoice,
+          coefont_voice_id: coefontId,
+        },
+        enabled,
       },
-      enabled,
     });
   }
 
@@ -81,7 +83,7 @@ function WorkflowNewPage() {
       <FormCard
         onSubmit={handleSubmit}
         submitLabel="作成してエディタを開く"
-        cancelHref="/workflows"
+        cancelHref="/extensions"
         isSubmitting={mutation.isPending}
       >
         <FormSection title="基本情報" />
@@ -117,18 +119,6 @@ function WorkflowNewPage() {
             placeholder="このワークフローの説明を入力..."
             rows={3}
           />
-        </FormGroup>
-
-        <FormGroup label="ワークフロータイプ">
-          <select
-            className={selectClass}
-            value={workflowType}
-            onChange={(e) => setWorkflowType(e.target.value)}
-            required
-          >
-            <option value="ivr">IVR</option>
-            <option value="ai_workflow">AI Call Workflow</option>
-          </select>
         </FormGroup>
 
         <FormSection title="デフォルトTTS設定" />

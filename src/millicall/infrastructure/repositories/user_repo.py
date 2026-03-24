@@ -16,6 +16,7 @@ class UserRepository:
             hashed_password=row.hashed_password,
             display_name=row.display_name,
             is_admin=row.is_admin,
+            role=row.role,
         )
 
     async def get_all(self) -> list[User]:
@@ -41,6 +42,7 @@ class UserRepository:
                 hashed_password=user.hashed_password,
                 display_name=user.display_name,
                 is_admin=user.is_admin,
+                role=user.role,
             )
         )
         await self.session.commit()

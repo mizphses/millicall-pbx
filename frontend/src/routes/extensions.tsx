@@ -1,10 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { css } from "../../styled-system/css";
 import { DataTable } from "../components/DataTable";
 import { PageHead } from "../components/PageHead";
 import { Tag } from "../components/Tag";
-import { api } from "../lib/api";
+import { $api } from "../lib/client";
 
 export const Route = createFileRoute("/extensions")({
   beforeLoad: ({ context }) => {
@@ -12,37 +12,6 @@ export const Route = createFileRoute("/extensions")({
   },
   component: ExtensionsPage,
 });
-
-interface Extension {
-  id: number;
-  number: string;
-  display_name: string;
-  type: string;
-  enabled: boolean;
-  peer_id: number | null;
-  ai_agent_id: number | null;
-}
-
-interface Peer {
-  id: number;
-  username: string;
-}
-
-interface Agent {
-  id: number;
-  llm_provider: string;
-  llm_model: string;
-}
-
-interface WorkflowListItem {
-  id: number;
-  name: string;
-  number: string;
-  workflow_type: string;
-  enabled: boolean;
-  node_count: number;
-  extension_id: number | null;
-}
 
 const btnPrimary = css({
   display: "inline-flex",
@@ -110,43 +79,27 @@ const btnDelete = css({
 function ExtensionsPage() {
   const queryClient = useQueryClient();
 
-  const { data: extensions = [], isLoading } = useQuery({
-    queryKey: ["extensions"],
-    queryFn: () => api.get<Extension[]>("/extensions"),
-  });
-  const { data: peers = [] } = useQuery({
-    queryKey: ["peers"],
-    queryFn: () => api.get<Peer[]>("/peers"),
-  });
-  const { data: agents = [] } = useQuery({
-    queryKey: ["agents"],
-    queryFn: () => api.get<Agent[]>("/agents"),
-  });
-  const { data: workflows = [] } = useQuery({
-    queryKey: ["workflows"],
-    queryFn: () => api.get<WorkflowListItem[]>("/workflows"),
-  });
+  const { data: extensions, isLoading } = $api.useQuery("get", "/api/extensions");
+  const { data: peers } = $api.useQuery("get", "/api/peers");
+  const { data: workflows } = $api.useQuery("get", "/api/workflows");
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/extensions/${id}`),
+  const deleteMutation = $api.useMutation("delete", "/api/extensions/{extension_id}", {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["extensions"] });
       queryClient.invalidateQueries({ queryKey: ["workflows"] });
     },
   });
 
-  const deleteWfMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/workflows/${id}`),
+  const deleteWfMutation = $api.useMutation("delete", "/api/workflows/{workflow_id}", {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["extensions"] });
       queryClient.invalidateQueries({ queryKey: ["workflows"] });
     },
   });
 
-  const peerMap = Object.fromEntries(peers.map((p) => [p.id, p]));
-  const agentMap = Object.fromEntries(agents.map((a) => [a.id, a]));
+  const peerMap = Object.fromEntries((peers ?? []).map((p) => [p.id, p]));
   const wfByExtId = Object.fromEntries(
-    workflows.filter((w) => w.extension_id).map((w) => [w.extension_id!, w]),
+    (workflows ?? []).filter((w) => w.extension_id).map((w) => [w.extension_id!, w]),
   );
 
   if (isLoading) return <p className={css({ color: "#4a4a52" })}>読み込み中...</p>;
@@ -155,7 +108,7 @@ function ExtensionsPage() {
     <>
       <PageHead
         title="内線アカウント"
-        subtitle="電話・AIエージェント・ワークフローを管理します"
+        subtitle="電話機・ワークフローを管理します"
         actions={
           <div className={css({ display: "flex", gap: "8px" })}>
             <Link to="/workflows/new" className={btnSub}>
@@ -190,9 +143,7 @@ function ExtensionsPage() {
             header: "種別",
             sortValue: (ext) => ext.type,
             accessor: (ext) => {
-              if (ext.type === "ai_agent") return <Tag variant="ai">AI</Tag>;
-              if (ext.type === "ivr") return <Tag variant="ivr">IVR</Tag>;
-              if (ext.type === "ai_workflow") return <Tag variant="workflow">AI Workflow</Tag>;
+              if (ext.type === "workflow") return <Tag variant="ivr">ワークフロー</Tag>;
               return <Tag variant="phone">電話</Tag>;
             },
           },
@@ -208,18 +159,10 @@ function ExtensionsPage() {
               if (ext.type === "phone" && ext.peer_id && peerMap[ext.peer_id]) {
                 return <Tag variant="phone">{peerMap[ext.peer_id].username}</Tag>;
               }
-              if (ext.type === "ai_agent" && ext.ai_agent_id && agentMap[ext.ai_agent_id]) {
-                const a = agentMap[ext.ai_agent_id];
-                return (
-                  <Tag variant="ai">
-                    {a.llm_provider}/{a.llm_model}
-                  </Tag>
-                );
-              }
               const wf = wfByExtId[ext.id];
               if (wf) {
                 return (
-                  <Tag variant={ext.type === "ivr" ? "ivr" : "workflow"}>
+                  <Tag variant="ivr">
                     {wf.name} ({wf.node_count}ノード)
                   </Tag>
                 );
@@ -231,7 +174,7 @@ function ExtensionsPage() {
             header: "",
             className: css({ textAlign: "right", whiteSpace: "nowrap" }),
             accessor: (ext) => {
-              const isWorkflow = ext.type === "ivr" || ext.type === "ai_workflow";
+              const isWorkflow = ext.type === "workflow";
               const wf = wfByExtId[ext.id];
               return (
                 <div className={css({ display: "flex", justifyContent: "flex-end", gap: "4px" })}>
@@ -252,7 +195,7 @@ function ExtensionsPage() {
                               `ワークフロー「${wf.name}」と内線 ${ext.number} を削除しますか？`,
                             )
                           )
-                            deleteWfMutation.mutate(wf.id);
+                            deleteWfMutation.mutate({ params: { path: { workflow_id: wf.id } } });
                         }}
                         className={btnDelete}
                       >
@@ -271,11 +214,8 @@ function ExtensionsPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          const msg =
-                            ext.type === "ai_agent"
-                              ? `内線 ${ext.number} を削除しますか？（AIエージェント設定も削除されます）`
-                              : `内線 ${ext.number} を削除しますか？`;
-                          if (confirm(msg)) deleteMutation.mutate(ext.id);
+                          if (confirm(`内線 ${ext.number} を削除しますか？`))
+                            deleteMutation.mutate({ params: { path: { extension_id: ext.id } } });
                         }}
                         className={btnDelete}
                       >
@@ -288,7 +228,7 @@ function ExtensionsPage() {
             },
           },
         ]}
-        data={extensions}
+        data={extensions ?? []}
         emptyMessage="内線アカウントがまだありません"
         emptyAction={
           <Link to="/extensions/new" className={btnPrimary}>

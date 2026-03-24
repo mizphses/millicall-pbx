@@ -537,12 +537,10 @@ SPECIAL_NODES: dict[str, dict] = {
 }
 
 
-def get_node_types_for_workflow_type(workflow_type: str) -> dict[str, dict]:
-    """Return common + type-specific + special nodes for the given workflow type."""
+def get_node_types_for_workflow_type(workflow_type: str = "workflow") -> dict[str, dict]:
+    """Return all available node types (IVR + AI + special)."""
     nodes = {**COMMON_NODES}
-    if workflow_type == "ivr":
-        nodes.update(IVR_NODES)
-    elif workflow_type == "ai_workflow":
-        nodes.update(AI_WORKFLOW_NODES)
+    nodes.update(IVR_NODES)
+    nodes.update(AI_WORKFLOW_NODES)
     nodes.update(SPECIAL_NODES)
     return nodes

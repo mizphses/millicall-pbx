@@ -1,9 +1,10 @@
 FROM node:22-alpine AS build
+RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY . .
-RUN npx tsr generate && npx panda codegen && npm run build
+RUN pnpm tsr generate && pnpm panda codegen && pnpm run build
 
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html

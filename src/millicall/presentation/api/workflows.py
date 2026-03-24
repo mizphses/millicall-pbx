@@ -70,13 +70,13 @@ async def list_workflows(session: AsyncSession = Depends(get_session)):
 
 
 @router.get("/node-types")
-async def get_node_types(workflow_type: str = Query(..., pattern=r"^(ivr|ai_workflow)$")):
+async def get_node_types(workflow_type: str = Query(default="workflow", pattern=r"^workflow$")):
     return get_node_types_for_workflow_type(workflow_type)
 
 
 class GenerateRequest(BaseModel):
     prompt: str
-    workflow_type: str = "ivr"
+    workflow_type: str = "workflow"
 
 
 @router.post("/generate")

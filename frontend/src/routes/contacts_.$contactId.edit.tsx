@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
@@ -10,7 +10,7 @@ import {
   textareaClass,
 } from "../components/FormCard";
 import { PageHead } from "../components/PageHead";
-import { api } from "../lib/api";
+import { $api } from "../lib/client";
 
 export const Route = createFileRoute("/contacts_/$contactId/edit")({
   beforeLoad: ({ context }) => {
@@ -19,23 +19,13 @@ export const Route = createFileRoute("/contacts_/$contactId/edit")({
   component: ContactEditPage,
 });
 
-interface Contact {
-  id: number;
-  name: string;
-  phone_number: string;
-  company: string | null;
-  department: string | null;
-  notes: string | null;
-}
-
 function ContactEditPage() {
   const { contactId } = Route.useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: contact } = useQuery({
-    queryKey: ["contact", contactId],
-    queryFn: () => api.get<Contact>(`/contacts/${contactId}`),
+  const { data: contact } = $api.useQuery("get", "/api/contacts/{contact_id}", {
+    params: { path: { contact_id: Number(contactId) } },
   });
 
   const [name, setName] = useState("");
@@ -54,11 +44,10 @@ function ContactEditPage() {
     }
   }, [contact]);
 
-  const mutation = useMutation({
-    mutationFn: (body: Record<string, unknown>) => api.put(`/contacts/${contactId}`, body),
+  const mutation = $api.useMutation("put", "/api/contacts/{contact_id}", {
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["contacts"] });
-      queryClient.invalidateQueries({ queryKey: ["contact", contactId] });
+      queryClient.invalidateQueries({ queryKey: ["get", "/api/contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["get", "/api/contacts/{contact_id}"] });
       navigate({ to: "/contacts" });
     },
   });
@@ -68,11 +57,14 @@ function ContactEditPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     mutation.mutate({
-      name,
-      phone_number: phoneNumber,
-      company: company || null,
-      department: department || null,
-      notes: notes || null,
+      params: { path: { contact_id: Number(contactId) } },
+      body: {
+        name,
+        phone_number: phoneNumber,
+        company: company || "",
+        department: department || "",
+        notes: notes || "",
+      },
     });
   }
 

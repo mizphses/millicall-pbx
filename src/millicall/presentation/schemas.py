@@ -21,6 +21,7 @@ class UserResponse(BaseModel):
     username: str
     display_name: str
     is_admin: bool
+    role: str = "admin"
 
 
 class UserCreate(BaseModel):
@@ -28,11 +29,13 @@ class UserCreate(BaseModel):
     password: str = Field(..., min_length=4, max_length=100)
     display_name: str = Field(..., min_length=1, max_length=100)
     is_admin: bool = False
+    role: str = Field(default="user", pattern=r"^(admin|user|mcp)$")
 
 
 class UserUpdate(BaseModel):
     display_name: str = Field(..., min_length=1, max_length=100)
     is_admin: bool = False
+    role: str = Field(default="user", pattern=r"^(admin|user|mcp)$")
 
 
 class ChangePasswordRequest(BaseModel):
@@ -295,6 +298,7 @@ class WorkflowNode(BaseModel):
     label: str = ""
     config: dict[str, Any] = {}
     data: dict[str, Any] = {}
+    data: dict[str, Any] = {}
 
 
 class WorkflowEdge(BaseModel):
@@ -321,7 +325,7 @@ class WorkflowCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     number: str = Field(..., min_length=1, max_length=20, pattern=r"^\d+$")
     description: str = ""
-    workflow_type: str = Field(..., pattern=r"^(ivr|ai_workflow)$")
+    workflow_type: str = Field(default="workflow", pattern=r"^workflow$")
     definition: WorkflowDefinition = WorkflowDefinition()
     default_tts_config: TTSConfig = TTSConfig()
     enabled: bool = True

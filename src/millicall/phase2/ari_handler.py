@@ -17,13 +17,14 @@ import os
 import httpx
 import websockets
 
+from millicall.config import settings
 from millicall.phase2 import llm_chat, stt, tts_coefont, tts_google
 
 logger = logging.getLogger(__name__)
 
 ARI_URL = "http://localhost:8088"
-ARI_USER = "millicall"
-ARI_PASSWORD = "millicall"
+ARI_USER = settings.ari_user
+ARI_PASSWORD = settings.ari_password
 STASIS_APP_AI = "millicall-ai"
 STASIS_APP_WORKFLOW = "millicall-workflow"
 STASIS_APP_MCP = "millicall-mcp"
@@ -73,8 +74,10 @@ async def _ari_request(method: str, path: str, **kwargs) -> dict | bytes | None:
 
 
 def _sanitize_id(channel_id: str) -> str:
-    """Remove dots from channel IDs for safe filenames."""
-    return channel_id.replace(".", "_")
+    """Sanitize channel IDs for safe filenames — allow only alphanumeric, underscore, hyphen."""
+    import re
+
+    return re.sub(r"[^a-zA-Z0-9_\-]", "_", channel_id)
 
 
 async def _save_wav_to_asterisk(audio_wav: bytes, filename: str) -> str:

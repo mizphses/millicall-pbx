@@ -1,9 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { css } from "../../styled-system/css";
 import { PageHead } from "../components/PageHead";
 import { Tag } from "../components/Tag";
-import { api } from "../lib/api";
+import { $api } from "../lib/client";
 
 export const Route = createFileRoute("/mcp-guide")({
   beforeLoad: ({ context }) => {
@@ -127,15 +126,11 @@ const noteBox = css({
 });
 
 function McpGuidePage() {
-  const { data: mcpConfig } = useQuery({
-    queryKey: ["mcp-config"],
-    queryFn: () => api.get<McpConfig>("/guide/mcp-config"),
-  });
+  const { data: rawMcp } = $api.useQuery("get", "/api/guide/mcp-config");
+  const mcpConfig = rawMcp as McpConfig | undefined;
 
-  const { data: outbound } = useQuery({
-    queryKey: ["outbound-guide"],
-    queryFn: () => api.get<OutboundGuide>("/guide/outbound"),
-  });
+  const { data: rawOutbound } = $api.useQuery("get", "/api/guide/outbound");
+  const outbound = rawOutbound as OutboundGuide | undefined;
 
   const tools = mcpConfig?.available_tools ?? [];
   const categories = [...new Set(tools.map((t) => t.category))];
@@ -219,15 +214,7 @@ function McpGuidePage() {
             {mcpConfig.current_extensions.map((ext) => (
               <Tag
                 key={ext.number}
-                variant={
-                  ext.type === "phone"
-                    ? "phone"
-                    : ext.type === "ivr"
-                      ? "ivr"
-                      : ext.type === "ai_workflow"
-                        ? "workflow"
-                        : "ai"
-                }
+                variant={ext.type === "phone" ? "phone" : "ivr"}
               >
                 {ext.number} - {ext.name}
               </Tag>

@@ -1,8 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { css } from "../../styled-system/css";
 import { PageHead } from "../components/PageHead";
-import { api } from "../lib/api";
+import { $api } from "../lib/client";
 
 export const Route = createFileRoute("/")({
   beforeLoad: ({ context }) => {
@@ -53,10 +52,8 @@ const btnSecondary = css({
 });
 
 function Dashboard() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["dashboard"],
-    queryFn: () => api.get<DashboardData>("/dashboard"),
-  });
+  const { data: raw, isLoading } = $api.useQuery("get", "/api/dashboard");
+  const data = raw as DashboardData | undefined;
 
   if (isLoading || !data) {
     return <p className={css({ color: "#4a4a52" })}>読み込み中...</p>;

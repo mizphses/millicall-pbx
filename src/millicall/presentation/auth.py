@@ -1,7 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 import bcrypt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,7 +11,7 @@ from millicall.domain.models import User
 from millicall.infrastructure.database import get_session
 from millicall.infrastructure.repositories.user_repo import UserRepository
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
 
 def hash_password(password: str) -> str:
@@ -30,7 +30,8 @@ def create_access_token(data: dict, role: str = "admin") -> str:
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    request: Request,
+    token: str | None = Depends(oauth2_scheme),
     session: AsyncSession = Depends(get_session),
 ) -> User:
     credentials_exception = HTTPException(
@@ -38,8 +39,14 @@ async def get_current_user(
         detail="Invalid or expired token",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    # Prefer Authorization header, fall back to HttpOnly cookie
+    effective_token = token or request.cookies.get("millicall_token")
+    if not effective_token:
+        raise credentials_exception
+
     try:
-        payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+        payload = jwt.decode(effective_token, settings.jwt_secret, algorithms=["HS256"])
         username: str | None = payload.get("sub")
         if username is None:
             raise credentials_exception

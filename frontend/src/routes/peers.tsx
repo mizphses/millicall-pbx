@@ -1,10 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { css } from "../../styled-system/css";
 import { DataTable } from "../components/DataTable";
 import { PageHead } from "../components/PageHead";
 import { Tag } from "../components/Tag";
-import { api } from "../lib/api";
+import { $api } from "../lib/client";
 
 export const Route = createFileRoute("/peers")({
   beforeLoad: ({ context }) => {
@@ -12,14 +12,6 @@ export const Route = createFileRoute("/peers")({
   },
   component: PeersPage,
 });
-
-interface Peer {
-  id: number;
-  username: string;
-  transport: string;
-  codecs: string[];
-  ip_address: string | null;
-}
 
 const btnPrimary = css({
   display: "inline-flex",
@@ -68,15 +60,13 @@ const btnDelete = css({
 
 function PeersPage() {
   const queryClient = useQueryClient();
-  const { data: peers = [], isLoading } = useQuery({
-    queryKey: ["peers"],
-    queryFn: () => api.get<Peer[]>("/peers"),
+  const { data: peers, isLoading } = $api.useQuery("get", "/api/peers");
+
+  const deleteMutation = $api.useMutation("delete", "/api/peers/{peer_id}", {
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["get", "/api/peers"] }),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/peers/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["peers"] }),
-  });
+  const peerList = peers ?? [];
 
   if (isLoading) return <p className={css({ color: "#4a4a52" })}>読み込み中...</p>;
 
@@ -126,7 +116,7 @@ function PeersPage() {
                   type="button"
                   onClick={() => {
                     if (confirm(`SIPピア ${peer.username} を削除しますか？`))
-                      deleteMutation.mutate(peer.id);
+                      deleteMutation.mutate({ params: { path: { peer_id: peer.id } } });
                   }}
                   className={btnDelete}
                 >
@@ -136,7 +126,7 @@ function PeersPage() {
             ),
           },
         ]}
-        data={peers}
+        data={peerList}
         emptyMessage="SIP電話機がまだ登録されていません"
         emptyAction={
           <Link to="/peers/new" className={btnPrimary}>

@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
@@ -10,7 +10,7 @@ import {
   textareaClass,
 } from "../components/FormCard";
 import { PageHead } from "../components/PageHead";
-import { api } from "../lib/api";
+import { $api } from "../lib/client";
 
 export const Route = createFileRoute("/contacts_/new")({
   beforeLoad: ({ context }) => {
@@ -28,10 +28,9 @@ function ContactNewPage() {
   const [department, setDepartment] = useState("");
   const [notes, setNotes] = useState("");
 
-  const mutation = useMutation({
-    mutationFn: (body: Record<string, unknown>) => api.post("/contacts", body),
+  const mutation = $api.useMutation("post", "/api/contacts", {
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["get", "/api/contacts"] });
       navigate({ to: "/contacts" });
     },
   });
@@ -39,11 +38,13 @@ function ContactNewPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     mutation.mutate({
-      name,
-      phone_number: phoneNumber,
-      company: company || null,
-      department: department || null,
-      notes: notes || null,
+      body: {
+        name,
+        phone_number: phoneNumber,
+        company: company || "",
+        department: department || "",
+        notes: notes || "",
+      },
     });
   }
 

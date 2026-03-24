@@ -49,13 +49,12 @@ class WorkflowRepository:
             raise WorkflowNotFoundError(workflow_id)
         return self._row_to_model(row)
 
-    async def get_by_number(self, number: str) -> Workflow | None:
-        """Look up an enabled workflow by its extension number."""
-        result = await self.session.execute(
-            select(workflows_table)
-            .where(workflows_table.c.number == number)
-            .where(workflows_table.c.enabled)
-        )
+    async def get_by_number(self, number: str, *, enabled_only: bool = True) -> Workflow | None:
+        """Look up a workflow by its extension number."""
+        stmt = select(workflows_table).where(workflows_table.c.number == number)
+        if enabled_only:
+            stmt = stmt.where(workflows_table.c.enabled)
+        result = await self.session.execute(stmt)
         row = result.first()
         if not row:
             return None

@@ -1,10 +1,10 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { css } from "../../styled-system/css";
 import { FormCard, FormGroup, FormRow, FormSection, inputClass } from "../components/FormCard";
 import { PageHead } from "../components/PageHead";
-import { api } from "../lib/api";
+import { $api } from "../lib/client";
 
 export const Route = createFileRoute("/trunks_/new")({
   beforeLoad: ({ context }) => {
@@ -41,10 +41,9 @@ function TrunkNewPage() {
   const [outboundPrefixes, setOutboundPrefixes] = useState("");
   const [enabled, setEnabled] = useState(true);
 
-  const mutation = useMutation({
-    mutationFn: (body: Record<string, unknown>) => api.post("/trunks", body),
+  const mutation = $api.useMutation("post", "/api/trunks", {
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["trunks"] });
+      queryClient.invalidateQueries({ queryKey: ["get", "/api/trunks"] });
       navigate({ to: "/trunks" });
     },
   });
@@ -52,15 +51,18 @@ function TrunkNewPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     mutation.mutate({
-      name,
-      display_name: displayName,
-      host,
-      username,
-      password,
-      did_number: didNumber,
-      incoming_dest: incomingDest,
-      outbound_prefixes: outboundPrefixes,
-      enabled,
+      body: {
+        name,
+        display_name: displayName,
+        host,
+        username,
+        password,
+        did_number: didNumber,
+        caller_id: "",
+        incoming_dest: incomingDest,
+        outbound_prefixes: outboundPrefixes,
+        enabled,
+      },
     });
   }
 

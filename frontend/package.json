@@ -10,6 +10,7 @@
     "lint": "biome ci .",
     "format": "biome check --write .",
     "typecheck": "tsr generate && tsc --noEmit",
+    "openapi": "curl -s https://millicall.miz.cab/openapi.json -o openapi.json && npx openapi-typescript openapi.json -o src/lib/api-types.d.ts",
     "generate": "tsr generate && panda codegen",
     "prepare": "tsr generate && panda codegen",
     "storybook": "storybook dev -p 6006",
@@ -20,6 +21,8 @@
     "@tanstack/react-router": "^1.168.2",
     "@tanstack/router-vite-plugin": "^1.166.18",
     "@xyflow/react": "^12.10.1",
+    "openapi-fetch": "^0.17.0",
+    "openapi-react-query": "^0.5.4",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },

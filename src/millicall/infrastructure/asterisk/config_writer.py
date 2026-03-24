@@ -44,8 +44,22 @@ class AsteriskConfigWriter:
     ) -> Path:
         template = self.env.get_template("extensions.conf.j2")
 
-        ext_with_peers = []
+        # Deduplicate extensions by number — keep the latest (highest id) to
+        # avoid stale entries shadowing newer ones in the Asterisk dialplan.
+        seen: dict[str, int] = {}
+        deduped: list[Extension] = []
         for ext in extensions:
+            prev_idx = seen.get(ext.number)
+            if prev_idx is not None:
+                existing = deduped[prev_idx]
+                if ext.id is not None and (existing.id is None or ext.id > existing.id):
+                    deduped[prev_idx] = ext
+            else:
+                seen[ext.number] = len(deduped)
+                deduped.append(ext)
+
+        ext_with_peers = []
+        for ext in deduped:
             peer = peer_map.get(ext.peer_id) if ext.peer_id else None
             ext_with_peers.append({"ext": ext, "peer": peer})
 
@@ -54,6 +68,16 @@ class AsteriskConfigWriter:
             trunks=trunks or [],
         )
         output_path = self.output_dir / "extensions.conf"
+        self._write_locked(output_path, content)
+        return output_path
+
+    def write_ari_config(self) -> Path:
+        template = self.env.get_template("ari.conf.j2")
+        content = template.render(
+            ari_user=settings.ari_user,
+            ari_password=settings.ari_password,
+        )
+        output_path = self.output_dir / "ari.conf"
         self._write_locked(output_path, content)
         return output_path
 

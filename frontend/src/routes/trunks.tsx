@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { css } from "../../styled-system/css";
@@ -6,7 +6,7 @@ import { DataTable } from "../components/DataTable";
 import { DialGuideModal } from "../components/DialGuideModal";
 import { PageHead } from "../components/PageHead";
 import { Tag } from "../components/Tag";
-import { api } from "../lib/api";
+import { $api } from "../lib/client";
 
 export const Route = createFileRoute("/trunks")({
   beforeLoad: ({ context }) => {
@@ -14,17 +14,6 @@ export const Route = createFileRoute("/trunks")({
   },
   component: TrunksPage,
 });
-
-interface Trunk {
-  id: number;
-  name: string;
-  display_name: string;
-  host: string;
-  did_number: string;
-  outbound_prefixes: string;
-  incoming_dest: string;
-  enabled: boolean;
-}
 
 const btnPrimary = css({
   display: "inline-flex",
@@ -101,15 +90,13 @@ function TrunksPage() {
   const queryClient = useQueryClient();
   const [guideOpen, setGuideOpen] = useState(false);
 
-  const { data: trunks = [], isLoading } = useQuery({
-    queryKey: ["trunks"],
-    queryFn: () => api.get<Trunk[]>("/trunks"),
+  const { data: trunks, isLoading } = $api.useQuery("get", "/api/trunks");
+
+  const deleteMutation = $api.useMutation("delete", "/api/trunks/{trunk_id}", {
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["get", "/api/trunks"] }),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/trunks/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["trunks"] }),
-  });
+  const trunkList = trunks ?? [];
 
   if (isLoading) return <p className={css({ color: "#4a4a52" })}>読み込み中...</p>;
 
@@ -120,7 +107,7 @@ function TrunksPage() {
         subtitle="PSTN接続（SIPトランク）を管理します"
         actions={
           <div className={css({ display: "flex", gap: "8px" })}>
-            {trunks.length > 0 && (
+            {trunkList.length > 0 && (
               <button type="button" onClick={() => setGuideOpen(true)} className={btnSecondary}>
                 ダイヤルガイド
               </button>
@@ -190,7 +177,7 @@ function TrunksPage() {
                   type="button"
                   onClick={() => {
                     if (confirm(`外線 ${t.display_name} を削除しますか？`))
-                      deleteMutation.mutate(t.id);
+                      deleteMutation.mutate({ params: { path: { trunk_id: t.id } } });
                   }}
                   className={btnDelete}
                 >
@@ -200,7 +187,7 @@ function TrunksPage() {
             ),
           },
         ]}
-        data={trunks}
+        data={trunkList}
         emptyMessage="外線トランクがまだ登録されていません"
         emptyAction={
           <Link to="/trunks/new" className={btnPrimary}>
@@ -209,7 +196,7 @@ function TrunksPage() {
         }
       />
 
-      <DialGuideModal open={guideOpen} onClose={() => setGuideOpen(false)} trunks={trunks} />
+      <DialGuideModal open={guideOpen} onClose={() => setGuideOpen(false)} trunks={trunkList} />
     </>
   );
 }

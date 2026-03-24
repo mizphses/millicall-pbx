@@ -232,10 +232,19 @@ class WorkflowExecutor:
                 except asyncio.QueueEmpty:
                     break
 
+    # Only allow safe variable names: alphanumeric + underscore
+    _SAFE_VAR_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+
     def _render_template(self, text: str) -> str:
         def replacer(match: re.Match) -> str:
             var_name = match.group(1).strip()
-            return str(self.variables.get(var_name, match.group(0)))
+            if not self._SAFE_VAR_RE.match(var_name):
+                logger.warning("Blocked unsafe template variable: %r", var_name)
+                return ""
+            value = self.variables.get(var_name)
+            if value is None:
+                return match.group(0)
+            return str(value)
 
         return re.sub(r"\{\{(.+?)\}\}", replacer, text)
 

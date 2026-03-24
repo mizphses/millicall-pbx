@@ -5,7 +5,7 @@ import { css } from "../../styled-system/css";
 import { DataTable } from "../components/DataTable";
 import { PageHead } from "../components/PageHead";
 import { Pagination } from "../components/Pagination";
-import { api } from "../lib/api";
+import { fetchClient } from "../lib/client";
 
 export const Route = createFileRoute("/call-history")({
   beforeLoad: ({ context }) => {
@@ -60,7 +60,12 @@ function CallHistoryPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["call-history", offset],
-    queryFn: () => api.get<PagedResponse>(`/call-history?limit=${PAGE_SIZE}&offset=${offset}`),
+    queryFn: async () => {
+      const { data } = await fetchClient.GET("/api/call-history", {
+        params: { query: { limit: PAGE_SIZE, offset } } as never,
+      });
+      return data as PagedResponse | undefined;
+    },
   });
 
   if (isLoading) return <p className={css({ color: "#4a4a52" })}>読み込み中...</p>;

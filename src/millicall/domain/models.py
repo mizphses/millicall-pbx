@@ -141,7 +141,7 @@ class Contact:
 class Workflow:
     name: str
     number: str  # extension number to dial this workflow
-    workflow_type: str  # "ivr" | "ai_workflow"
+    workflow_type: str  # "workflow"
     definition: dict = field(default_factory=dict)
     default_tts_config: dict = field(default_factory=dict)  # workflow-level TTS defaults
     extension_id: int | None = None  # auto-managed
