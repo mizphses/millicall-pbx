@@ -1,4 +1,6 @@
-from sqlalchemy import delete, or_, select, update
+from typing import Any, cast
+
+from sqlalchemy import CursorResult, delete, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from millicall.domain.exceptions import ContactNotFoundError
@@ -60,7 +62,7 @@ class ContactRepository:
             )
         )
         await self.session.commit()
-        contact.id = result.inserted_primary_key[0]
+        contact.id = cast("list[Any]", cast("CursorResult", result).inserted_primary_key)[0]
         return contact
 
     async def update(self, contact: Contact) -> Contact:
@@ -88,6 +90,6 @@ class ContactRepository:
         result = await self.session.execute(
             delete(contacts_table).where(contacts_table.c.id == contact_id)
         )
-        if result.rowcount == 0:
+        if cast("CursorResult", result).rowcount == 0:
             raise ContactNotFoundError(contact_id)
         await self.session.commit()

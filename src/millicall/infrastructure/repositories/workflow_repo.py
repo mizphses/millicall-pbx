@@ -1,7 +1,8 @@
 import json
 from datetime import datetime
+from typing import Any, cast
 
-from sqlalchemy import select
+from sqlalchemy import CursorResult, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from millicall.domain.exceptions import WorkflowNotFoundError
@@ -85,7 +86,7 @@ class WorkflowRepository:
             )
         )
         await self.session.commit()
-        workflow.id = result.inserted_primary_key[0]
+        workflow.id = cast("list[Any]", cast("CursorResult", result).inserted_primary_key)[0]
         workflow.created_at = now
         workflow.updated_at = now
         return workflow

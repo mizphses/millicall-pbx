@@ -1,6 +1,7 @@
 from datetime import datetime
+from typing import Any, cast
 
-from sqlalchemy import select
+from sqlalchemy import CursorResult, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from millicall.domain.models import CallLog, CallMessage
@@ -24,7 +25,7 @@ class CallLogRepository:
             )
         )
         await self.session.commit()
-        return result.inserted_primary_key[0]
+        return cast("list[Any]", cast("CursorResult", result).inserted_primary_key)[0]
 
     async def finish_log(self, log_id: int, turn_count: int) -> None:
         from sqlalchemy import update

@@ -1,6 +1,7 @@
 from datetime import datetime
+from typing import Any, cast
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import CursorResult, delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from millicall.domain.models import Device
@@ -86,7 +87,7 @@ class DeviceRepository:
                 )
             )
             await self.session.commit()
-            device.id = result.inserted_primary_key[0]
+            device.id = cast("list[Any]", cast("CursorResult", result).inserted_primary_key)[0]
             return device
 
     async def assign(
@@ -126,7 +127,7 @@ class DeviceRepository:
         )
         result = await self.session.execute(stmt)
         await self.session.commit()
-        return result.rowcount
+        return cast("CursorResult", result).rowcount
 
     async def delete(self, device_id: int) -> None:
         await self.session.execute(delete(devices_table).where(devices_table.c.id == device_id))

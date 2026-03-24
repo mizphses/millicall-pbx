@@ -122,9 +122,9 @@ async def extension_create(
     session: AsyncSession = Depends(get_session),
 ):
     form = await request.form()
-    ext_type = form.get("type", "phone")
-    number = form["number"]
-    display_name = form["display_name"]
+    ext_type = str(form.get("type", "phone"))
+    number = str(form["number"])
+    display_name = str(form["display_name"])
     enabled = form.get("enabled") == "true"
 
     ext_service = ExtensionService(session)
@@ -134,14 +134,14 @@ async def extension_create(
             number=number,
             display_name=display_name,
             enabled=enabled,
-            system_prompt=form.get("system_prompt", ""),
-            greeting_text=form.get("greeting_text", "お電話ありがとうございます。ご用件をどうぞ。"),
-            coefont_voice_id=form.get("coefont_voice_id", ""),
-            tts_provider=form.get("tts_provider", "coefont"),
-            google_tts_voice=form.get("google_tts_voice", "ja-JP-Chirp3-HD-Aoede"),
-            llm_provider=form.get("llm_provider", "google"),
-            llm_model=form.get("llm_model", "gemini-2.5-flash"),
-            max_history=int(form.get("max_history", "10")),
+            system_prompt=str(form.get("system_prompt", "")),
+            greeting_text=str(form.get("greeting_text", "お電話ありがとうございます。ご用件をどうぞ。")),
+            coefont_voice_id=str(form.get("coefont_voice_id", "")),
+            tts_provider=str(form.get("tts_provider", "coefont")),
+            google_tts_voice=str(form.get("google_tts_voice", "ja-JP-Chirp3-HD-Aoede")),
+            llm_provider=str(form.get("llm_provider", "google")),
+            llm_model=str(form.get("llm_model", "gemini-2.5-flash")),
+            max_history=int(str(form.get("max_history", "10"))),
         )
     else:
         peer_id = form.get("peer_id")
@@ -149,7 +149,7 @@ async def extension_create(
             number=number,
             display_name=display_name,
             enabled=enabled,
-            peer_id=int(peer_id) if peer_id else None,
+            peer_id=int(str(peer_id)) if peer_id else None,
             type="phone",
         )
 
@@ -168,8 +168,8 @@ async def extension_update(
     ext_service = ExtensionService(session)
     extension = await ext_service.get_extension(extension_id)
 
-    number = form["number"]
-    display_name = form["display_name"]
+    number = str(form["number"])
+    display_name = str(form["display_name"])
     enabled = form.get("enabled") == "true"
 
     if extension.type == "ai_agent" and extension.ai_agent_id:
@@ -179,14 +179,14 @@ async def extension_update(
             agent_id=extension.ai_agent_id,
             name=display_name,
             extension_number=number,
-            system_prompt=form.get("system_prompt", ""),
-            greeting_text=form.get("greeting_text", ""),
-            coefont_voice_id=form.get("coefont_voice_id", ""),
-            tts_provider=form.get("tts_provider", "coefont"),
-            google_tts_voice=form.get("google_tts_voice", "ja-JP-Chirp3-HD-Aoede"),
-            llm_provider=form.get("llm_provider", "google"),
-            llm_model=form.get("llm_model", "gemini-2.5-flash"),
-            max_history=int(form.get("max_history", "10")),
+            system_prompt=str(form.get("system_prompt", "")),
+            greeting_text=str(form.get("greeting_text", "")),
+            coefont_voice_id=str(form.get("coefont_voice_id", "")),
+            tts_provider=str(form.get("tts_provider", "coefont")),
+            google_tts_voice=str(form.get("google_tts_voice", "ja-JP-Chirp3-HD-Aoede")),
+            llm_provider=str(form.get("llm_provider", "google")),
+            llm_model=str(form.get("llm_model", "gemini-2.5-flash")),
+            max_history=int(str(form.get("max_history", "10"))),
             enabled=enabled,
         )
         await ext_service.update_extension(
@@ -204,7 +204,7 @@ async def extension_update(
             number=number,
             display_name=display_name,
             enabled=enabled,
-            peer_id=int(peer_id) if peer_id else None,
+            peer_id=int(str(peer_id)) if peer_id else None,
             type="phone",
         )
 
@@ -613,17 +613,17 @@ async def trunk_create(
 ):
     form = await request.form()
     trunk_service = TrunkService(session)
-    did_number = form.get("did_number", "")
+    did_number = str(form.get("did_number", ""))
     await trunk_service.create_trunk(
-        name=form["name"],
-        display_name=form["display_name"],
-        host=form["host"],
-        username=form["username"],
-        password=form["password"],
+        name=str(form["name"]),
+        display_name=str(form["display_name"]),
+        host=str(form["host"]),
+        username=str(form["username"]),
+        password=str(form["password"]),
         did_number=did_number,
         caller_id=did_number,
-        incoming_dest=form.get("incoming_dest", ""),
-        outbound_prefixes=form.get("outbound_prefixes", ""),
+        incoming_dest=str(form.get("incoming_dest", "")),
+        outbound_prefixes=str(form.get("outbound_prefixes", "")),
         enabled=form.get("enabled") == "true",
     )
     asterisk = AsteriskService(session)
@@ -639,18 +639,18 @@ async def trunk_update(
 ):
     form = await request.form()
     trunk_service = TrunkService(session)
-    did_number = form.get("did_number", "")
+    did_number = str(form.get("did_number", ""))
     await trunk_service.update_trunk(
         trunk_id=trunk_id,
-        name=form["name"],
-        display_name=form["display_name"],
-        host=form["host"],
-        username=form["username"],
-        password=form["password"],
+        name=str(form["name"]),
+        display_name=str(form["display_name"]),
+        host=str(form["host"]),
+        username=str(form["username"]),
+        password=str(form["password"]),
         did_number=did_number,
         caller_id=did_number,
-        incoming_dest=form.get("incoming_dest", ""),
-        outbound_prefixes=form.get("outbound_prefixes", ""),
+        incoming_dest=str(form.get("incoming_dest", "")),
+        outbound_prefixes=str(form.get("outbound_prefixes", "")),
         enabled=form.get("enabled") == "true",
     )
     asterisk = AsteriskService(session)
@@ -700,7 +700,7 @@ async def settings_save(
     form = await request.form()
     settings_svc = SettingsService(session)
     for key, value in form.items():
-        await settings_svc.set(key, value)
+        await settings_svc.set(key, str(value))
     # Regenerate Asterisk config (trunk settings may have changed)
     asterisk = AsteriskService(session)
     await asterisk.apply_config()
@@ -798,6 +798,7 @@ async def api_call_history(session: AsyncSession = Depends(get_session)):
     logs = await repo.get_all_logs()
     result = []
     for log in logs:
+        assert log.id is not None
         messages = await repo.get_messages(log.id)
         result.append(
             {

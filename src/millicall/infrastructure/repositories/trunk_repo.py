@@ -1,4 +1,6 @@
-from sqlalchemy import select
+from typing import Any, cast
+
+from sqlalchemy import CursorResult, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from millicall.domain.exceptions import DuplicateTrunkError, TrunkNotFoundError
@@ -68,7 +70,7 @@ class TrunkRepository:
             )
         )
         await self.session.commit()
-        trunk.id = result.inserted_primary_key[0]
+        trunk.id = cast("list[Any]", cast("CursorResult", result).inserted_primary_key)[0]
         return trunk
 
     async def update(self, trunk: Trunk) -> Trunk:

@@ -149,6 +149,7 @@ async def _handle_call(channel_id: str, extension: str) -> None:
     try:
         async with async_session() as session:
             log_repo = CallLogRepository(session)
+            assert agent.id is not None
             call_log_id = await log_repo.create_log(
                 CallLog(
                     agent_id=agent.id,

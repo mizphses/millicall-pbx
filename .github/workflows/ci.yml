@@ -13,23 +13,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v4
 
       - name: Install dependencies
-        run: |
-          pip install ruff ty
-          pip install -e ".[dev]"
+        run: uv sync --dev
 
       - name: Ruff format check
-        run: ruff format --check src/
+        run: uv run ruff format --check src/
 
       - name: Ruff lint
-        run: ruff check src/
+        run: uv run ruff check src/
 
       - name: ty type check
-        run: ty check src/
+        run: uv run ty check src/
 
   frontend-lint:
     name: Frontend Lint, Format & Type Check

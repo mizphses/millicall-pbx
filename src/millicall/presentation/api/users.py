@@ -95,6 +95,8 @@ async def update_user(
     is_admin = data.role == "admin"
     await repo.update(user_id, display_name=data.display_name, is_admin=is_admin, role=data.role)
     user = await repo.get_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
     return UserResponse(
         id=user.id,
         username=user.username,

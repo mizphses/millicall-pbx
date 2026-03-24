@@ -17,7 +17,7 @@ class TokenResponse(BaseModel):
 
 
 class UserResponse(BaseModel):
-    id: int
+    id: int | None
     username: str
     display_name: str
     is_admin: bool
@@ -65,7 +65,7 @@ class ExtensionUpdate(BaseModel):
 
 
 class ExtensionResponse(BaseModel):
-    id: int
+    id: int | None
     number: str
     display_name: str
     enabled: bool
@@ -96,7 +96,7 @@ class PeerUpdate(BaseModel):
 
 
 class PeerResponse(BaseModel):
-    id: int
+    id: int | None
     username: str
     password: str
     transport: str
@@ -135,7 +135,7 @@ class TrunkUpdate(BaseModel):
 
 
 class TrunkResponse(BaseModel):
-    id: int
+    id: int | None
     name: str
     display_name: str
     host: str
@@ -180,7 +180,7 @@ class AgentUpdate(BaseModel):
 
 
 class AgentResponse(BaseModel):
-    id: int
+    id: int | None
     name: str
     extension_number: str
     system_prompt: str
@@ -207,7 +207,7 @@ class SettingItem(BaseModel):
 
 
 class CDRResponse(BaseModel):
-    id: int
+    id: int | None
     uniqueid: str
     call_date: datetime
     src: str
@@ -224,7 +224,7 @@ class CDRResponse(BaseModel):
 
 
 class CallLogResponse(BaseModel):
-    id: int
+    id: int | None
     agent_id: int
     agent_name: str
     extension_number: str
@@ -235,7 +235,7 @@ class CallLogResponse(BaseModel):
 
 
 class CallMessageResponse(BaseModel):
-    id: int
+    id: int | None
     call_log_id: int
     role: str
     content: str
@@ -244,7 +244,7 @@ class CallMessageResponse(BaseModel):
 
 
 class CallLogDetailResponse(BaseModel):
-    id: int
+    id: int | None
     agent_id: int
     agent_name: str
     extension_number: str
@@ -275,7 +275,7 @@ class ContactUpdate(BaseModel):
 
 
 class ContactResponse(BaseModel):
-    id: int
+    id: int | None
     name: str
     phone_number: str
     company: str
@@ -342,7 +342,7 @@ class WorkflowUpdate(BaseModel):
 
 
 class WorkflowResponse(BaseModel):
-    id: int
+    id: int | None
     name: str
     number: str
     description: str
@@ -356,7 +356,7 @@ class WorkflowResponse(BaseModel):
 
 
 class WorkflowListResponse(BaseModel):
-    id: int
+    id: int | None
     name: str
     number: str
     description: str

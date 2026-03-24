@@ -1,4 +1,6 @@
-from sqlalchemy import delete, select, update
+from typing import Any, cast
+
+from sqlalchemy import CursorResult, delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from millicall.domain.exceptions import DuplicateExtensionError, ExtensionNotFoundError
@@ -59,7 +61,7 @@ class ExtensionRepository:
             )
         )
         await self.session.commit()
-        ext.id = result.inserted_primary_key[0]
+        ext.id = cast("list[Any]", cast("CursorResult", result).inserted_primary_key)[0]
         return ext
 
     async def update(self, ext: Extension) -> Extension:
@@ -90,6 +92,6 @@ class ExtensionRepository:
         result = await self.session.execute(
             delete(extensions_table).where(extensions_table.c.id == extension_id)
         )
-        if result.rowcount == 0:
+        if cast("CursorResult", result).rowcount == 0:
             raise ExtensionNotFoundError(extension_id)
         await self.session.commit()

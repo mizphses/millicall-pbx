@@ -1,4 +1,6 @@
-from sqlalchemy import delete, select, update
+from typing import Any, cast
+
+from sqlalchemy import CursorResult, delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from millicall.domain.exceptions import DuplicatePeerError, PeerNotFoundError
@@ -55,7 +57,7 @@ class PeerRepository:
             )
         )
         await self.session.commit()
-        peer.id = result.inserted_primary_key[0]
+        peer.id = cast("list[Any]", cast("CursorResult", result).inserted_primary_key)[0]
         return peer
 
     async def update(self, peer: Peer) -> Peer:
@@ -83,6 +85,6 @@ class PeerRepository:
 
     async def delete(self, peer_id: int) -> None:
         result = await self.session.execute(delete(peers_table).where(peers_table.c.id == peer_id))
-        if result.rowcount == 0:
+        if cast("CursorResult", result).rowcount == 0:
             raise PeerNotFoundError(peer_id)
         await self.session.commit()

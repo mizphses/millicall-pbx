@@ -68,6 +68,7 @@ class DeviceService:
         )
 
         # Update extension with peer_id
+        assert ext.id is not None
         await ext_service.update_extension(
             extension_id=ext.id,
             number=ext.number,

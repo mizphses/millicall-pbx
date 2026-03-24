@@ -1,4 +1,6 @@
-from sqlalchemy import delete, func, select, update
+from typing import Any, cast
+
+from sqlalchemy import CursorResult, delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from millicall.domain.models import User
@@ -46,7 +48,7 @@ class UserRepository:
             )
         )
         await self.session.commit()
-        user.id = result.inserted_primary_key[0]
+        user.id = cast("list[Any]", cast("CursorResult", result).inserted_primary_key)[0]
         return user
 
     async def update(self, user_id: int, **kwargs) -> None:

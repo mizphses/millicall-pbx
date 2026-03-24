@@ -20,6 +20,7 @@ from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.server import TransportSecuritySettings
 from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
+from pydantic import AnyHttpUrl
 
 from millicall.config import settings as _settings
 
@@ -74,6 +75,7 @@ class MillicallOAuthProvider:
         return self._clients.get(client_id)
 
     async def register_client(self, client_info: OAuthClientInformationFull) -> None:
+        assert client_info.client_id is not None
         self._clients[client_info.client_id] = client_info
         logger.info("MCP OAuth: registered client %s", client_info.client_id)
 
@@ -116,6 +118,7 @@ class MillicallOAuthProvider:
         access_token = secrets.token_urlsafe(48)
         refresh_token = secrets.token_urlsafe(48)
         expires_in = 86400  # 24 hours
+        assert client.client_id is not None
 
         self._access_tokens[access_token] = StoredToken(
             token=access_token,
@@ -168,6 +171,7 @@ class MillicallOAuthProvider:
         new_refresh = secrets.token_urlsafe(48)
         expires_in = 86400
         use_scopes = scopes or refresh_token.scopes
+        assert client.client_id is not None
 
         self._access_tokens[new_access] = StoredToken(
             token=new_access,
@@ -281,8 +285,8 @@ dial, say, say_and_listen, listen, hangup はユーザーが明示的に手動�
     ),
     auth_server_provider=oauth_provider,
     auth=AuthSettings(
-        issuer_url=MCP_ISSUER_URL,
-        resource_server_url=MCP_ISSUER_URL,
+        issuer_url=AnyHttpUrl(MCP_ISSUER_URL),
+        resource_server_url=AnyHttpUrl(MCP_ISSUER_URL),
         client_registration_options=ClientRegistrationOptions(enabled=True),
     ),
 )

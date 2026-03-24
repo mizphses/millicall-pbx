@@ -1,4 +1,6 @@
-from sqlalchemy import func, select, text
+from typing import cast
+
+from sqlalchemy import CursorResult, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from millicall.domain.models import CDR
@@ -38,7 +40,7 @@ class CDRRepository:
                     "userfield": record.userfield,
                 },
             )
-            inserted += result.rowcount
+            inserted += cast("CursorResult", result).rowcount
         await self.session.commit()
         return inserted
 

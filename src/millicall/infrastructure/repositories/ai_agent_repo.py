@@ -1,4 +1,6 @@
-from sqlalchemy import delete, select, update
+from typing import Any, cast
+
+from sqlalchemy import CursorResult, delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from millicall.domain.models import AIAgent
@@ -62,7 +64,7 @@ class AIAgentRepository:
             )
         )
         await self.session.commit()
-        agent.id = result.inserted_primary_key[0]
+        agent.id = cast("list[Any]", cast("CursorResult", result).inserted_primary_key)[0]
         return agent
 
     async def update(self, agent: AIAgent) -> AIAgent:
