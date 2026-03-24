@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { css } from "../../styled-system/css";
 import { inputClass } from "../components/FormCard";
@@ -10,6 +10,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const auth = useAuth();
+  const router = useRouter();
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -22,6 +23,7 @@ function LoginPage() {
     setLoading(true);
     try {
       await auth.login(username, password);
+      await router.invalidate();
       navigate({ to: "/" });
     } catch {
       setError("ユーザー名またはパスワードが正しくありません");
