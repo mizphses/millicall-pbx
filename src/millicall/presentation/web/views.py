@@ -135,7 +135,9 @@ async def extension_create(
             display_name=display_name,
             enabled=enabled,
             system_prompt=str(form.get("system_prompt", "")),
-            greeting_text=str(form.get("greeting_text", "お電話ありがとうございます。ご用件をどうぞ。")),
+            greeting_text=str(
+                form.get("greeting_text", "お電話ありがとうございます。ご用件をどうぞ。")
+            ),
             coefont_voice_id=str(form.get("coefont_voice_id", "")),
             tts_provider=str(form.get("tts_provider", "coefont")),
             google_tts_voice=str(form.get("google_tts_voice", "ja-JP-Chirp3-HD-Aoede")),
