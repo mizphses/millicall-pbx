@@ -15,7 +15,8 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///./data/millicall.db"
     asterisk_config_dir: Path = Path("/etc/asterisk")
     asterisk_templates_dir: Path = Path("./asterisk_templates")
-    pbx_bind_address: str = "172.20.0.1"
+    pbx_bind_address: str = "0.0.0.0"
+    pbx_public_address: str = ""  # IP for provisioning. Auto-detected if empty.
     web_host: str = "0.0.0.0"
     web_port: int = 8000
 

@@ -3,7 +3,8 @@ FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 python3-pip python3-venv \
+    python3 python3-pip python3-venv python3-dev \
+    build-essential \
     asterisk \
     curl \
     && rm -rf /var/lib/apt/lists/*
@@ -19,7 +20,7 @@ ENV PATH="/app/venv/bin:$PATH"
 
 COPY pyproject.toml .
 COPY src/ src/
-RUN pip install --no-cache-dir .
+RUN pip install --no-cache-dir "setuptools<82" && pip install --no-cache-dir .
 
 # Copy the rest
 COPY alembic.ini .
@@ -40,6 +41,6 @@ RUN mkdir -p /app/data \
     && chown -R millicall:asterisk /var/spool/asterisk/recording \
     && chown -R asterisk:asterisk /var/log/asterisk/cdr-custom
 
-EXPOSE 8000 5060/udp 5060/tcp 10000-10100/udp
+EXPOSE 8000 5060/udp 5060/tcp 10000-10100/udp 10389
 
 ENTRYPOINT ["/entrypoint.sh"]

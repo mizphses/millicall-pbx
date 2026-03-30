@@ -168,6 +168,15 @@ contacts_table = Table(
     Column("notes", Text, nullable=False, server_default=""),
 )
 
+ondemand_calls_table = Table(
+    "ondemand_calls",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("label", String(100), nullable=False),
+    Column("phone_number", String(30), nullable=False),
+    Column("enabled", Boolean, default=True, nullable=False),
+)
+
 settings_table = Table(
     "app_settings",
     metadata,

@@ -20,6 +20,8 @@ from millicall.phase2 import llm_chat, stt
 from millicall.phase2.ari_handler import (
     _ari_request,
     _get_api_key,
+    _get_google_auth,
+    _play_and_wait,
     _sanitize_id,
     _save_wav_to_asterisk,
 )
@@ -158,6 +160,28 @@ class WorkflowExecutor:
             with contextlib.suppress(OSError):
                 os.remove(f)
 
+    async def _synthesize_one(
+        self,
+        text: str,
+        tts_provider: str,
+        google_tts_voice: str,
+        coefont_voice_id: str,
+    ) -> bytes:
+        """Synthesize a single text segment."""
+        if tts_provider == "coefont" and coefont_voice_id:
+            from millicall.phase2 import tts_coefont
+
+            return await tts_coefont.synthesize_for_asterisk(text, coefont_voice_id)
+        else:
+            api_key = await _get_api_key("google")
+            from millicall.phase2 import tts_google
+            from millicall.phase2.ari_handler import _get_google_auth
+
+            auth = await _get_google_auth()
+            return await tts_google.synthesize(
+                text, api_key, voice_name=google_tts_voice, google_auth=auth
+            )
+
     async def _play_tts(
         self,
         text: str,
@@ -165,25 +189,49 @@ class WorkflowExecutor:
         google_tts_voice: str = "ja-JP-Chirp3-HD-Aoede",
         coefont_voice_id: str = "",
     ) -> None:
-        """Synthesize text via TTS and play on the channel."""
+        """Synthesize text via TTS and play on the channel.
+
+        Splits into 2 chunks: first sentence (for low latency) and the rest.
+        Pipelines: synthesize chunk 2 while playing chunk 1.
+        """
         self._check_channel()
-        if tts_provider == "coefont" and coefont_voice_id:
-            from millicall.phase2 import tts_coefont
 
-            audio_wav = await tts_coefont.synthesize_for_asterisk(text, coefont_voice_id)
-        else:
-            api_key = await _get_api_key("google")
-            from millicall.phase2 import tts_google
+        # Split: first sentence plays ASAP, rest synthesizes in background
+        sentences = re.split(r"(?<=[。！？\n])", text)
+        sentences = [s.strip() for s in sentences if s.strip()]
+        if not sentences:
+            return
 
-            audio_wav = await tts_google.synthesize(text, api_key, voice_name=google_tts_voice)
+        # Chunk into: first sentence, everything else
+        first = sentences[0]
+        rest = "".join(sentences[1:]).strip() if len(sentences) > 1 else ""
 
-        filename = f"wf_{self.safe_id}_{id(text) & 0xFFFFFF:06x}.wav"
-        sound_name = await _save_wav_to_asterisk(audio_wav, filename)
-        await _ari_request(
-            "POST", f"/channels/{self.channel_id}/play", params={"media": f"sound:{sound_name}"}
+        # Synthesize first sentence immediately
+        audio_first = await self._synthesize_one(
+            first, tts_provider, google_tts_voice, coefont_voice_id
         )
-        duration = len(audio_wav) / (8000 * 2)
-        await asyncio.sleep(duration + 0.5)
+
+        # Start synthesizing the rest in background
+        rest_task: asyncio.Task | None = None
+        if rest:
+            rest_task = asyncio.create_task(
+                self._synthesize_one(rest, tts_provider, google_tts_voice, coefont_voice_id)
+            )
+
+        # Play first chunk
+        filename = f"wf_{self.safe_id}_{id(text) & 0xFFFFFF:06x}_0.wav"
+        sound_name = await _save_wav_to_asterisk(audio_first, filename)
+        duration = len(audio_first) / 16000
+        await _play_and_wait(self.channel_id, f"sound:{sound_name}", duration)
+
+        # Play rest if any
+        if rest_task:
+            self._check_channel()
+            audio_rest = await rest_task
+            filename = f"wf_{self.safe_id}_{id(text) & 0xFFFFFF:06x}_1.wav"
+            sound_name = await _save_wav_to_asterisk(audio_rest, filename)
+            duration = len(audio_rest) / 16000
+            await _play_and_wait(self.channel_id, f"sound:{sound_name}", duration)
 
     def _get_tts_params(self, config: dict) -> dict:
         """Extract TTS params from node config, falling back to workflow defaults."""
@@ -441,20 +489,157 @@ class WorkflowExecutor:
             logger.error("Voicemail redirect failed: %s", exc)
         return None
 
+    async def _record_with_vad(self, recording_name: str, max_duration: int = 15) -> bytes | None:
+        """Record audio with VAD-based end-of-speech detection.
+
+        Starts recording without silence detection, polls the recording
+        periodically, and uses VAD to detect when the user stops speaking.
+        """
+        from millicall.phase2.vad import detect_end_of_speech
+
+        self._check_channel()
+        try:
+            await _ari_request(
+                "POST",
+                f"/channels/{self.channel_id}/record",
+                params={
+                    "name": recording_name,
+                    "format": "wav",
+                    "maxDurationSeconds": str(max_duration),
+                    "maxSilenceSeconds": "0",
+                    "beep": "false",
+                    "terminateOn": "#",
+                    "ifExists": "overwrite",
+                },
+            )
+        except Exception:
+            return None
+
+        # Poll recording and check VAD every 0.3s
+        audio_data = None
+        grace_polls = 0  # grace period polls after first speech_ended
+        GRACE_LIMIT = 5  # up to 1.5s grace to catch continuation speech
+        pending_end = False
+        for poll in range(max_duration * 4 + 8):
+            await asyncio.sleep(0.3)
+            self._check_channel()
+
+            try:
+                result = await _ari_request(
+                    "GET", f"/recordings/stored/{recording_name}/file"
+                )
+            except Exception:
+                try:
+                    live = await _ari_request("GET", f"/recordings/live/{recording_name}")
+                    if isinstance(live, dict) and live.get("duration", 0) >= max_duration:
+                        continue
+                except Exception:
+                    pass
+                continue
+
+            if not result or not isinstance(result, bytes) or len(result) < 1000:
+                continue
+
+            vad_result = detect_end_of_speech(result)
+            logger.debug(
+                "VAD: speech=%s ended=%s speech_ms=%d silence_ms=%d",
+                vad_result["has_speech"],
+                vad_result["speech_ended"],
+                vad_result["speech_ms"],
+                vad_result["trailing_silence_ms"],
+            )
+
+            if vad_result["speech_ended"]:
+                if not pending_end:
+                    # First speech_ended — start grace period to catch continuation
+                    pending_end = True
+                    grace_polls = 0
+                    logger.debug("VAD: speech ended, starting grace period")
+                else:
+                    grace_polls += 1
+                    if grace_polls >= GRACE_LIMIT:
+                        # Grace period elapsed with no new speech — done
+                        logger.info(
+                            "VAD: speech ended after %dms (silence %dms)",
+                            vad_result["speech_ms"],
+                            vad_result["trailing_silence_ms"],
+                        )
+                        audio_data = result
+                        break
+            elif pending_end and vad_result["has_speech"] and not vad_result["speech_ended"]:
+                # New speech detected during grace period — user is still talking
+                logger.info("VAD: continuation speech detected, resetting")
+                pending_end = False
+                grace_polls = 0
+
+            if not vad_result["has_speech"] and poll >= 17:
+                # 5+ seconds with no speech at all — give up
+                logger.info("VAD: no speech detected after %ds", poll * 0.3)
+                break
+
+        # If recording is still live, stop it
+        with contextlib.suppress(Exception):
+            await _ari_request("POST", f"/recordings/live/{recording_name}/stop")
+
+        # Final fetch if we don't have data yet
+        if not audio_data:
+            await asyncio.sleep(0.3)
+            try:
+                result = await _ari_request(
+                    "GET", f"/recordings/stored/{recording_name}/file"
+                )
+                if result and isinstance(result, bytes) and len(result) > 1000:
+                    vad_result = detect_end_of_speech(result)
+                    if vad_result["has_speech"]:
+                        audio_data = result
+            except Exception:
+                pass
+
+        return audio_data
+
     async def _exec_ai_conversation(self, node: dict, config: dict) -> str | None:
         system_prompt = config.get("system_prompt", "あなたは電話応対AIアシスタントです。")
         provider = config.get("llm_provider", "google")
         llm_model = config.get("llm_model", "gemini-2.5-flash")
         max_turns = int(config.get("max_turns", 10))
         greeting_text = config.get("greeting_text", "").strip()
+        extraction_mode = config.get("extraction_mode", "auto")
         tts_params = self._get_tts_params(config)
 
         os.makedirs("/var/spool/asterisk/recording", exist_ok=True)
         context = llm_chat.ConversationContext(max_history=max_turns * 2)
 
+        # Detect variables to extract from system prompt
+        var_names = re.findall(r"`(\w+)`", system_prompt)
+        exclude = {"true", "false", "null", "none", "int", "str", "float", "bool"}
+        var_names = [v for v in var_names if v.lower() not in exclude and len(v) > 1]
+
+        # Build extraction instructions based on mode
+        extraction_instructions = ""
+        if var_names:
+            if extraction_mode == "direct":
+                extraction_instructions = (
+                    "\n\n[最重要タスク] あなたの最優先の目的は、以下の情報を聞き出すことです。"
+                    "最初のターンから本題に入り、必要な情報を聞き出してください。"
+                    "情報が得られたら [END_CALL] を付けて会話を終了してください。"
+                    f"\n聞き出す情報: {', '.join(var_names)}"
+                )
+            else:
+                # auto: 自然に聞き出す。会話が長引いたら切り上げる
+                extraction_instructions = (
+                    "\n\n[重要タスク] 会話の中で、以下の情報を自然に聞き出してください。"
+                    "雑談が続いた場合は、2〜3ターン以内に本題に移ってください。"
+                    "情報が得られたら [END_CALL] を付けて会話を終了してください。"
+                    f"\n聞き出す情報: {', '.join(var_names)}"
+                )
+
         full_prompt = (
             system_prompt
-            + "\n\n[重要ルール] 会話が自然に終わる場面では、最後の応答の末尾に [END_CALL] と付けてください。"
+            + extraction_instructions
+            + "\n\n[重要ルール]"
+            "\n- これは電話会話です。応答は最大2文、40文字以内で簡潔に。"
+            "\n- 最初の一文は必ず短く（15文字以内の相槌や返事）。例:「ああ、そうだね！」「ふむ、なるほど。」"
+            "\n- 会話が自然に終わる場面では、最後の応答の末尾に [END_CALL] と付けてください。"
             "このタグはユーザーには見えません。通常の会話中は絶対に付けないでください。"
         )
 
@@ -485,63 +670,118 @@ class WorkflowExecutor:
 
         for turn in range(max_turns):
             self._check_channel()
+
+            # Record with VAD-based end-of-speech detection
             recording_name = f"wf_{self.safe_id}_{turn}"
-            try:
-                await _ari_request(
-                    "POST",
-                    f"/channels/{self.channel_id}/record",
-                    params={
-                        "name": recording_name,
-                        "format": "wav",
-                        "maxDurationSeconds": "15",
-                        "maxSilenceSeconds": "2",
-                        "beep": "false",
-                        "terminateOn": "none",
-                    },
-                )
-            except Exception:
-                break
-
-            audio_data = None
-            for _ in range(18):
-                await asyncio.sleep(1)
-                self._check_channel()
-                try:
-                    result = await _ari_request("GET", f"/recordings/stored/{recording_name}/file")
-                    if result and isinstance(result, bytes) and len(result) > 100:
-                        audio_data = result
-                        break
-                except Exception:
-                    continue
-
+            audio_data = await self._record_with_vad(recording_name)
             if not audio_data:
                 continue
 
+            import time as _time
+
+            _t_stt_start = _time.monotonic()
             try:
-                stt_key = await _get_api_key("openai")
-                user_text = await stt.transcribe(audio_data, stt_key)
+                user_text = await stt.smart_transcribe(audio_data)
             except Exception as exc:
                 logger.error("STT failed: %s", exc)
                 continue
+            _t_stt_end = _time.monotonic()
+            logger.info("LATENCY stt=%.1fms", (_t_stt_end - _t_stt_start) * 1000)
 
-            if not user_text.strip():
+            user_text = user_text.strip()
+            if not user_text:
                 continue
 
+            with contextlib.suppress(Exception):
+                await _ari_request("DELETE", f"/recordings/stored/{recording_name}")
+
             try:
+                _t_llm_start = _time.monotonic()
                 llm_key = await _get_api_key(provider)
-                response_text = await llm_chat.generate_response(
-                    user_text=user_text,
-                    context=context,
-                    system_prompt=full_prompt,
-                    provider=provider,
-                    api_key=llm_key,
-                    model=llm_model,
-                )
+                auth = await _get_google_auth() if provider == "google" else None
+
+                # Use streaming for Google to get first sentence ASAP
+                if provider == "google":
+                    first_sentence_future: asyncio.Future[str] = asyncio.get_event_loop().create_future()
+                    llm_task = asyncio.create_task(
+                        llm_chat.chat_google_streaming(
+                            user_text=user_text,
+                            context=context,
+                            system_prompt=full_prompt,
+                            api_key=llm_key,
+                            model=llm_model,
+                            google_auth=auth,
+                            on_first_sentence=first_sentence_future,
+                        )
+                    )
+
+                    # Wait for first sentence, start TTS immediately
+                    first_sentence = await first_sentence_future
+                    _t_first_sentence = _time.monotonic()
+                    logger.info("LATENCY llm_first_sentence=%.1fms", (_t_first_sentence - _t_llm_start) * 1000)
+                    first_sentence_clean = first_sentence.replace("[END_CALL]", "").strip()
+                    if first_sentence_clean:
+                        tts_task = asyncio.create_task(
+                            self._synthesize_one(
+                                first_sentence_clean, **tts_params_for_synth
+                            )
+                        ) if (tts_params_for_synth := {
+                            "tts_provider": tts_params.get("tts_provider", "google"),
+                            "google_tts_voice": tts_params.get("google_tts_voice", ""),
+                            "coefont_voice_id": tts_params.get("coefont_voice_id", ""),
+                        }) else None
+
+                    # Wait for full response
+                    response_text = await llm_task
+                    _t_llm_end = _time.monotonic()
+                    logger.info("LATENCY llm_full=%.1fms", (_t_llm_end - _t_llm_start) * 1000)
+
+                    # Play first sentence while rest synthesizes
+                    if first_sentence_clean and tts_task:
+                        _t_tts_start = _time.monotonic()
+                        audio_first = await tts_task
+                        logger.info("LATENCY tts_first=%.1fms", (_time.monotonic() - _t_tts_start) * 1000)
+                        filename = f"wf_{self.safe_id}_{turn}_first.wav"
+                        sound_name = await _save_wav_to_asterisk(audio_first, filename)
+                        duration = len(audio_first) / 16000
+                        await _play_and_wait(self.channel_id, f"sound:{sound_name}", duration)
+
+                        # Play the rest
+                        rest_text = response_text.replace("[END_CALL]", "").strip()
+                        # Remove first sentence from rest
+                        rest_text = rest_text[len(first_sentence_clean):].strip()
+                        if rest_text:
+                            await self._play_tts(rest_text, **tts_params)
+
+                        should_hangup = "[END_CALL]" in response_text
+                        response_text = response_text.replace("[END_CALL]", "").strip()
+                    else:
+                        should_hangup = "[END_CALL]" in response_text
+                        response_text = response_text.replace("[END_CALL]", "").strip()
+                        if response_text:
+                            await self._play_tts(response_text, **tts_params)
+                else:
+                    response_text = await llm_chat.generate_response(
+                        user_text=user_text,
+                        context=context,
+                        system_prompt=full_prompt,
+                        provider=provider,
+                        api_key=llm_key,
+                        model=llm_model,
+                        google_auth=auth,
+                    )
+                    logger.info("LATENCY llm_full=%.1fms", (_time.monotonic() - _t_llm_start) * 1000)
+                    should_hangup = "[END_CALL]" in response_text
+                    response_text = response_text.replace("[END_CALL]", "").strip()
+                    if response_text:
+                        await self._play_tts(response_text, **tts_params)
+
             except Exception as exc:
                 logger.error("LLM failed: %s", exc)
                 response_text = "申し訳ございません、少々お待ちください。"
+                should_hangup = False
+                await self._play_tts(response_text, **tts_params)
 
-            should_hangup = "[END_CALL]" in response_text
             response_text = response_text.replace("[END_CALL]", "").strip()
             context.add_message("user", user_text)
             context.add_message("assistant", response_text)
@@ -581,16 +821,14 @@ class WorkflowExecutor:
                 except Exception as e:
                     logger.error("Failed to save call message: %s", e)
 
-            try:
-                await self._play_tts(response_text, **tts_params)
-            except Exception:
-                break
-
             if should_hangup:
                 break
 
             with contextlib.suppress(Exception):
                 await _ari_request("DELETE", f"/recordings/stored/{recording_name}")
+
+        # Extract variables from conversation if system prompt mentions them
+        await self._extract_variables_from_conversation(system_prompt, context, provider, llm_model)
 
         # Finalize call log
         if call_log_id:
@@ -605,6 +843,74 @@ class WorkflowExecutor:
                 logger.error("Failed to finalize call log: %s", e)
 
         return None
+
+    async def _extract_variables_from_conversation(
+        self,
+        system_prompt: str,
+        context: llm_chat.ConversationContext,
+        provider: str,
+        llm_model: str,
+    ) -> None:
+        """After AI conversation, extract variable values from the conversation history.
+
+        Scans the system prompt for backtick-quoted variable names (e.g. `var_name`)
+        and asks the LLM to extract their values from the conversation.
+        """
+        # Find variable names mentioned in backticks in the system prompt
+        var_names = re.findall(r"`(\w+)`", system_prompt)
+        # Filter to plausible variable names (exclude common code terms)
+        exclude = {"true", "false", "null", "none", "int", "str", "float", "bool"}
+        var_names = [v for v in var_names if v.lower() not in exclude and len(v) > 1]
+
+        if not var_names:
+            return
+
+        # Build conversation transcript
+        transcript = "\n".join(
+            f"{'ユーザー' if m.role == 'user' else 'AI'}: {m.content}" for m in context.messages
+        )
+        if not transcript.strip():
+            return
+
+        extraction_prompt = (
+            "以下の会話から、指定された変数の値を抽出してください。\n"
+            "JSON形式で回答してください。値が会話から読み取れない場合は空文字にしてください。\n\n"
+            f"抽出する変数: {', '.join(var_names)}\n\n"
+            f"会話:\n{transcript}\n\n"
+            "回答（JSONのみ）:"
+        )
+
+        try:
+            llm_key = await _get_api_key(provider)
+            auth = await _get_google_auth() if provider == "google" else None
+            extract_ctx = llm_chat.ConversationContext(max_history=2)
+            result = await llm_chat.generate_response(
+                user_text=extraction_prompt,
+                context=extract_ctx,
+                system_prompt="あなたはデータ抽出AIです。会話から指定された情報を抽出し、JSON形式で返してください。",
+                provider=provider,
+                api_key=llm_key,
+                model=llm_model,
+                google_auth=auth,
+            )
+
+            # Parse JSON from response
+            result = result.strip()
+            # Strip markdown code blocks if present
+            if result.startswith("```"):
+                result = re.sub(r"^```(?:json)?\s*\n?", "", result)
+                result = re.sub(r"\n?```$", "", result)
+                result = result.strip()
+
+            extracted = json.loads(result)
+            if isinstance(extracted, dict):
+                for var_name in var_names:
+                    value = extracted.get(var_name, "")
+                    if value:
+                        self.variables[var_name] = str(value)
+                        logger.info("Extracted variable %s = '%s'", var_name, str(value)[:100])
+        except Exception as exc:
+            logger.error("Variable extraction failed: %s", exc)
 
     async def _exec_intent_detection(self, node: dict, config: dict) -> str | None:
         """Use LLM to classify the caller's last utterance into an intent."""
@@ -634,6 +940,7 @@ class WorkflowExecutor:
 
         try:
             llm_key = await _get_api_key(provider)
+            auth = await _get_google_auth() if provider == "google" else None
             ctx = llm_chat.ConversationContext(max_history=2)
             result = await llm_chat.generate_response(
                 user_text=prompt,
@@ -642,6 +949,7 @@ class WorkflowExecutor:
                 provider=provider,
                 api_key=llm_key,
                 model=llm_model,
+                google_auth=auth,
             )
             detected = result.strip().lower()
             if detected in [k.lower() for k in intent_keys]:
@@ -685,8 +993,8 @@ class WorkflowExecutor:
                     params={
                         "name": rec_name,
                         "format": "wav",
-                        "maxDurationSeconds": "15",
-                        "maxSilenceSeconds": "2",
+                        "maxDurationSeconds": "30",
+                        "maxSilenceSeconds": "4",
                         "beep": "false",
                         "terminateOn": "none",
                     },
@@ -710,8 +1018,7 @@ class WorkflowExecutor:
                 continue
 
             try:
-                stt_key = await _get_api_key("openai")
-                answer = await stt.transcribe(audio_data, stt_key)
+                answer = await stt.smart_transcribe(audio_data)
                 self.variables[var_name] = answer.strip()
                 logger.info("Collected %s = '%s'", var_name, answer.strip())
             except Exception as exc:
@@ -723,13 +1030,16 @@ class WorkflowExecutor:
         return None
 
     async def _exec_api_call(self, node: dict, config: dict) -> str | None:
-        """Call an external HTTP API."""
+        """Call an external HTTP API. Supports JSON and form-urlencoded."""
+        import urllib.parse
+
         import httpx
 
         url = self._render_template(config.get("url", ""))
         method = config.get("method", "POST").upper()
         headers = config.get("headers", {})
         body_template = config.get("body_template", "").strip()
+        content_type = config.get("content_type", "json")
         result_var = config.get("result_variable", "api_result")
 
         if isinstance(headers, str):
@@ -739,22 +1049,39 @@ class WorkflowExecutor:
                 headers = {}
 
         body = None
+        form_data = None
         if body_template:
             rendered = self._render_template(body_template)
-            try:
-                body = json.loads(rendered)
-            except Exception:
-                body = rendered
+            if content_type == "form":
+                # Parse as key=value pairs or JSON -> form data
+                try:
+                    form_data = json.loads(rendered)
+                except Exception:
+                    # Parse key=value&key=value format
+                    form_data = dict(urllib.parse.parse_qsl(rendered))
+            else:
+                try:
+                    body = json.loads(rendered)
+                except Exception:
+                    body = rendered
 
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                resp = await client.request(
-                    method,
-                    url,
-                    headers=headers,
-                    json=body if isinstance(body, dict) else None,
-                    content=body if isinstance(body, str) else None,
-                )
+            async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+                if form_data is not None:
+                    resp = await client.request(
+                        method,
+                        url,
+                        headers=headers,
+                        data=form_data,
+                    )
+                else:
+                    resp = await client.request(
+                        method,
+                        url,
+                        headers=headers,
+                        json=body if isinstance(body, dict) else None,
+                        content=body if isinstance(body, str) else None,
+                    )
                 self.variables[result_var] = resp.text
                 self.variables[f"{result_var}_status"] = str(resp.status_code)
                 logger.info("API call %s %s => %d", method, url, resp.status_code)

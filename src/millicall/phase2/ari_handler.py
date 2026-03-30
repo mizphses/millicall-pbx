@@ -35,14 +35,205 @@ mcp_channels: dict[str, bool] = {}
 # Per-call conversation contexts
 _conversations: dict[str, llm_chat.ConversationContext] = {}
 
+# Playback completion events: playback_id -> asyncio.Event
+_playback_events: dict[str, asyncio.Event] = {}
 
-async def _synthesize_tts(text: str, agent) -> bytes:
-    """Route TTS to the configured provider."""
+
+async def _play_and_wait(
+    channel_id: str,
+    media: str,
+    fallback_duration: float = 5.0,
+) -> None:
+    """Play media on channel and wait for PlaybackFinished event."""
+    import uuid
+
+    playback_id = str(uuid.uuid4())
+    event = asyncio.Event()
+    _playback_events[playback_id] = event
+
+    try:
+        await _ari_request(
+            "POST",
+            f"/channels/{channel_id}/play/{playback_id}",
+            params={"media": media},
+        )
+        # Wait for PlaybackFinished event, with fallback timeout
+        try:
+            await asyncio.wait_for(event.wait(), timeout=fallback_duration + 2.0)
+        except asyncio.TimeoutError:
+            logger.debug("Playback timeout, continuing (id=%s)", playback_id)
+    finally:
+        _playback_events.pop(playback_id, None)
+
+
+async def _get_google_auth():
+    """Get GoogleAuth instance from DB settings."""
+    from millicall.infrastructure.database import async_session
+    from millicall.infrastructure.google_auth import get_google_auth
+
+    async with async_session() as session:
+        return await get_google_auth(session)
+
+
+def _generate_ringback_wav(ring_count: int) -> bytes:
+    """Generate Japanese ringback tone WAV: 400+15Hz, 1s ON / 2s OFF."""
+    import io
+    import math
+    import struct
+    import wave
+
+    sample_rate = 8000
+    samples = []
+
+    for _ in range(ring_count):
+        # 1 second of 400+15Hz tone
+        for i in range(sample_rate):
+            t = i / sample_rate
+            val = math.sin(2 * math.pi * 400 * t) + math.sin(2 * math.pi * 415 * t)
+            samples.append(int(val * 8000))  # scale to 16-bit range
+
+        # 2 seconds of silence
+        samples.extend([0] * (sample_rate * 2))
+
+    output = io.BytesIO()
+    with wave.open(output, "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(sample_rate)
+        wav.writeframes(struct.pack(f"<{len(samples)}h", *samples))
+
+    return output.getvalue()
+
+
+async def _record_with_vad(
+    channel_id: str, recording_name: str, max_duration: int = 15
+) -> bytes | None:
+    """Record audio with VAD-based end-of-speech detection."""
+    from millicall.phase2.vad import detect_end_of_speech
+
+    try:
+        await _ari_request(
+            "POST",
+            f"/channels/{channel_id}/record",
+            params={
+                "name": recording_name,
+                "format": "wav",
+                "maxDurationSeconds": max_duration,
+                "maxSilenceSeconds": 0,
+                "beep": "false",
+                "terminateOn": "#",
+                "ifExists": "overwrite",
+            },
+        )
+    except Exception as e:
+        logger.info("Recording failed: %s", e)
+        return None
+
+    audio_data = None
+    pending_end = False
+    grace_polls = 0
+    GRACE_LIMIT = 5  # up to 1.5s grace to catch continuation speech
+    for poll in range(max_duration * 4 + 8):
+        await asyncio.sleep(0.3)
+
+        try:
+            result = await _ari_request(
+                "GET", f"/recordings/stored/{recording_name}/file"
+            )
+        except Exception:
+            continue
+
+        if not result or not isinstance(result, bytes) or len(result) < 1000:
+            continue
+
+        vad_result = detect_end_of_speech(result)
+
+        if vad_result["speech_ended"]:
+            if not pending_end:
+                pending_end = True
+                grace_polls = 0
+            else:
+                grace_polls += 1
+                if grace_polls >= GRACE_LIMIT:
+                    logger.info(
+                        "VAD: speech ended after %dms (silence %dms)",
+                        vad_result["speech_ms"],
+                        vad_result["trailing_silence_ms"],
+                    )
+                    audio_data = result
+                    break
+        elif pending_end and vad_result["has_speech"] and not vad_result["speech_ended"]:
+            logger.info("VAD: continuation speech detected, resetting")
+            pending_end = False
+            grace_polls = 0
+
+        if not vad_result["has_speech"] and poll >= 17:
+            logger.info("VAD: no speech after %ds", poll * 0.3)
+            break
+
+    with contextlib.suppress(Exception):
+        await _ari_request("POST", f"/recordings/live/{recording_name}/stop")
+
+    if not audio_data:
+        await asyncio.sleep(0.3)
+        try:
+            result = await _ari_request(
+                "GET", f"/recordings/stored/{recording_name}/file"
+            )
+            if result and isinstance(result, bytes) and len(result) > 1000:
+                vad_result = detect_end_of_speech(result)
+                if vad_result["has_speech"]:
+                    audio_data = result
+        except Exception:
+            pass
+
+    return audio_data
+
+
+async def _synthesize_one(text: str, agent) -> bytes:
+    """Synthesize a single text segment."""
     if agent.tts_provider == "google":
         api_key = await _get_api_key("google")
-        return await tts_google.synthesize(text, api_key, voice_name=agent.google_tts_voice)
+        auth = await _get_google_auth()
+        return await tts_google.synthesize(
+            text, api_key, voice_name=agent.google_tts_voice, google_auth=auth
+        )
     else:
         return await tts_coefont.synthesize_for_asterisk(text, agent.coefont_voice_id)
+
+
+async def _play_tts_pipelined(text: str, agent, channel_id: str) -> None:
+    """Split into 2 chunks: first sentence (low latency) + rest (background)."""
+    import re
+
+    sentences = re.split(r"(?<=[。！？\n])", text)
+    sentences = [s.strip() for s in sentences if s.strip()]
+    if not sentences:
+        return
+
+    safe_id = _sanitize_id(channel_id)
+    first = sentences[0]
+    rest = "".join(sentences[1:]).strip() if len(sentences) > 1 else ""
+
+    # Synthesize first sentence immediately
+    audio_first = await _synthesize_one(first, agent)
+
+    # Start synthesizing rest in background
+    rest_task: asyncio.Task | None = None
+    if rest:
+        rest_task = asyncio.create_task(_synthesize_one(rest, agent))
+
+    # Play first chunk
+    sound_name = await _save_wav_to_asterisk(audio_first, f"tts_{safe_id}_0.wav")
+    duration = len(audio_first) / 16000
+    await _play_and_wait(channel_id, f"sound:{sound_name}", duration)
+
+    # Play rest
+    if rest_task:
+        audio_rest = await rest_task
+        sound_name = await _save_wav_to_asterisk(audio_rest, f"tts_{safe_id}_1.wav")
+        duration = len(audio_rest) / 16000
+        await _play_and_wait(channel_id, f"sound:{sound_name}", duration)
 
 
 async def _get_api_key(provider: str) -> str:
@@ -82,12 +273,12 @@ def _sanitize_id(channel_id: str) -> str:
 
 async def _save_wav_to_asterisk(audio_wav: bytes, filename: str) -> str:
     """Save WAV audio to a file Asterisk can play and return the ARI media URI."""
-    # Asterisk has language prefix enabled, so sounds are searched under en/
-    # Place files under the language-prefixed path
-    sounds_path = f"/usr/share/asterisk/sounds/en/millicall/{filename}"
-    os.makedirs(os.path.dirname(sounds_path), exist_ok=True)
-    with open(sounds_path, "wb") as f:
+    sounds_dir = "/usr/share/asterisk/sounds/en/millicall"
+    os.makedirs(sounds_dir, exist_ok=True)
+    filepath = f"{sounds_dir}/{filename}"
+    with open(filepath, "wb") as f:
         f.write(audio_wav)
+    logger.debug("Saved WAV: %s (%d bytes)", filepath, len(audio_wav))
 
     # Return sound name without extension
     return f"millicall/{filename.rsplit('.', 1)[0]}"
@@ -168,76 +359,55 @@ async def _handle_call(channel_id: str, extension: str) -> None:
         await asyncio.sleep(0.5)
 
         # Play greeting
-        greeting_audio = await _synthesize_tts(agent.greeting_text, agent)
+        greeting_audio = await _synthesize_one(agent.greeting_text, agent)
         sound_name = await _save_wav_to_asterisk(greeting_audio, f"greeting_{safe_id}.wav")
-        await _ari_request(
-            "POST", f"/channels/{channel_id}/play", params={"media": f"sound:{sound_name}"}
-        )
-        # Wait for greeting to finish
-        await asyncio.sleep(len(greeting_audio) / (8000 * 2) + 0.5)
+        greeting_duration = len(greeting_audio) / 16000
+        await _play_and_wait(channel_id, f"sound:{sound_name}", greeting_duration)
 
         # Conversation loop
         for turn in range(50):  # Max 50 turns
-            # Record caller audio (max 15 seconds, stop on silence)
+            # Record with VAD-based end-of-speech detection
             recording_name = f"ai_{safe_id}_{turn}"
-            try:
-                await _ari_request(
-                    "POST",
-                    f"/channels/{channel_id}/record",
-                    params={
-                        "name": recording_name,
-                        "format": "wav",
-                        "maxDurationSeconds": 15,
-                        "maxSilenceSeconds": 2,
-                        "beep": "false",
-                        "terminateOn": "none",
-                    },
-                )
-            except Exception as e:
-                logger.info("Recording failed: %s", e)
-                break
-
-            # Wait for recording to complete (poll until file exists)
-            audio_data = None
-            for _poll in range(18):  # Wait up to 18 seconds
-                await asyncio.sleep(1)
-                try:
-                    result = await _ari_request(
-                        "GET",
-                        f"/recordings/stored/{recording_name}/file",
-                    )
-                    if result and isinstance(result, bytes) and len(result) > 100:
-                        audio_data = result
-                        break
-                except Exception:
-                    continue
-
+            audio_data = await _record_with_vad(channel_id, recording_name)
             if not audio_data:
-                logger.info("No audio recorded, continuing...")
+                logger.info("No speech detected, continuing...")
                 continue
 
-            # STT
             try:
-                stt_key = await _get_api_key("openai")
-                user_text = await stt.transcribe(audio_data, stt_key)
+                user_text = await stt.smart_transcribe(audio_data)
             except Exception as e:
                 logger.error("STT failed: %s", e)
                 continue
 
-            if not user_text.strip():
+            user_text = user_text.strip()
+            if not user_text:
                 continue
+
+            with contextlib.suppress(Exception):
+                await _ari_request("DELETE", f"/recordings/stored/{recording_name}")
 
             logger.info("User said: '%s'", user_text)
 
             # LLM - append hangup instruction to system prompt
             hangup_prompt = (
                 agent.system_prompt
-                + "\n\n[重要ルール] 会話が自然に終わる場面（お礼・別れの挨拶・「もういい」「切るね」"
-                "「ありがとう、じゃあね」等）では、最後の応答の末尾に [END_CALL] と付けてください。"
-                "このタグはユーザーには見えません。通常の会話中は絶対に付けないでください。"
+                + "\n\n[重要ルール]"
+                "\n- これは電話会話です。応答は最大2文、40文字以内で簡潔に。"
+                "\n- 最初の一文は必ず短く（15文字以内の相槌や返事）。例:「ああ、そうだね！」「ふむ、なるほど。」"
+                "\n\n[終話ルール — 必ず守ること]"
+                "\n相手が会話を終わらせようとしている場合、あなたの応答の最後に必ず [END_CALL] を付けてください。"
+                "\n終話のサイン例:"
+                "\n- 「ありがとう」「ありがとうね」「サンキュー」"
+                "\n- 「じゃあね」「バイバイ」「またね」「また今度」"
+                "\n- 「大丈夫」「もういいよ」「切るね」「おやすみ」"
+                "\n- 「一旦大丈夫」「とりあえずいいや」"
+                "\nこれらが含まれていたら、短い別れの挨拶 + [END_CALL] で応答してください。"
+                "\n例: 「うん、またね！ [END_CALL]」「こちらこそ、ありがとう！ [END_CALL]」"
+                "\n通常の会話中は絶対に [END_CALL] を付けないでください。"
             )
             try:
                 llm_key = await _get_api_key(agent.llm_provider)
+                auth = await _get_google_auth() if agent.llm_provider == "google" else None
                 response_text = await llm_chat.generate_response(
                     user_text=user_text,
                     context=context,
@@ -245,6 +415,7 @@ async def _handle_call(channel_id: str, extension: str) -> None:
                     provider=agent.llm_provider,
                     api_key=llm_key,
                     model=agent.llm_model,
+                    google_auth=auth,
                 )
             except Exception as e:
                 logger.error("LLM failed: %s", e)
@@ -267,20 +438,9 @@ async def _handle_call(channel_id: str, extension: str) -> None:
                 except Exception as e:
                     logger.error("Failed to save call message: %s", e)
 
-            # TTS
+            # TTS (pipelined: synthesize next sentence while playing current)
             try:
-                response_audio = await _synthesize_tts(response_text, agent)
-                sound_name = await _save_wav_to_asterisk(
-                    response_audio, f"response_{safe_id}_{turn}.wav"
-                )
-                await _ari_request(
-                    "POST",
-                    f"/channels/{channel_id}/play",
-                    params={"media": f"sound:{sound_name}"},
-                )
-                # Wait for playback to finish
-                duration = len(response_audio) / (8000 * 2)
-                await asyncio.sleep(duration + 0.3)
+                await _play_tts_pipelined(response_text, agent, channel_id)
             except Exception as e:
                 logger.error("TTS/playback failed: %s", e)
                 break
@@ -345,9 +505,30 @@ async def _handle_workflow_call(channel_id: str, extension: str) -> None:
     )
 
     try:
-        # Answer the call
-        await _ari_request("POST", f"/channels/{channel_id}/answer")
-        await asyncio.sleep(0.5)
+        # Wait for N rings before answering (1 ring ≈ 5 seconds)
+        ring_count = 0
+        if workflow.definition:
+            for node in workflow.definition.get("nodes", []):
+                if node.get("type") == "start":
+                    ring_count = int(node.get("config", {}).get("ring_count", 0))
+                    break
+
+        if ring_count > 0:
+            # Answer early, then play Japanese ringback tone to simulate ringing
+            await _ari_request("POST", f"/channels/{channel_id}/answer")
+            await asyncio.sleep(0.3)
+
+            # Generate Japanese ringback WAV and play it
+            # 400+15Hz, 1s ON / 2s OFF, repeated ring_count times
+            ringback_wav = _generate_ringback_wav(ring_count)
+            sound_name = await _save_wav_to_asterisk(ringback_wav, f"ringback_{_sanitize_id(channel_id)}.wav")
+            duration = ring_count * 3.0
+            await _play_and_wait(channel_id, f"sound:{sound_name}", duration)
+            await asyncio.sleep(0.3)
+        else:
+            # Answer the call immediately
+            await _ari_request("POST", f"/channels/{channel_id}/answer")
+            await asyncio.sleep(0.5)
 
         # Execute the workflow
         executor = WorkflowExecutor(channel_id, workflow)
@@ -417,10 +598,17 @@ async def run_ari_listener() -> None:
 
                     elif event_type == "ChannelHangupRequest":
                         channel_id = event["channel"]["id"]
-                        logger.info("Hangup request: channel=%s", channel_id)
-                        channel_gone[channel_id] = True
-                        with contextlib.suppress(Exception):
-                            await _ari_request("DELETE", f"/channels/{channel_id}")
+                        cause = event.get("cause", 0)
+                        logger.info("Hangup request: channel=%s cause=%s", channel_id, cause)
+                        # Don't mark channel_gone here — StasisEnd is the reliable signal.
+                        # ChannelHangupRequest fires multiple times and before Answer,
+                        # causing premature termination of workflows.
+
+                    elif event_type == "PlaybackFinished":
+                        playback_id = event.get("playback", {}).get("id", "")
+                        ev = _playback_events.get(playback_id)
+                        if ev:
+                            ev.set()
 
                     elif event_type == "ChannelDtmfReceived":
                         channel_id = event["channel"]["id"]

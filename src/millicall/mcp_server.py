@@ -431,9 +431,11 @@ async def _resolve_endpoint(
 async def _tts_play(channel_id: str, text: str, voice: str = "ja-JP-Chirp3-HD-Aoede") -> float:
     """Synthesize text and play on channel. Returns duration in seconds."""
     api_key = await _get_api_key("google")
+    from millicall.phase2.ari_handler import _get_google_auth
     from millicall.phase2.tts_google import synthesize
 
-    audio_wav = await synthesize(text, api_key, voice_name=voice)
+    auth = await _get_google_auth()
+    audio_wav = await synthesize(text, api_key, voice_name=voice, google_auth=auth)
 
     safe_id = _sanitize_id(channel_id)
     filename = f"mcp_say_{safe_id}.wav"

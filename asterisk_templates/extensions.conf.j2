@@ -15,12 +15,11 @@ writeprotect=no
 {% if item.ext.enabled and item.ext.type == 'phone' and item.peer %}
 exten => {{ item.ext.number }},1,NoOp(Calling {{ item.ext.display_name }})
  same => n,Set(CALLERID(name)=${CALLERID(name)})
- same => n,Dial(PJSIP/{{ item.peer.username }},30,tTr)
+ same => n,Dial(PJSIP/{{ item.peer.username }},30,tT)
  same => n,VoiceMail({{ item.ext.number }}@default,u)
  same => n,Hangup()
 {% elif item.ext.enabled and item.ext.type == 'workflow' %}
 exten => {{ item.ext.number }},1,NoOp(Workflow: {{ item.ext.display_name }})
- same => n,Answer()
  same => n,Stasis(millicall-workflow)
  same => n,Hangup()
 {% endif %}
@@ -81,6 +80,54 @@ exten => *43,1,NoOp(Echo Test)
 exten => i,1,NoOp(Invalid extension dialed)
  same => n,Playback(pbx-invalid)
  same => n,Hangup()
+
+; --- On-demand call (connect briefly then hang up) ---
+[ondemand]
+; Internal extensions
+{% for item in extensions %}
+{% if item.ext.enabled and item.ext.type == 'phone' and item.peer %}
+exten => {{ item.ext.number }},1,NoOp(On-demand call: ${EXTEN})
+ same => n,Dial(PJSIP/{{ item.peer.username }},30)
+ same => n,Wait(3)
+ same => n,Hangup()
+{% endif %}
+{% endfor %}
+
+; External numbers via trunk
+{% for trunk in trunks %}
+{% set rules = [] %}
+{% if trunk.outbound_prefixes %}
+{% for entry in trunk.outbound_prefixes.split(',') %}
+{% set entry = entry.strip() %}
+{% if entry %}
+{% if ':' in entry %}
+{% set parts = entry.split(':', 1) %}
+{% if rules.append({'pfx': parts[0].strip(), 'prepend': parts[1].strip()}) %}{% endif %}
+{% else %}
+{% if rules.append({'pfx': entry, 'prepend': ''}) %}{% endif %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% for rule in rules %}
+exten => _{{ rule.pfx }}.,1,NoOp(On-demand PSTN: ${EXTEN} via {{ trunk.name }})
+ same => n,Set(CALLERID(num)={{ trunk.caller_id }})
+ same => n,Dial(PJSIP/{{ rule.prepend }}${EXTEN:{{ rule.pfx | length }}}@{{ trunk.name }},30)
+ same => n,Wait(3)
+ same => n,Hangup()
+{% endfor %}
+{% if not rules %}
+exten => _0.,1,NoOp(On-demand PSTN: ${EXTEN} via {{ trunk.name }})
+ same => n,Set(CALLERID(num)={{ trunk.caller_id }})
+ same => n,Dial(PJSIP/${EXTEN}@{{ trunk.name }},30)
+ same => n,Wait(3)
+ same => n,Hangup()
+{% endif %}
+{% endfor %}
+
+; Catch-all: route anything else through internal context
+exten => _X!,1,NoOp(On-demand fallback: ${EXTEN})
+ same => n,Goto(internal,${EXTEN},1)
 
 {% for trunk in trunks %}
 ; ===========================================

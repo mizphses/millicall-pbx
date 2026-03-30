@@ -33,11 +33,14 @@ from millicall.presentation.api.dashboard import router as dashboard_api_router
 from millicall.presentation.api.devices import router as devices_api_router
 from millicall.presentation.api.extensions import router as extensions_api_router
 from millicall.presentation.api.guide import router as guide_api_router
+from millicall.presentation.api.ondemand_calls import router as ondemand_calls_api_router
 from millicall.presentation.api.peers import router as peers_api_router
 from millicall.presentation.api.settings import router as settings_api_router
 from millicall.presentation.api.trunks import router as trunks_api_router
 from millicall.presentation.api.users import router as users_api_router
+from millicall.presentation.api.wireguard import router as wireguard_api_router
 from millicall.presentation.api.workflows import router as workflows_api_router
+from millicall.presentation.web.ondemand import router as ondemand_trigger_router
 from millicall.presentation.web.provisioning import router as provisioning_router
 from millicall.presentation.web.views import router as web_router
 
@@ -105,6 +108,13 @@ async def lifespan(app: FastAPI):
     await _ensure_admin_user()
     # Start CDR import background task
     cdr_task = asyncio.create_task(_cdr_import_loop())
+    # Start LDAP server for phone directory
+    try:
+        from millicall.infrastructure.ldap_server import start_ldap_server
+
+        start_ldap_server(port=10389)
+    except Exception:
+        logger.warning("LDAP server failed to start", exc_info=True)
     # Start MCP session manager if mounted
     mcp_cm = None
     if hasattr(app.state, "mcp_session_manager"):
@@ -146,6 +156,12 @@ app.include_router(workflows_api_router)
 app.include_router(users_api_router)
 app.include_router(contacts_api_router)
 app.include_router(guide_api_router)
+app.include_router(ondemand_calls_api_router)
+app.include_router(wireguard_api_router)
+
+# No-auth endpoints — must be before MCP mount which catches all routes under "/"
+app.include_router(provisioning_router)
+app.include_router(ondemand_trigger_router)
 
 
 # ---------------------------------------------------------------------------
@@ -372,8 +388,6 @@ try:
 except Exception as e:
     logger.warning("Failed to mount MCP server: %s", e)
 
-# Provisioning (no auth — devices need unauthenticated access)
-app.include_router(provisioning_router)
 # Web UI (backward compat)
 app.include_router(web_router)
 

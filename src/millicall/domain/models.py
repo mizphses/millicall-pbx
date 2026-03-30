@@ -138,6 +138,14 @@ class Contact:
 
 
 @dataclass
+class OnDemandCall:
+    label: str
+    phone_number: str
+    enabled: bool = True
+    id: int | None = None
+
+
+@dataclass
 class Workflow:
     name: str
     number: str  # extension number to dial this workflow

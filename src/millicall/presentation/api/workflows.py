@@ -84,12 +84,14 @@ async def generate_workflow(data: GenerateRequest):
     """Use Gemini to generate a workflow definition from natural language."""
     from millicall.application.settings_service import SettingsService
     from millicall.infrastructure.database import async_session
+    from millicall.infrastructure.google_auth import get_google_auth
 
     async with async_session() as session:
         svc = SettingsService(session)
         api_key = await svc.get_api_key("google")
+        google_auth = await get_google_auth(session)
 
-    if not api_key:
+    if not api_key and google_auth.mode == "api_key":
         return {"error": "Google APIキーが設定されていません"}
 
     node_types = get_node_types_for_workflow_type(data.workflow_type)
@@ -136,20 +138,20 @@ async def generate_workflow(data: GenerateRequest):
 - configにはnode_typeのconfig_schemaに定義されたフィールドを使用
 - JSONのみ出力。マークダウンやコードブロック記法は使わない"""
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    gen_url, gen_headers = google_auth.gemini_url(model="gemini-2.5-flash")
     payload = {
         "contents": [{"role": "user", "parts": [{"text": data.prompt}]}],
         "systemInstruction": {"parts": [{"text": system_prompt}]},
         "generationConfig": {
             "temperature": 0.3,
-            "maxOutputTokens": 4000,
+            "maxOutputTokens": 16384,
             "responseMimeType": "application/json",
         },
     }
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.post(url, json=payload)
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(gen_url, json=payload, headers=gen_headers)
             resp.raise_for_status()
             result = resp.json()
 

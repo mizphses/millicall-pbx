@@ -16,10 +16,11 @@ async def synthesize(
     api_key: str,
     voice_name: str = "ja-JP-Chirp3-HD-Aoede",
     language_code: str = "ja-JP",
+    google_auth: object | None = None,
 ) -> bytes:
     """Synthesize speech using Google Cloud TTS (Chirp3 HD voices).
 
-    Returns WAV audio bytes.
+    Returns WAV audio bytes. Supports both API Key and Vertex AI auth.
 
     Available Chirp3 HD Japanese voices:
     - ja-JP-Chirp3-HD-Aoede
@@ -31,7 +32,13 @@ async def synthesize(
     - ja-JP-Chirp3-HD-Puck
     - ja-JP-Chirp3-HD-Zephyr
     """
-    url = f"{GOOGLE_TTS_URL}?key={api_key}"
+    from millicall.infrastructure.google_auth import GoogleAuth
+
+    if isinstance(google_auth, GoogleAuth):
+        url, headers = google_auth.tts_url()
+    else:
+        url = f"{GOOGLE_TTS_URL}?key={api_key}"
+        headers = {}
 
     payload = {
         "input": {"text": text},
@@ -46,7 +53,7 @@ async def synthesize(
     }
 
     async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.post(url, json=payload)
+        response = await client.post(url, json=payload, headers=headers)
         response.raise_for_status()
         data = response.json()
 

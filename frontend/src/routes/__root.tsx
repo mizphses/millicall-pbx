@@ -22,6 +22,7 @@ const navLinks = [
   { to: "/contacts", label: "電話帳" },
   { to: "/cdr", label: "発着信記録" },
   { to: "/call-history", label: "AI通話履歴" },
+  { to: "/ondemand-calls", label: "オンデマンド" },
   { to: "/settings", label: "詳細設定" },
   { to: "/users", label: "管理者" },
 ] as const;

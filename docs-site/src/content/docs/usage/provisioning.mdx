@@ -1,0 +1,134 @@
+---
+title: プロビジョニング設定
+description: Panasonic KX-HDV / Yealink T シリーズの自動プロビジョニング登録手順
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+IP電話機を Millicall PBX に接続するには、プロビジョニング（自動設定配信）を使うのが最も簡単です。電話機に URL を1つ設定するだけで、SIP 認証情報やトーン設定が自動配信されます。
+
+## 事前準備
+
+<Steps>
+
+1. **デバイス管理** でデバイスをスキャンし、電話機が一覧に表示されることを確認
+2. **SIP電話機** でピア（SIPアカウント）を作成
+3. **内線アカウント** で内線番号を作成し、ピアを割り当て
+4. **デバイス管理** で電話機にピア・内線を割り当て（「内線割り当て」ボタン）
+
+</Steps>
+
+## Panasonic KX-HDV シリーズ
+
+KX-HDV130N / HDV230N / HDV330N / HDV430N に対応しています。
+
+### Web UI から設定
+
+<Steps>
+
+1. 電話機の IP アドレスをブラウザで開く（例: `http://172.20.1.10`）
+
+2. 管理者でログイン（デフォルト: admin / adminpass）
+
+3. **保守** → **プロビジョニング** を開く
+
+4. 以下を設定:
+
+   | 項目 | 値 |
+   |------|-----|
+   | プロビジョニング有効 | はい |
+   | マスターファイルURL | `http://<PBX IP>:8000/provisioning/Panasonic/ConfigCommon.cfg` |
+
+5. **保存** をクリック
+
+6. 電話機を再起動
+
+</Steps>
+
+<Aside>
+マスターファイル（ConfigCommon.cfg）には `CFG_STANDARD_FILE_PATH` が含まれており、電話機が自動的に MAC アドレスベースの個別設定ファイル（Config{'{MAC}'}.cfg）も取得します。マスターファイル URL のみの設定で十分です。
+</Aside>
+
+### ConfigCommon.cfg で配信される設定
+
+| 設定 | 内容 |
+|------|------|
+| プロビジョニングURL | 個別設定ファイルへのパス |
+| NTP | PBX サーバーを NTP サーバーとして使用 |
+| タイムゾーン | GMT+9（日本） |
+| 言語 | 日本語 |
+| トーン設定 | 日本の電話トーン（ダイヤルトーン、呼び出し音、話中音、規制音） |
+| コーデック | G.711 μ-law / a-law |
+
+### Config{'{MAC}'}.cfg で配信される設定
+
+| 設定 | 内容 |
+|------|------|
+| SIP サーバー | PBX の IP アドレス |
+| SIP 認証情報 | ピアのユーザー名・パスワード |
+| 内線番号 | 割り当てられた内線番号 |
+| 表示名 | 内線の表示名 |
+
+## Yealink T シリーズ
+
+T43U / T46U / T48U 等に対応しています。
+
+### Web UI から設定
+
+<Steps>
+
+1. 電話機の IP アドレスをブラウザで開く（例: `http://172.20.1.11`）
+
+2. 管理者でログイン（デフォルト: admin / admin）
+
+3. **Settings** → **Auto Provision** を開く
+
+4. 以下を設定:
+
+   | 項目 | 値 |
+   |------|-----|
+   | Server URL | `http://<PBX IP>:8000/provisioning/Yealink` |
+   | Power On | Enabled |
+
+5. **Confirm** をクリック
+
+6. **Auto Provision Now** をクリック、または電話機を再起動
+
+</Steps>
+
+### 配信されるファイル
+
+| ファイル | 内容 |
+|---------|------|
+| `y000000000000.boot` | ブートファイル — 共通・個別設定ファイルのURLを指定 |
+| `common.cfg` | 共通設定（NTP、タイムゾーン、言語、日本のトーン設定） |
+| `{'{mac}'}.cfg` | 個別設定（SIP アカウント、内線番号、表示名） |
+
+### common.cfg で配信される設定
+
+| 設定 | 内容 |
+|------|------|
+| オートプロビジョニング | 定期取得（24時間ごと） |
+| NTP / タイムゾーン | Asia/Tokyo (+9) |
+| 言語 | 日本語（GUI / Web UI） |
+| トーン設定 | 日本の電話トーン（`voice.tone.country = Japan`） |
+
+## トラブルシューティング
+
+### プロビジョニングが反映されない
+
+```bash
+# PBX からプロビジョニング URL にアクセスできるか確認
+curl http://<PBX IP>:8000/provisioning/Panasonic/ConfigCommon.cfg
+
+# 個別設定が生成されているか確認（MAC アドレスを指定）
+curl http://<PBX IP>:8000/provisioning/Panasonic/Config4C364E19FF2B.cfg
+```
+
+### 「No configuration assigned」と表示される
+
+デバイス管理で電話機にピア・内線が割り当てられていることを確認してください。
+
+### 設定変更後に電話機に反映されない
+
+WebUI のデバイス管理で **再同期** ボタンを押すか、電話機を再起動してください。SIP NOTIFY による `check-sync` も自動送信されます。

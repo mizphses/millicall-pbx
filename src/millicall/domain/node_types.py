@@ -40,7 +40,15 @@ COMMON_NODES: dict[str, dict] = {
         "color": "#4CAF50",
         "max_inputs": 0,
         "max_outputs": 1,
-        "config_schema": {},
+        "config_schema": {
+            "ring_count": {
+                "type": "number",
+                "label": "応答前コール数",
+                "required": False,
+                "default": 0,
+                "description": "応答前に鳴らすコール数 (0=即応答, 1コール≈5秒)",
+            },
+        },
     },
     "end": {
         "label": "終了",
@@ -342,6 +350,14 @@ AI_WORKFLOW_NODES: dict[str, dict] = {
                 "required": True,
                 "default": 10,
             },
+            "extraction_mode": {
+                "type": "select",
+                "label": "情報聞き出しモード",
+                "required": False,
+                "default": "auto",
+                "options": ["auto", "direct"],
+                "description": "auto: 自然な会話の流れで聞き出す / direct: 最初から本題に入る",
+            },
             **_TTS_CONFIG,
         },
     },
@@ -447,11 +463,20 @@ AI_WORKFLOW_NODES: dict[str, dict] = {
                 "required": False,
                 "default": {},
             },
+            "content_type": {
+                "type": "select",
+                "label": "ボディ形式",
+                "required": False,
+                "default": "json",
+                "options": ["json", "form"],
+                "description": "json: JSON / form: application/x-www-form-urlencoded",
+            },
             "body_template": {
                 "type": "textarea",
-                "label": "ボディ（JSON、{{変数名}} 展開可）",
+                "label": "ボディ（{{変数名}} 展開可）",
                 "required": False,
                 "default": "",
+                "description": "JSON形式 または key=value&key=value 形式",
             },
             "result_variable": {
                 "type": "string",

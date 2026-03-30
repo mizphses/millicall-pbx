@@ -6,8 +6,16 @@ cd /app
 
 # Fix permissions — data dir may be owned by root from Docker volume
 chown -R millicall:millicall /app/data
-chown -R millicall:asterisk /usr/share/asterisk/sounds/en/millicall
+mkdir -p /usr/share/asterisk/sounds/en/millicall /usr/share/asterisk/sounds/millicall /usr/share/asterisk/sounds/custom/millicall
+chown -R millicall:asterisk /usr/share/asterisk/sounds/en/millicall /usr/share/asterisk/sounds/millicall /usr/share/asterisk/sounds/custom/millicall
 chown -R millicall:asterisk /var/spool/asterisk/recording
+# Allow millicall user (in asterisk group) to write Asterisk configs
+chmod -R g+w /etc/asterisk/
+
+# Configure Asterisk to allow millicall user access to CLI socket
+sed -i 's/;astctlpermissions = 0660/astctlpermissions = 0666/' /etc/asterisk/asterisk.conf
+sed -i 's/;astctlowner = root/astctlowner = root/' /etc/asterisk/asterisk.conf
+sed -i 's/;astctlgroup = apache/astctlgroup = asterisk/' /etc/asterisk/asterisk.conf
 
 # Show startup banner with admin password
 echo ""
@@ -29,6 +37,9 @@ echo ""
 
 # Run migrations (root — needs write to both /app/data and /etc/asterisk)
 alembic upgrade head
+
+# Fix DB ownership after migrations (alembic runs as root, app runs as millicall)
+chown -R millicall:millicall /app/data
 
 # Generate Asterisk config BEFORE starting Asterisk (uses DB for trunk/peer data)
 python -c "

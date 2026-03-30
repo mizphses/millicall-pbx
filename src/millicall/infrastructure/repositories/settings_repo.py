@@ -49,7 +49,12 @@ class SettingsRepository:
         defaults = [
             ("coefont_access_key", "", "CoeFont API Access Key"),
             ("coefont_access_secret", "", "CoeFont API Access Secret"),
+            ("google_auth_mode", "api_key", "Google認証モード (api_key / vertex_ai)"),
             ("google_api_key", "", "Google API Key (Gemini LLM & Chirp3 TTS)"),
+            ("google_vertex_project", "", "Google Cloud プロジェクトID (Vertex AI)"),
+            ("google_vertex_location", "us-central1", "Vertex AI リージョン"),
+            ("google_service_account_json", "", "サービスアカウントJSON (Vertex AI)"),
+            ("stt_provider", "openai", "STTプロバイダー (openai / google)"),
             ("openai_api_key", "", "OpenAI API Key (Whisper STT & GPT)"),
             ("anthropic_api_key", "", "Anthropic API Key (Claude)"),
         ]

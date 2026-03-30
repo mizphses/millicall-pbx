@@ -1,4 +1,4 @@
-"""Settings service - reads API keys from DB with env var fallback."""
+"""Settings service - reads API keys and configuration from DB."""
 
 import os
 
@@ -15,18 +15,22 @@ class SettingsService:
         return await self.repo.get_all_with_desc()
 
     async def get(self, key: str) -> str:
-        """Get setting value. Falls back to environment variable."""
+        """Get setting value from DB. Falls back to env var for initial setup."""
         value = await self.repo.get(key)
         if value:
             return value
-        # Fallback to environment variable (uppercase)
+        # Env var fallback (for initial bootstrap only)
         return os.environ.get(key.upper(), "")
 
     async def set(self, key: str, value: str) -> None:
         await self.repo.set(key, value)
 
     async def get_api_key(self, provider: str) -> str:
-        """Get API key for a provider."""
+        """Get API key for a provider.
+
+        For Google, check auth mode — if vertex_ai, the API key is not used
+        (authentication is handled by GoogleAuth with service account).
+        """
         key_map = {
             "google": "google_api_key",
             "openai": "openai_api_key",

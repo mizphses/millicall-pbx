@@ -11,7 +11,7 @@ from millicall.infrastructure.repositories.peer_repo import PeerRepository
 
 logger = logging.getLogger(__name__)
 
-PBX_ADDR = settings.pbx_bind_address
+PBX_ADDR = settings.pbx_public_address or settings.pbx_bind_address
 if PBX_ADDR in ("0.0.0.0", ""):
     import socket
 
@@ -20,7 +20,7 @@ if PBX_ADDR in ("0.0.0.0", ""):
         PBX_ADDR = socket.gethostbyname(socket.gethostname())
     except socket.gaierror:
         PBX_ADDR = "127.0.0.1"
-    logger.info("PBX_BIND_ADDRESS is 0.0.0.0, using detected IP: %s", PBX_ADDR)
+    logger.info("PBX address for provisioning: %s (auto-detected)", PBX_ADDR)
 
 
 class ProvisioningService:
@@ -56,17 +56,42 @@ class ProvisioningService:
             'SIP_DNSSRV_ENA_1="N"',
             'SIP_DNSSRV_ENA_2="N"',
             "",
-            "# Dial tone - Japanese 400Hz continuous",
-            'DIAL_TONE_FRQ="400"',
-            'DIAL_TONE_TIMING="0"',
+            "# Tone settings - Japanese (TTC standard)",
             "",
-            "# Busy tone - Japanese",
+            "# Dial tone 1: 400Hz continuous",
+            'DIAL_TONE1_FRQ="400"',
+            'DIAL_TONE1_TIMING="0"',
+            'DIAL_TONE1_RPT="1"',
+            "",
+            "# Ringback tone: 400+15Hz, 1s ON / 2s OFF",
+            'RINGBACK_TONE_FRQ="400,415"',
+            'RINGBACK_TONE_TIMING="60,1000,2000"',
+            'RINGBACK_TONE_RPT="1"',
+            "",
+            "# Busy tone: 400Hz, 0.5s ON / 0.5s OFF",
             'BUSY_TONE_FRQ="400"',
-            'BUSY_TONE_TIMING="500/500"',
+            'BUSY_TONE_TIMING="60,500,500"',
+            'BUSY_TONE_RPT="1"',
             "",
-            "# Ringback tone - Japanese",
-            'RINGBACK_TONE_FRQ="400+15"',
-            'RINGBACK_TONE_TIMING="1000/2000"',
+            "# Reorder tone (congestion): 400Hz, 0.25s ON / 0.19s OFF",
+            'REORDER_TONE_FRQ="400"',
+            'REORDER_TONE_TIMING="60,250,190"',
+            'REORDER_TONE_RPT="1"',
+            'REORDER_TONE_ENABLE="Y"',
+            "",
+            "# Remote Phonebook (LDAP)",
+            'LDAP_ENABLE="Y"',
+            f'LDAP_SERVER="{PBX_ADDR}"',
+            'LDAP_SERVER_PORT="10389"',
+            'LDAP_USERID=""',
+            'LDAP_PASSWORD=""',
+            'LDAP_MAXRECORD="500"',
+            'LDAP_NAME_FILTER="(|(cn=%)(sn=%))"',
+            'LDAP_NUMB_FILTER="(|(telephoneNumber=%)(mobile=%)(homePhone=%))"',
+            'LDAP_NAME_ATTRIBUTE="cn,sn"',
+            'LDAP_NUMB_ATTRIBUTE="telephoneNumber"',
+            'LDAP_BASEDN="ou=contacts,dc=millicall,dc=local"',
+            'LDAP_DNSSRV_ENABLE="N"',
             "",
         ]
         return "\r\n".join(lines) + "\r\n"
@@ -132,7 +157,7 @@ class ProvisioningService:
             "#!version:1.0.0.1",
             "",
             f"include:config <http://{PBX_ADDR}:8000/provisioning/Yealink/common.cfg>",
-            f'include:config "http://{PBX_ADDR}:8000/provisioning/Yealink/{{{{mac}}}}.cfg"',
+            f"include:config <http://{PBX_ADDR}:8000/provisioning/Yealink/$MAC.cfg>",
             "",
             "overwrite_mode = 1",
             "specific_model.excluded_mode = 0",
@@ -154,6 +179,7 @@ class ProvisioningService:
             "",
             "## NTP / Timezone (Asia/Tokyo, +9)",
             f"local_time.ntp_server1 = {PBX_ADDR}",
+            "local_time.ntp_server2 = ntp.nict.jp",
             "local_time.time_zone = +9",
             "local_time.time_zone_name = Japan",
             "local_time.summer_time = 0",
@@ -164,10 +190,21 @@ class ProvisioningService:
             "lang.gui = Japanese",
             "lang.wui = Japanese",
             "",
-            "## Tone - Japanese",
+            "## Tone - Japanese (TTC standard)",
+            "## Format: freq1*gain1+freq2*gain2/on_duration,freq/off_duration",
+            "voice.tone.country = Custom",
             "voice.tone.dial = 400/0",
-            "voice.tone.busy = 400/500,0/500",
             "voice.tone.ring = 400+15/1000,0/2000",
+            "voice.tone.busy = 400/500,0/500",
+            "voice.tone.congestion = 400/250,0/190",
+            "voice.tone.callwaiting = 400/200,0/600,400/200,0/3000",
+            "voice.tone.dialrecall = 400/200,0/200,400/200,0/200,400/200,0/200,400/0",
+            "voice.tone.info = 950/330,1400/330,1800/330,0/1000",
+            "voice.tone.stutter = 400/100,0/100,400/100,0/100,400/100,0/100,400/0",
+            "",
+            "## Remote Phonebook",
+            f"remote_phonebook.data.1.url = http://{PBX_ADDR}:8000/provisioning/phonebook/yealink.xml",
+            "remote_phonebook.data.1.name = Millicall",
             "",
         ]
         return "\n".join(lines) + "\n"

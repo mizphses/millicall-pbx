@@ -97,6 +97,38 @@ class AsteriskReloader:
                 self.send_http_resync(ip)
 
     def _run_command(self, command: str) -> None:
+        # Try ARI first (works regardless of socket permissions)
+        try:
+            import httpx
+
+            from millicall.config import settings
+
+            ari_url = "http://localhost:8088/ari"
+            api_key = f"{settings.ari_user}:{settings.ari_password}"
+
+            # Map common commands to ARI endpoints
+            if "pjsip reload" in command:
+                resp = httpx.put(
+                    f"{ari_url}/asterisk/modules/res_pjsip",
+                    params={"api_key": api_key},
+                    timeout=10.0,
+                )
+                if resp.status_code in (200, 204):
+                    logger.info("ARI reload OK: %s", command)
+                    return
+            elif "dialplan reload" in command:
+                resp = httpx.put(
+                    f"{ari_url}/asterisk/modules/pbx_config",
+                    params={"api_key": api_key},
+                    timeout=10.0,
+                )
+                if resp.status_code in (200, 204):
+                    logger.info("ARI reload OK: %s", command)
+                    return
+        except Exception as e:
+            logger.debug("ARI reload failed, falling back to CLI: %s", e)
+
+        # Fallback to asterisk CLI
         try:
             result = subprocess.run(
                 ["asterisk", "-rx", command],

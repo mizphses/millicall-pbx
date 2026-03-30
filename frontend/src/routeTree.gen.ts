@@ -12,8 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as TrunksRouteImport } from './routes/trunks'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as PhoneRouteImport } from './routes/phone'
 import { Route as PeersRouteImport } from './routes/peers'
+import { Route as OndemandCallsRouteImport } from './routes/ondemand-calls'
 import { Route as McpGuideRouteImport } from './routes/mcp-guide'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ExtensionsRouteImport } from './routes/extensions'
@@ -49,14 +49,14 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PhoneRoute = PhoneRouteImport.update({
-  id: '/phone',
-  path: '/phone',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const PeersRoute = PeersRouteImport.update({
   id: '/peers',
   path: '/peers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OndemandCallsRoute = OndemandCallsRouteImport.update({
+  id: '/ondemand-calls',
+  path: '/ondemand-calls',
   getParentRoute: () => rootRouteImport,
 } as any)
 const McpGuideRoute = McpGuideRouteImport.update({
@@ -165,8 +165,8 @@ export interface FileRoutesByFullPath {
   '/extensions': typeof ExtensionsRoute
   '/login': typeof LoginRoute
   '/mcp-guide': typeof McpGuideRoute
+  '/ondemand-calls': typeof OndemandCallsRoute
   '/peers': typeof PeersRoute
-  '/phone': typeof PhoneRoute
   '/settings': typeof SettingsRoute
   '/trunks': typeof TrunksRoute
   '/users': typeof UsersRoute
@@ -191,8 +191,8 @@ export interface FileRoutesByTo {
   '/extensions': typeof ExtensionsRoute
   '/login': typeof LoginRoute
   '/mcp-guide': typeof McpGuideRoute
+  '/ondemand-calls': typeof OndemandCallsRoute
   '/peers': typeof PeersRoute
-  '/phone': typeof PhoneRoute
   '/settings': typeof SettingsRoute
   '/trunks': typeof TrunksRoute
   '/users': typeof UsersRoute
@@ -218,8 +218,8 @@ export interface FileRoutesById {
   '/extensions': typeof ExtensionsRoute
   '/login': typeof LoginRoute
   '/mcp-guide': typeof McpGuideRoute
+  '/ondemand-calls': typeof OndemandCallsRoute
   '/peers': typeof PeersRoute
-  '/phone': typeof PhoneRoute
   '/settings': typeof SettingsRoute
   '/trunks': typeof TrunksRoute
   '/users': typeof UsersRoute
@@ -246,8 +246,8 @@ export interface FileRouteTypes {
     | '/extensions'
     | '/login'
     | '/mcp-guide'
+    | '/ondemand-calls'
     | '/peers'
-    | '/phone'
     | '/settings'
     | '/trunks'
     | '/users'
@@ -272,8 +272,8 @@ export interface FileRouteTypes {
     | '/extensions'
     | '/login'
     | '/mcp-guide'
+    | '/ondemand-calls'
     | '/peers'
-    | '/phone'
     | '/settings'
     | '/trunks'
     | '/users'
@@ -298,8 +298,8 @@ export interface FileRouteTypes {
     | '/extensions'
     | '/login'
     | '/mcp-guide'
+    | '/ondemand-calls'
     | '/peers'
-    | '/phone'
     | '/settings'
     | '/trunks'
     | '/users'
@@ -325,8 +325,8 @@ export interface RootRouteChildren {
   ExtensionsRoute: typeof ExtensionsRoute
   LoginRoute: typeof LoginRoute
   McpGuideRoute: typeof McpGuideRoute
+  OndemandCallsRoute: typeof OndemandCallsRoute
   PeersRoute: typeof PeersRoute
-  PhoneRoute: typeof PhoneRoute
   SettingsRoute: typeof SettingsRoute
   TrunksRoute: typeof TrunksRoute
   UsersRoute: typeof UsersRoute
@@ -366,18 +366,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/phone': {
-      id: '/phone'
-      path: '/phone'
-      fullPath: '/phone'
-      preLoaderRoute: typeof PhoneRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/peers': {
       id: '/peers'
       path: '/peers'
       fullPath: '/peers'
       preLoaderRoute: typeof PeersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ondemand-calls': {
+      id: '/ondemand-calls'
+      path: '/ondemand-calls'
+      fullPath: '/ondemand-calls'
+      preLoaderRoute: typeof OndemandCallsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mcp-guide': {
@@ -525,8 +525,8 @@ const rootRouteChildren: RootRouteChildren = {
   ExtensionsRoute: ExtensionsRoute,
   LoginRoute: LoginRoute,
   McpGuideRoute: McpGuideRoute,
+  OndemandCallsRoute: OndemandCallsRoute,
   PeersRoute: PeersRoute,
-  PhoneRoute: PhoneRoute,
   SettingsRoute: SettingsRoute,
   TrunksRoute: TrunksRoute,
   UsersRoute: UsersRoute,

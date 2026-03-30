@@ -44,6 +44,7 @@ export default defineConfig({
 						{ label: '外線トランク', slug: 'usage/trunks' },
 						{ label: 'ワークフロー', slug: 'usage/workflows' },
 						{ label: 'デバイス管理', slug: 'usage/devices' },
+						{ label: 'プロビジョニング', slug: 'usage/provisioning' },
 					],
 				},
 				{

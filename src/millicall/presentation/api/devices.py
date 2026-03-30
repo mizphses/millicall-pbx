@@ -24,6 +24,9 @@ router = APIRouter(
 @router.get("")
 async def list_devices(session: AsyncSession = Depends(get_session)):
     service = DeviceService(session)
+    # Auto-scan DHCP leases on every list request
+    with contextlib.suppress(Exception):
+        await service.scan_dhcp_leases()
     devices = await service.list_devices()
     return [
         {

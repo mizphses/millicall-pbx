@@ -10,7 +10,7 @@
     "lint": "biome ci .",
     "format": "biome check --write .",
     "typecheck": "tsr generate && tsc --noEmit",
-    "openapi": "curl -s https://millicall.miz.cab/openapi.json -o openapi.json && npx openapi-typescript openapi.json -o src/lib/api-types.d.ts",
+    "openapi": "curl -s http://192.168.1.2:8000/openapi.json -o openapi.json && npx openapi-typescript openapi.json -o src/lib/api-types.d.ts",
     "generate": "tsr generate && panda codegen",
     "prepare": "tsr generate && panda codegen",
     "storybook": "storybook dev -p 6006",
