@@ -45,6 +45,13 @@ JWT_SECRET=${JWT_SECRET}
 ADMIN_PASSWORD=${ADMIN_PASSWORD}
 WEBRTC_PASSWORD=${WEBRTC_PASSWORD}
 
+# --- API security / customization --------------------------------------------
+ALLOWED_HOSTS=millicall.local,localhost,127.0.0.1
+CORS_ALLOWED_ORIGINS=http://localhost,http://127.0.0.1
+SESSION_COOKIE_NAME=millicall_token
+SESSION_COOKIE_SECURE=
+SESSION_COOKIE_SAMESITE=lax
+
 # --- Asterisk REST Interface (ARI) -------------------------------------------
 ARI_USER=millicall
 ARI_PASSWORD=${ARI_PASSWORD}

@@ -5,6 +5,8 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Form, Query, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -134,6 +136,20 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+# Harden HTTP layer: host validation + CORS allowlist
+if settings.allowed_hosts and "*" not in settings.allowed_hosts:
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
+
+if settings.cors_allowed_origins:
+    allow_origins = ["*"] if "*" in settings.cors_allowed_origins else settings.cors_allowed_origins
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allow_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # Mount static files
 static_dir = Path(__file__).parent.parent.parent / "static"

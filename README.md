@@ -24,6 +24,18 @@ docker compose up -d
 docker compose logs millicall 2>&1 | grep "ADMIN_PASSWORD"
 ```
 
+### セキュリティとカスタマイズ
+
+`.env` で以下の値を調整すると、公開環境でも安全に運用しつつフロントエンドやリバースプロキシ構成に合わせたチューニングができます。
+
+| 変数 | 役割 |
+|------|------|
+| `ALLOWED_HOSTS` | FastAPI の `TrustedHostMiddleware` に渡すホスト許可リスト。Host ヘッダをホワイトリスト化して SSRF/Tunnel 経由の不正アクセスを防ぎます。 |
+| `CORS_ALLOWED_ORIGINS` | API を利用できるオリジン一覧。Cloudflare Tunnel や独自フロントエンドを追加する場合はここに URL を追加します。 |
+| `SESSION_COOKIE_NAME` / `SESSION_COOKIE_SAMESITE` / `SESSION_COOKIE_SECURE` | ログイン Cookie の名前と属性。`SESSION_COOKIE_SECURE` を空欄にすると自動判定 (HTTPS のみ secure) になり、強制したい場合は `true`/`false` を設定します。 |
+
+`scripts/generate-env.sh` や `install.sh` はこれらのキーも含めて `.env` を生成するため、セットアップ直後から安全なデフォルトで動作します。
+
 ### CLI を使う場合
 
 ```bash

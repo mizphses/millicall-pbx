@@ -1,6 +1,7 @@
 import secrets
 import sys
 from pathlib import Path
+from typing import Literal
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
@@ -24,6 +25,13 @@ class Settings(BaseSettings):
     jwt_secret: str = ""
     jwt_expiry_minutes: int = 1440
     admin_password: str = ""
+
+    # API / Web security hardening
+    allowed_hosts: list[str] = ["millicall.local", "localhost", "127.0.0.1"]
+    cors_allowed_origins: list[str] = ["http://localhost", "http://127.0.0.1"]
+    session_cookie_name: str = "millicall_token"
+    session_cookie_secure: bool | None = None  # None = auto (HTTPS -> secure)
+    session_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
 
     # ARI (Asterisk REST Interface)
     ari_user: str = "millicall"
@@ -72,6 +80,13 @@ class Settings(BaseSettings):
                 file=sys.stderr,
             )
             return generated
+        return v
+
+    @field_validator("session_cookie_secure", mode="before")
+    @classmethod
+    def _normalize_cookie_secure(cls, v: str | bool | None) -> bool | None:
+        if v in ("", None, "auto", "AUTO"):
+            return None
         return v
 
 

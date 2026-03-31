@@ -62,6 +62,16 @@ chmod 600 .env
 | `WEBRTC_PASSWORD` | WebRTC SIP認証パスワード | `python3 -c "import secrets; print(secrets.token_urlsafe(16))"` |
 | `ARI_PASSWORD` | Asterisk REST Interface パスワード | `python3 -c "import secrets; print(secrets.token_urlsafe(16))"` |
 
+追加で、公開経路やリバースプロキシ構成に合わせて API を制限するためのオプション変数も用意しています:
+
+| 変数 | 説明 |
+|------|------|
+| `ALLOWED_HOSTS` | Host ヘッダで許可するドメインのリスト (カンマ区切り)。FastAPI の TrustedHostMiddleware に適用されます。 |
+| `CORS_ALLOWED_ORIGINS` | ブラウザーから API を叩けるオリジンのリスト。Cloudflare Tunnel や別フロントエンドを追加する際はここに URL を加えてください。 |
+| `SESSION_COOKIE_NAME` | ログイン Cookie 名。複数環境を同一ブラウザーで使い分ける場合に変更します。 |
+| `SESSION_COOKIE_SAMESITE` | Cookie の SameSite 属性 (`lax`/`strict`/`none`)。外部 IdP や iframe 経由でアクセスする構成に合わせて調整可能です。 |
+| `SESSION_COOKIE_SECURE` | `true`/`false` で secure 属性を固定。空欄 (デフォルト) の場合は HTTPS 判定で自動付与します。 |
+
 ### 2.3 LLM API キー (AI機能を使う場合)
 
 AI電話応対やワークフローのAIノードを使用する場合、利用するプロバイダーのAPIキーを設定:

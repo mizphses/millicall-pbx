@@ -41,7 +41,7 @@ async def get_current_user(
     )
 
     # Prefer Authorization header, fall back to HttpOnly cookie
-    effective_token = token or request.cookies.get("millicall_token")
+    effective_token = token or request.cookies.get(settings.session_cookie_name)
     if not effective_token:
         raise credentials_exception
 

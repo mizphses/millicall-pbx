@@ -5,6 +5,7 @@ from collections import defaultdict
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from millicall.config import settings
 from millicall.domain.models import User
 from millicall.infrastructure.audit import audit_log
 from millicall.infrastructure.database import get_session
@@ -41,6 +42,20 @@ def _check_rate_limit(client_ip: str) -> None:
     _login_attempts[client_ip].append(now)
 
 
+def _should_use_secure_cookie(request: Request) -> bool:
+    """Decide whether the session cookie must be marked secure."""
+    if settings.session_cookie_secure is not None:
+        return settings.session_cookie_secure
+
+    # Honor reverse proxy headers (Cloudflare, nginx, etc.)
+    forwarded = request.headers.get("x-forwarded-proto", "")
+    forwarded_values = [value.strip().lower() for value in forwarded.split(",") if value.strip()]
+    if "https" in forwarded_values:
+        return True
+
+    return request.url.scheme == "https"
+
+
 @router.post("/login", response_model=TokenResponse)
 async def login(
     data: LoginRequest,
@@ -74,12 +89,12 @@ async def login(
 
     # Set HttpOnly cookie
     response.set_cookie(
-        key="millicall_token",
+        key=settings.session_cookie_name,
         value=access_token,
         httponly=True,
-        samesite="lax",
-        secure=request.url.scheme == "https",
-        max_age=int(60 * 1440),  # match JWT expiry
+        samesite=settings.session_cookie_samesite,
+        secure=_should_use_secure_cookie(request),
+        max_age=int(60 * settings.jwt_expiry_minutes),
         path="/",
     )
 
@@ -101,5 +116,5 @@ async def get_me(current_user: User = Depends(get_current_user)):
 @router.post("/logout")
 async def logout(response: Response):
     """Clear the HttpOnly auth cookie."""
-    response.delete_cookie(key="millicall_token", path="/")
+    response.delete_cookie(key=settings.session_cookie_name, path="/")
     return {"ok": True}
